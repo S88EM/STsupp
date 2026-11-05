@@ -44,8 +44,9 @@ function LoginForm() {
         return;
       }
 
-      // Successful login - use replace so /login is not in browser back-history
-      window.location.replace(redirect);
+      // Successful login - target dashboard or specified redirect (avoid looping on /login)
+      const targetUrl = redirect && redirect !== "/login" ? redirect : "/";
+      window.location.href = targetUrl;
     } catch (err: any) {
       setError(err.message || "Помилка зв'язку із сервером");
     } finally {

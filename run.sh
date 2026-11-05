@@ -12,6 +12,15 @@ if [ -f /data/options.json ]; then
         export TZ="$TZ_VAL"
         echo "[STsup] Timezone set to: $TZ"
     fi
+    ADM_EMAIL=$(grep -o '"admin_email"[^,}]*' /data/options.json | cut -d'"' -f4)
+    if [ -n "$ADM_EMAIL" ]; then
+        export ADMIN_EMAIL="$ADM_EMAIL"
+        echo "[STsup] Admin email configured: $ADMIN_EMAIL"
+    fi
+    ADM_PASS=$(grep -o '"admin_password"[^,}]*' /data/options.json | cut -d'"' -f4)
+    if [ -n "$ADM_PASS" ]; then
+        export ADMIN_PASSWORD="$ADM_PASS"
+    fi
 fi
 
 # Ensure persistent directories exist in /data

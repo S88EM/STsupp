@@ -1,6 +1,6 @@
 import fs from "fs";
 import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/auth";
+import { hashPassword, comparePassword } from "@/lib/auth";
 
 export function getSystemAdminConfig() {
   let haOptions: any = {};
@@ -30,13 +30,13 @@ export async function ensureDefaultAdmin(): Promise<void> {
 
   try {
     const cfg = getSystemAdminConfig();
-    const existing = await prisma.user.findUnique({
+    let adminUser = await prisma.user.findUnique({
       where: { email: cfg.email },
     });
 
-    if (!existing) {
+    if (!adminUser) {
       const passwordHash = await hashPassword(cfg.password);
-      await prisma.user.create({
+      adminUser = await prisma.user.create({
         data: {
           email: cfg.email,
           name: cfg.name,
@@ -46,11 +46,56 @@ export async function ensureDefaultAdmin(): Promise<void> {
         },
       });
       console.log(`[STsup Auth] Initialized default admin: ${cfg.email}`);
-    } else if (!existing.isEmailVerified) {
-      await prisma.user.update({
-        where: { id: existing.id },
-        data: { isEmailVerified: true, role: "ADMIN" },
+    } else {
+      // If admin exists, verify if password configured in HA options was updated
+      let newHash = adminUser.passwordHash;
+      let shouldUpdate = false;
+
+      if (cfg.password) {
+        const matches = adminUser.passwordHash
+          ? await comparePassword(cfg.password, adminUser.passwordHash)
+          : false;
+        if (!matches) {
+          newHash = await hashPassword(cfg.password);
+          shouldUpdate = true;
+        }
+      }
+
+      if (!adminUser.isEmailVerified || adminUser.role !== "ADMIN" || shouldUpdate) {
+        adminUser = await prisma.user.update({
+          where: { id: adminUser.id },
+          data: {
+            isEmailVerified: true,
+            role: "ADMIN",
+            passwordHash: newHash,
+          },
+        });
+        console.log(`[STsup Auth] Synchronized default admin: ${cfg.email}`);
+      }
+    }
+
+    // Ensure all existing unassigned projects are accessible by this primary admin
+    const defaultProject = await prisma.project.findFirst({
+      orderBy: { createdAt: "asc" },
+    });
+    if (defaultProject && adminUser) {
+      const isMember = await prisma.projectMember.findUnique({
+        where: {
+          projectId_userId: {
+            projectId: defaultProject.id,
+            userId: adminUser.id,
+          },
+        },
       });
+      if (!isMember && defaultProject.ownerId !== adminUser.id) {
+        await prisma.projectMember.create({
+          data: {
+            projectId: defaultProject.id,
+            userId: adminUser.id,
+            role: "ADMIN",
+          },
+        }).catch(() => {});
+      }
     }
 
     hasCheckedAdmin = true;

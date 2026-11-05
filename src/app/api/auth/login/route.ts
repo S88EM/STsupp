@@ -90,7 +90,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // Set 30-day session cookie
+    // Set 30-day session cookie (secure=false by default so local HTTP/Home Assistant works cleanly)
     response.cookies.set({
       name: AUTH_COOKIE_NAME,
       value: token,
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
       path: "/",
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 30, // 30 days
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.COOKIE_SECURE === "true",
     });
 
     return response;

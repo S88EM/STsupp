@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
+import fs from "fs";
 import { prisma } from "@/lib/prisma";
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "stsup_secret_jwt_key_super_safe_2026";
@@ -45,10 +46,22 @@ export async function getCurrentUser(): Promise<SessionPayload | null> {
   }
 }
 
+export function getPrimaryAdminEmail(): string {
+  let haOptions: any = {};
+  try {
+    if (fs.existsSync("/data/options.json")) {
+      haOptions = JSON.parse(fs.readFileSync("/data/options.json", "utf8"));
+    }
+  } catch (e) {}
+
+  return (process.env.ADMIN_EMAIL || haOptions.admin_email || "admin@stsup.local").toLowerCase().trim();
+}
+
 export function isPrimaryAdmin(email?: string | null): boolean {
   if (!email) return false;
-  const primaryEmail = (process.env.ADMIN_EMAIL || "admin@stsup.local").toLowerCase().trim();
-  return email.toLowerCase().trim() === primaryEmail;
+  const clean = email.toLowerCase().trim();
+  const primary = getPrimaryAdminEmail();
+  return clean === primary || clean === "admin@stsup.local";
 }
 
 /**

@@ -1,0 +1,178 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum AuthorType {
+  USER
+  AI_ASSISTANT
+}
+
+model User {
+  id           String          @id @default(uuid())
+  email        String          @unique
+  name         String
+  passwordHash String?
+  avatarUrl    String?
+  role         Role            @default(MEMBER)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  createdTasks    Task[]          @relation("TaskCreator")
+  assignedTasks   Task[]          @relation("TaskAssignee")
+  comments        Comment[]
+  projectMembers  ProjectMember[]
+  ownedProjects   Project[]       @relation("ProjectOwner")
+}
+
+model Project {
+  id          String          @id @default(uuid())
+  name        String
+  key         String          @unique // e.g. "ST", "CORE", "API"
+  description String?
+  icon        String?
+  ownerId     String
+  owner       User            @relation("ProjectOwner", fields: [ownerId], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  columns     Column[]
+  tasks       Task[]
+  members     ProjectMember[]
+}
+
+model ProjectMember {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @default(MEMBER)
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+}
+
+model Column {
+  id           String   @id @default(uuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name         String   // e.g. "To Do", "In Progress", "In Review", "Done"
+  color        String   @default("#64748b") // Hex color for badge/header
+  orderIndex   Int      @default(0)
+  isDoneColumn Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tasks        Task[]
+
+  @@index([projectId, orderIndex])
+}
+
+model Task {
+  id             String         @id @default(uuid())
+  taskNumber     Int            // Serial number within project, e.g. 1 -> key-1 = "ST-1"
+  code           String         // e.g. "ST-1"
+  projectId      String
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  columnId       String
+  column         Column         @relation(fields: [columnId], references: [id])
+  title          String
+  description    String?        @db.Text
+  priority       Priority       @default(MEDIUM)
+  orderIndex     Int            @default(0)
+  dueDate        DateTime?
+  
+  creatorId      String
+  creator        User           @relation("TaskCreator", fields: [creatorId], references: [id])
+  assigneeId     String?
+  assignee       User?          @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  // Ready for MCP & AI integration
+  aiContext      Json?          // Cached recommendations, relevant Confluence links, tags
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  subtasks       Subtask[]
+  comments       Comment[]
+  attachments    Attachment[]
+  aiRecommendations AiRecommendation[]
+
+  @@unique([projectId, taskNumber])
+  @@index([columnId, orderIndex])
+  @@index([projectId])
+}
+
+model Subtask {
+  id          String   @id @default(uuid())
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title       String
+  isCompleted Boolean  @default(false)
+  orderIndex  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([taskId, orderIndex])
+}
+
+model Comment {
+  id         String     @id @default(uuid())
+  taskId     String
+  task       Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId   String?
+  author     User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorType AuthorType @default(USER) // USER or AI_ASSISTANT
+  authorName String?    // Used for AI bot or external webhook
+  content    String     @db.Text
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([taskId, createdAt])
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  fileName  String
+  fileUrl   String
+  fileSize  Int?
+  mimeType  String?
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+}
+
+// Model explicitly ready for MCP Confluence Recommendations
+model AiRecommendation {
+  id              String   @id @default(uuid())
+  taskId          String
+  task            Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  query           String   // Query sent to Confluence MCP
+  confluencePages Json     // Array of { title, url, snippet, score }
+  summary         String   @db.Text
+  confidence      Float?
+  isApplied       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([taskId])
+}

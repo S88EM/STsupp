@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: stsup-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: stuser
+      POSTGRES_PASSWORD: stpassword
+      POSTGRES_DB: stsup_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stuser -d stsup_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stsup-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://stuser:stpassword@db:5432/stsup_db?schema=public"
+      PORT: 3000
+      NEXTAUTH_SECRET: "change_me_super_secret_stsup_key"
+      NEXTAUTH_URL: "http://localhost:3000"
+    ports:
+      - "3000:3000"
+    volumes:
+      - app_uploads:/app/public/uploads
+
+volumes:
+  pgdata:
+  app_uploads:

@@ -64,7 +64,11 @@ export async function POST(
       return NextResponse.json({ error: "Проект не знайдено" }, { status: 404 });
     }
 
-    const targetColumnId = columnId || project.columns[0]?.id;
+    let targetColumnId = columnId || project.columns[0]?.id;
+    if (currentUser?.role === "CLIENT") {
+      // Clients can only submit tasks into the initial column (Backlog)
+      targetColumnId = project.columns[0]?.id;
+    }
     if (!targetColumnId) {
       return NextResponse.json({ error: "У проекті немає колонок" }, { status: 400 });
     }

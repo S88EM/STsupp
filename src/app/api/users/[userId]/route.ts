@@ -14,7 +14,7 @@ export async function PATCH(
 
     const { userId } = params;
     const body = await req.json();
-    const { name, role, projectIds, password, isEmailVerified } = body;
+    const { name, role, projectIds, password, isEmailVerified, city } = body;
 
     const targetUser = await prisma.user.findUnique({
       where: { id: userId },
@@ -78,6 +78,7 @@ export async function PATCH(
         where: { id: userId },
         data: {
           name: name?.trim() ? name.trim() : undefined,
+          city: city !== undefined ? (city?.trim() || null) : undefined,
           role: role ? (role as any) : undefined,
           passwordHash: passwordHash || undefined,
           isEmailVerified: typeof isEmailVerified === "boolean" ? isEmailVerified : undefined,

@@ -42,6 +42,7 @@ ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "resetTokenExpires" TIMESTAMP(3);
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "isEmailVerified" BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "verificationToken" TEXT;
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "verificationTokenExpires" TIMESTAMP(3);
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "city" TEXT;
 
 -- Auto-verify existing admin and existing users
 UPDATE "User" SET "isEmailVerified" = true WHERE "role" = 'ADMIN' OR "email" = 'admin@stsup.local';

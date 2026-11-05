@@ -9,6 +9,7 @@ interface NewTaskModalProps {
   onClose: () => void;
   columns: ColumnItem[];
   defaultColumnId?: string;
+  canChangeStatus?: boolean;
   onCreateTask: (taskData: {
     title: string;
     description: string;
@@ -23,6 +24,7 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({
   onClose,
   columns,
   defaultColumnId,
+  canChangeStatus = true,
   onCreateTask,
 }) => {
   const [title, setTitle] = useState("");
@@ -106,17 +108,23 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({
                 <label className="text-[11px] font-medium text-muted-foreground block mb-1">
                   Статус
                 </label>
-                <select
-                  value={columnId}
-                  onChange={(e) => setColumnId(e.target.value)}
-                  className="w-full text-xs bg-secondary/50 border border-border rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-primary text-foreground cursor-pointer [color-scheme:dark]"
-                >
-                  {columns.map((c) => (
-                    <option key={c.id} value={c.id} className="bg-[#111726] text-foreground">
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                {canChangeStatus ? (
+                  <select
+                    value={columnId}
+                    onChange={(e) => setColumnId(e.target.value)}
+                    className="w-full text-xs bg-secondary/50 border border-border rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-primary text-foreground cursor-pointer [color-scheme:dark]"
+                  >
+                    {columns.map((c) => (
+                      <option key={c.id} value={c.id} className="bg-[#111726] text-foreground">
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="w-full text-xs bg-secondary/30 border border-border/60 rounded-lg py-1.5 px-2.5 text-muted-foreground">
+                    {columns.find((c) => c.id === (defaultColumnId || columns[0]?.id))?.name || "Беклог"}
+                  </div>
+                )}
               </div>
 
               {/* Priority */}

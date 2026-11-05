@@ -11,10 +11,13 @@ export async function POST(req: Request) {
     await ensureDefaultAdmin();
 
     const body = await req.json();
-    const { name, email, password } = body;
+    const { name, email, password, city } = body;
 
-    if (!name?.trim() || !email?.trim() || !password) {
-      return NextResponse.json({ error: "Всі поля обов'язкові для заповнення" }, { status: 400 });
+    if (!name?.trim() || !email?.trim() || !city?.trim() || !password) {
+      return NextResponse.json(
+        { error: "Всі поля (ім'я, email, місто та пароль) обов'язкові для заповнення" },
+        { status: 400 }
+      );
     }
 
     if (password.length < 6) {
@@ -48,6 +51,7 @@ export async function POST(req: Request) {
       data: {
         email: cleanEmail,
         name: name.trim(),
+        city: city.trim(),
         passwordHash,
         role,
         isEmailVerified,

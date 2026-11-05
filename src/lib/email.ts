@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import fs from "fs";
+import path from "path";
 
 export interface MailConfig {
   host: string;
@@ -10,8 +11,25 @@ export interface MailConfig {
   from: string;
 }
 
-// Read configuration from environment (.env) or Home Assistant options (/data/options.json)
+function getSmtpConfigFilePath(): string {
+  if (fs.existsSync("/data")) {
+    return "/data/smtp.json";
+  }
+  return path.join(process.cwd(), "data", "smtp.json");
+}
+
+// Read configuration from persistent config (/data/smtp.json), environment (.env) or Home Assistant options (/data/options.json)
 export function getMailConfig(): MailConfig {
+  let savedConfig: any = {};
+  const configPath = getSmtpConfigFilePath();
+  try {
+    if (fs.existsSync(configPath)) {
+      savedConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    }
+  } catch (e) {
+    // ignore
+  }
+
   let haOptions: any = {};
   try {
     if (fs.existsSync("/data/options.json")) {
@@ -21,20 +39,101 @@ export function getMailConfig(): MailConfig {
     // ignore
   }
 
-  const host = (process.env.SMTP_HOST || haOptions.smtp_host || "").trim();
-  const secureRaw = process.env.SMTP_SECURE !== undefined
+  const host = (savedConfig.host || process.env.SMTP_HOST || haOptions.smtp_host || "").trim();
+  const secureRaw = savedConfig.secure !== undefined
+    ? Boolean(savedConfig.secure)
+    : process.env.SMTP_SECURE !== undefined
     ? (process.env.SMTP_SECURE === "true" || process.env.SMTP_SECURE === "1")
     : Boolean(haOptions.smtp_secure);
 
   const defaultPort = secureRaw ? 465 : 587;
-  const port = Number(process.env.SMTP_PORT || haOptions.smtp_port || defaultPort);
+  const port = Number(savedConfig.port || process.env.SMTP_PORT || haOptions.smtp_port || defaultPort);
   const secure = secureRaw || port === 465;
 
-  const user = (process.env.SMTP_USER || haOptions.smtp_user || "").trim();
-  const pass = (process.env.SMTP_PASS || process.env.SMTP_PASSWORD || haOptions.smtp_password || "").trim();
-  const from = (process.env.SMTP_FROM || haOptions.smtp_from || '"STsup" <no-reply@stsup.local>').trim();
+  const user = (savedConfig.user || process.env.SMTP_USER || haOptions.smtp_user || "").trim();
+  const pass = (savedConfig.pass || process.env.SMTP_PASS || process.env.SMTP_PASSWORD || haOptions.smtp_password || "").trim();
+  const from = (savedConfig.from || process.env.SMTP_FROM || haOptions.smtp_from || '"STsup" <no-reply@stsup.local>').trim();
 
   return { host, port, secure, user, pass, from };
+}
+
+export function saveMailConfig(newCfg: Partial<MailConfig>): MailConfig {
+  const current = getMailConfig();
+  const updated: MailConfig = {
+    host: (newCfg.host !== undefined ? newCfg.host : current.host).trim(),
+    port: Number(newCfg.port !== undefined ? newCfg.port : current.port) || 587,
+    secure: newCfg.secure !== undefined ? Boolean(newCfg.secure) : current.secure,
+    user: (newCfg.user !== undefined ? newCfg.user : current.user).trim(),
+    pass: newCfg.pass !== undefined && newCfg.pass !== "" ? newCfg.pass.trim() : current.pass,
+    from: (newCfg.from !== undefined && newCfg.from.trim() ? newCfg.from.trim() : current.from).trim(),
+  };
+
+  const configPath = getSmtpConfigFilePath();
+  const dir = path.dirname(configPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(configPath, JSON.stringify(updated, null, 2), "utf8");
+  return updated;
+}
+
+export async function testMailConnection(testEmail?: string, customCfg?: Partial<MailConfig>) {
+  const current = getMailConfig();
+  const cfg: MailConfig = {
+    host: customCfg?.host?.trim() || current.host,
+    port: Number(customCfg?.port) || current.port,
+    secure: customCfg?.secure !== undefined ? customCfg.secure : current.secure,
+    user: customCfg?.user !== undefined ? customCfg.user.trim() : current.user,
+    pass: customCfg?.pass !== undefined && customCfg.pass !== "" ? customCfg.pass.trim() : current.pass,
+    from: customCfg?.from?.trim() || current.from,
+  };
+
+  if (!cfg.host) {
+    throw new Error("SMTP сервер (хост) обов'язковий для перевірки");
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: cfg.host,
+    port: cfg.port,
+    secure: cfg.secure,
+    auth: cfg.user ? { user: cfg.user, pass: cfg.pass } : undefined,
+    tls: {
+      rejectUnauthorized: false,
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+  });
+
+  await transporter.verify();
+
+  if (testEmail) {
+    await transporter.sendMail({
+      from: cfg.from,
+      to: testEmail,
+      subject: "STsup — Перевірка роботи поштового сервісу (SMTP)",
+      text: `Вітаємо!\n\nЦе тестове повідомлення з системи STsup.\nВаш поштовий сервер (${cfg.host}:${cfg.port}) успішно налаштований та працює належним чином.`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; padding: 24px; border: 1px solid #334155; border-radius: 12px; background-color: #0f172a; color: #f8fafc;">
+          <h2 style="color: #38bdf8; margin-top: 0;">✓ Поштовий сервіс STsup успішно налаштовано</h2>
+          <p style="color: #cbd5e1; font-size: 14px; line-height: 1.5;">
+            Вітаємо! Це тестове повідомлення підтверджує, що конфігурація SMTP сервера працює належним чином.
+          </p>
+          <div style="background-color: #1e293b; border-radius: 8px; padding: 14px; margin: 16px 0; font-size: 13px; color: #94a3b8; border: 1px solid #334155;">
+            <div style="margin-bottom: 6px;"><strong style="color: #f1f5f9;">Сервер (Хост):</strong> ${cfg.host}</div>
+            <div style="margin-bottom: 6px;"><strong style="color: #f1f5f9;">Порт:</strong> ${cfg.port}</div>
+            <div style="margin-bottom: 6px;"><strong style="color: #f1f5f9;">Захищене з'єднання:</strong> ${cfg.secure ? "SSL/TLS (порт 465)" : "STARTTLS / Звичайне"}</div>
+            <div><strong style="color: #f1f5f9;">Відправник:</strong> ${cfg.from}</div>
+          </div>
+          <p style="color: #64748b; font-size: 11px; margin-bottom: 0;">
+            Згенеровано системою STsup Support Tracker.
+          </p>
+        </div>
+      `,
+    });
+  }
+
+  return { success: true, host: cfg.host, port: cfg.port };
 }
 
 export function isMailConfigured(): boolean {

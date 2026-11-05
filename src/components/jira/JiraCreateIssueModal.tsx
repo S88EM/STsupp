@@ -171,6 +171,9 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
   const canChangeAssignee = Boolean(
     currentUser && (currentUser.role === "ADMIN" || currentUser.role === "ENGINEER")
   );
+  const canChangeStatus = Boolean(
+    currentUser && (currentUser.role === "ADMIN" || currentUser.role === "ENGINEER")
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -228,7 +231,7 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
       setLoading(true);
       setError(null);
 
-      const targetCol = columnId || columns[0]?.id;
+      const targetCol = canChangeStatus ? (columnId || columns[0]?.id) : columns[0]?.id;
       const res = await fetch(`/api/projects/${selectedProjectId}/tasks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -242,7 +245,6 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
           aiContext: {
             type: issueType,
             storyPoints: Number(storyPoints) || 0,
-            sprint: "Спринт 1",
             resolution: "Не вирішено",
             components: ["Core"],
             labels: [issueType.toLowerCase()],
@@ -479,12 +481,24 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
 
           {/* Status & Priority Row (Custom Dark Dropdowns) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <CustomSelect
-              label="Статус (Колонка)"
-              value={columnId}
-              onChange={(val) => setColumnId(val)}
-              options={columnOptions}
-            />
+            {canChangeStatus ? (
+              <CustomSelect
+                label="Статус (Колонка)"
+                value={columnId}
+                onChange={(val) => setColumnId(val)}
+                options={columnOptions}
+              />
+            ) : (
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1 block">
+                  Статус
+                </label>
+                <div className="w-full bg-[#181a20] border border-border/80 rounded-lg py-2 px-3 text-xs text-foreground flex items-center justify-between">
+                  <span>{columns.find((c) => c.id === (columnId || columns[0]?.id))?.name || columns[0]?.name || "Беклог"}</span>
+                  <span className="text-[10px] text-muted-foreground">(За замовчуванням)</span>
+                </div>
+              </div>
+            )}
 
             <CustomSelect
               label="Пріоритет"

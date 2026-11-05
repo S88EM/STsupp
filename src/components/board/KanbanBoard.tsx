@@ -13,13 +13,18 @@ interface KanbanBoardProps {
   projectId: string;
   initialColumns: ColumnItem[];
   onRefresh: () => Promise<void>;
+  currentUser?: { role?: string; id?: string; email?: string } | null;
 }
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   projectId,
   initialColumns,
   onRefresh,
+  currentUser,
 }) => {
+  const canChangeStatus = Boolean(
+    currentUser && (currentUser.role === "ADMIN" || currentUser.role === "ENGINEER")
+  );
   const [columns, setColumns] = useState<ColumnItem[]>(initialColumns);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
@@ -54,6 +59,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   }, []);
 
   const handleDragEnd = async (result: DropResult) => {
+    if (!canChangeStatus) return;
     const { source, destination, draggableId } = result;
     if (!destination) return;
 
@@ -241,17 +247,21 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 }}
                 onUpdateColumn={handleUpdateColumn}
                 onDeleteColumn={handleDeleteColumn}
+                isDragDisabled={!canChangeStatus}
+                canManageColumns={canChangeStatus}
               />
             ))}
 
-            {/* Quick Add Column Button at Board End */}
-            <button
-              onClick={() => setIsNewColumnOpen(true)}
-              className="w-72 flex-shrink-0 h-32 rounded-xl border-2 border-dashed border-border/60 hover:border-primary/50 text-muted-foreground hover:text-foreground flex flex-col items-center justify-center gap-2 transition-all hover:bg-secondary/20"
-            >
-              <Plus className="w-5 h-5 text-primary" />
-              <span className="text-xs font-semibold">Додати нову колонку</span>
-            </button>
+            {/* Quick Add Column Button at Board End (Admin/Engineer only) */}
+            {canChangeStatus && (
+              <button
+                onClick={() => setIsNewColumnOpen(true)}
+                className="w-72 flex-shrink-0 h-32 rounded-xl border-2 border-dashed border-border/60 hover:border-primary/50 text-muted-foreground hover:text-foreground flex flex-col items-center justify-center gap-2 transition-all hover:bg-secondary/20"
+              >
+                <Plus className="w-5 h-5 text-primary" />
+                <span className="text-xs font-semibold">Додати нову колонку</span>
+              </button>
+            )}
           </div>
         </DragDropContext>
       </div>
@@ -265,6 +275,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         }}
         columns={columns}
         defaultColumnId={activeColumnForNewTask}
+        canChangeStatus={canChangeStatus}
         onCreateTask={handleCreateTask}
       />
 

@@ -59,6 +59,9 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   const canChangeAssignee = Boolean(
     currentUser && (currentUser.role === "ADMIN" || currentUser.role === "ENGINEER")
   );
+  const canChangeStatus = Boolean(
+    currentUser && (currentUser.role === "ADMIN" || currentUser.role === "ENGINEER")
+  );
 
   useEffect(() => {
     if (canChangeAssignee && projectId) {
@@ -164,6 +167,10 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
 
   const handleUpdateField = async (field: string, value: any) => {
     if (!taskId) return;
+    if (field === "columnId" && !canChangeStatus) {
+      alert("Клієнти не мають права переводити задачу в інші статуси.");
+      return;
+    }
     try {
       const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
         method: "PATCH",
@@ -174,6 +181,9 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
         const updated = await res.json();
         setTask((prev: any) => ({ ...prev, ...updated }));
         onTaskUpdated();
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.error || "Не вдалося оновити задачу");
       }
     } catch (err) {
       console.error(err);
@@ -731,17 +741,24 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                 <label className="font-semibold text-muted-foreground uppercase text-[10px] tracking-wider block mb-1.5">
                   Статус
                 </label>
-                <select
-                  value={task?.columnId || ""}
-                  onChange={(e) => handleUpdateField("columnId", e.target.value)}
-                  className="w-full bg-secondary/60 border border-border rounded-lg py-1.5 px-2.5 font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-                >
-                  {columns.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                {canChangeStatus ? (
+                  <select
+                    value={task?.columnId || ""}
+                    onChange={(e) => handleUpdateField("columnId", e.target.value)}
+                    className="w-full bg-secondary/60 border border-border rounded-lg py-1.5 px-2.5 font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                  >
+                    {columns.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="w-full bg-secondary/40 border border-border/60 rounded-lg py-1.5 px-2.5 font-medium text-foreground flex items-center justify-between cursor-default">
+                    <span>{columns.find((c) => c.id === task?.columnId)?.name || task?.column?.name || "—"}</span>
+                    <span className="text-[10px] text-muted-foreground">Тільки читання</span>
+                  </div>
+                )}
               </div>
 
               {/* Priority Selector */}

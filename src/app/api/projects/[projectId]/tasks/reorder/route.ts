@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, hasProjectAccess, canChangeTaskStatus } from "@/lib/auth";
 import { notifyStatusChange } from "@/lib/notifications";
 
 export async function POST(
@@ -10,6 +10,22 @@ export async function POST(
   try {
     const { projectId } = params;
     const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json({ error: "Необхідно авторизуватись" }, { status: 401 });
+    }
+
+    const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "У вас немає доступу до цього проєкту" }, { status: 403 });
+    }
+
+    // CLIENT role is forbidden from reordering or moving tasks between statuses/columns
+    if (!canChangeTaskStatus(currentUser.role)) {
+      return NextResponse.json(
+        { error: "Клієнти не мають права переводити задачу в інші статуси" },
+        { status: 403 }
+      );
+    }
     const body = await req.json();
     const {
       taskId,

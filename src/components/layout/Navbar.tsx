@@ -32,6 +32,8 @@ interface NavbarProps {
   viewMode?: "board" | "list";
   onViewModeChange?: (mode: "board" | "list") => void;
   onOpenNewTask?: () => void;
+  activeSection?: string;
+  onSelectSection?: (section: any) => void;
 }
 
 interface CurrentUser {
@@ -48,6 +50,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   viewMode = "board",
   onViewModeChange,
   onOpenNewTask,
+  activeSection,
+  onSelectSection,
 }) => {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
@@ -179,19 +183,35 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               </Link>
               {user?.role === "ADMIN" && (
-                <Link
-                  href="/users"
-                  onClick={() => setOpenDropdown(null)}
-                  className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-secondary text-xs font-medium text-foreground transition-colors"
-                >
-                  <div className="w-6 h-6 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center">
-                    <Users className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">Користувачі та права</div>
-                    <span className="text-[10px] text-muted-foreground">Матриця доступів</span>
-                  </div>
-                </Link>
+                <>
+                  <Link
+                    href="/users"
+                    onClick={() => setOpenDropdown(null)}
+                    className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-secondary text-xs font-medium text-foreground transition-colors"
+                  >
+                    <div className="w-6 h-6 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                      <Users className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">Користувачі та права</div>
+                      <span className="text-[10px] text-muted-foreground">Матриця доступів</span>
+                    </div>
+                  </Link>
+
+                  <Link
+                    href="/settings"
+                    onClick={() => setOpenDropdown(null)}
+                    className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-secondary text-xs font-medium text-foreground transition-colors"
+                  >
+                    <div className="w-6 h-6 rounded bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                      <Settings className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">Налаштування</div>
+                      <span className="text-[10px] text-muted-foreground">Поштовий сервіс (SMTP)</span>
+                    </div>
+                  </Link>
+                </>
               )}
             </div>
           </div>
@@ -317,23 +337,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
               <div className="space-y-0.5">
                 <Link
-                  href={currentProject ? `/projects/${currentProject.id}` : "/"}
+                  href="/issues?filter=all"
                   onClick={() => setOpenDropdown(null)}
-                  className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs text-foreground hover:bg-secondary"
+                  className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs text-foreground hover:bg-secondary transition-colors"
                 >
                   <span>Всі задачі</span>
                 </Link>
                 <Link
-                  href={currentProject ? `/projects/${currentProject.id}` : "/"}
+                  href="/issues?filter=my"
                   onClick={() => setOpenDropdown(null)}
-                  className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs text-foreground hover:bg-secondary"
+                  className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs text-foreground hover:bg-secondary transition-colors"
                 >
                   <span>Призначені мені</span>
                 </Link>
                 <Link
-                  href={currentProject ? `/projects/${currentProject.id}` : "/"}
+                  href="/issues?filter=open"
                   onClick={() => setOpenDropdown(null)}
-                  className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs text-foreground hover:bg-secondary"
+                  className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs text-foreground hover:bg-secondary transition-colors"
                 >
                   <span>Відкриті задачі</span>
                 </Link>
@@ -345,8 +365,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Menu: Дошки */}
         <div className="relative hidden md:block">
           <Link
-            href={currentProject ? `/projects/${currentProject.id}` : "/"}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+            href="/boards"
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              viewMode === "board" && !currentProject
+                ? "bg-secondary text-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+            }`}
           >
             <LayoutGrid className="w-3.5 h-3.5" />
             <span>Дошки</span>
@@ -403,18 +427,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           <HelpCircle className="w-4 h-4" />
         </button>
 
-        {/* Admin Users Link */}
-        {user?.role === "ADMIN" && (
-          <Link
-            href="/users"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
-            title="Керування користувачами та доступами"
-          >
-            <Users className="w-4 h-4 text-blue-400" />
-            <span className="hidden xl:inline">Користувачі</span>
-          </Link>
-        )}
-
         {/* User Profile */}
         {user && (
           <div className="relative pl-1 border-l border-border/80">
@@ -454,16 +466,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
 
                 <div className="py-1">
-                  {user.role === "ADMIN" && (
-                    <Link
-                      href="/users"
-                      onClick={() => setOpenDropdown(null)}
-                      className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary rounded-lg transition-colors"
-                    >
-                      <Users className="w-3.5 h-3.5 text-blue-400" />
-                      <span>Керування користувачами</span>
-                    </Link>
-                  )}
                   <button
                     type="button"
                     onClick={handleLogout}

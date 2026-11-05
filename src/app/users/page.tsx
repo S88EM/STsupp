@@ -20,6 +20,7 @@ import {
   Key,
   Pencil,
   Search,
+  MapPin,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 
@@ -33,6 +34,7 @@ interface UserItem {
   id: string;
   name: string;
   email: string;
+  city?: string | null;
   role: "ADMIN" | "ENGINEER" | "CLIENT" | string;
   avatarUrl: string | null;
   createdAt: string;
@@ -61,6 +63,7 @@ export default function UsersManagementPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createEmail, setCreateEmail] = useState("");
+  const [createCity, setCreateCity] = useState("");
   const [createPassword, setCreatePassword] = useState("");
   const [createRole, setCreateRole] = useState<"ADMIN" | "ENGINEER" | "CLIENT">("CLIENT");
   const [createProjectIds, setCreateProjectIds] = useState<string[]>([]);
@@ -175,7 +178,7 @@ export default function UsersManagementPage() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!createName.trim() || !createEmail.trim() || !createPassword) return;
+    if (!createName.trim() || !createEmail.trim() || !createCity.trim() || !createPassword) return;
 
     try {
       setCreating(true);
@@ -185,6 +188,7 @@ export default function UsersManagementPage() {
         body: JSON.stringify({
           name: createName.trim(),
           email: createEmail.trim(),
+          city: createCity.trim(),
           password: createPassword,
           role: createRole,
           projectIds: createProjectIds,
@@ -200,6 +204,7 @@ export default function UsersManagementPage() {
       setIsCreateOpen(false);
       setCreateName("");
       setCreateEmail("");
+      setCreateCity("");
       setCreatePassword("");
       setCreateRole("CLIENT");
       setCreateProjectIds([]);
@@ -335,6 +340,24 @@ export default function UsersManagementPage() {
     }
   };
 
+  const handleActivateUser = async (user: UserItem) => {
+    try {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isEmailVerified: true }),
+      });
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === user.id ? { ...u, isEmailVerified: true } : u))
+        );
+        showSuccess(`Акаунт користувача "${user.name}" успішно активовано!`);
+      }
+    } catch (err: any) {
+      alert(err.message || "Помилка активації");
+    }
+  };
+
   const showSuccess = (msg: string) => {
     setSuccessMessage(msg);
     setTimeout(() => setSuccessMessage(null), 3000);
@@ -462,6 +485,7 @@ export default function UsersManagementPage() {
                 <thead className="bg-secondary/40 border-b border-border text-muted-foreground font-medium">
                   <tr>
                     <th className="py-3 px-4">Користувач</th>
+                    <th className="py-3 px-4">Місто</th>
                     <th className="py-3 px-4">Email</th>
                     <th className="py-3 px-4">Системна роль</th>
                     <th className="py-3 px-4">Доступні проекти</th>
@@ -501,17 +525,39 @@ export default function UsersManagementPage() {
                           </div>
                         </td>
 
+                        {/* City */}
+                        <td className="py-3 px-4 text-xs font-medium text-foreground">
+                          {u.city ? (
+                            <div className="flex items-center gap-1 text-foreground">
+                              <MapPin className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+                              <span>{u.city}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground/50 italic text-[11px]">—</span>
+                          )}
+                        </td>
+
                         {/* Email */}
                         <td className="py-3 px-4 text-muted-foreground font-mono text-[11px]">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span>{u.email}</span>
                             {u.isEmailVerified === false && (
-                              <span
-                                className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-sans"
-                                title="Користувач ще не підтвердив свою електронну пошту"
-                              >
-                                Не активовано
-                              </span>
+                              <div className="flex items-center gap-1">
+                                <span
+                                  className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-sans"
+                                  title="Користувач зареєструвався самостійно та ще не підтвердив свою електронну пошту"
+                                >
+                                  Не активовано
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleActivateUser(u)}
+                                  className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30 font-sans font-medium transition-colors cursor-pointer"
+                                  title="Активувати акаунт користувача без підтвердження пошти"
+                                >
+                                  Активувати
+                                </button>
+                              </div>
                             )}
                           </div>
                         </td>
@@ -664,6 +710,13 @@ export default function UsersManagementPage() {
             </div>
 
             <form onSubmit={handleCreateUser} className="space-y-3.5">
+              <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>
+                  Акаунт активується автоматично — користувачу не потрібне підтвердження пошти.
+                </span>
+              </div>
+
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-1">
                   Повне ім'я
@@ -688,6 +741,20 @@ export default function UsersManagementPage() {
                   placeholder="user@company.com"
                   value={createEmail}
                   onChange={(e) => setCreateEmail(e.target.value)}
+                  required
+                  className="w-full text-xs py-2 px-3 rounded-lg bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">
+                  Місто <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="напр. Вінниця, Київ, Львів"
+                  value={createCity}
+                  onChange={(e) => setCreateCity(e.target.value)}
                   required
                   className="w-full text-xs py-2 px-3 rounded-lg bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
                 />

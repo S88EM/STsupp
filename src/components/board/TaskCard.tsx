@@ -27,9 +27,10 @@ interface TaskCardProps {
   task: TaskItem;
   index: number;
   onClick: (task: TaskItem) => void;
+  isDragDisabled?: boolean;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick, isDragDisabled = false }) => {
   const completedSubtasks = task.subtasks?.filter((s) => s.isCompleted).length || 0;
   const totalSubtasks = task.subtasks?.length || 0;
 
@@ -47,7 +48,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick }) => {
   };
 
   return (
-    <Draggable draggableId={task.id} index={index}>
+    <Draggable draggableId={task.id} index={index} isDragDisabled={isDragDisabled}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, hasProjectAccess, canDeleteTasks } from "@/lib/auth";
+import { getCurrentUser, hasProjectAccess, canDeleteTasks, canChangeTaskStatus } from "@/lib/auth";
 import { notifyStatusChange, notifyTaskAssignment } from "@/lib/notifications";
 
 export async function GET(
@@ -65,6 +65,25 @@ export async function PATCH(
     const body = await req.json();
     const { title, description, priority, columnId, dueDate, assigneeId, aiContext } = body;
 
+    const existingTask = await prisma.task.findUnique({
+      where: { id: taskId, projectId },
+      select: { columnId: true, assigneeId: true },
+    });
+
+    if (!existingTask) {
+      return NextResponse.json({ error: "Задачу не знайдено" }, { status: 404 });
+    }
+
+    // Only ADMIN and ENGINEER can change task column/status. CLIENT is forbidden.
+    if (columnId !== undefined && columnId !== existingTask.columnId) {
+      if (!currentUser || !canChangeTaskStatus(currentUser.role)) {
+        return NextResponse.json(
+          { error: "Клієнти не мають права переводити задачу в інші статуси. Це можуть робити лише адміністратор та інженер." },
+          { status: 403 }
+        );
+      }
+    }
+
     // Only ADMIN and ENGINEER can change assigneeId. CLIENT is forbidden.
     if (assigneeId !== undefined) {
       if (!currentUser || (currentUser.role !== "ADMIN" && currentUser.role !== "ENGINEER")) {
@@ -99,11 +118,6 @@ export async function PATCH(
         }
       }
     }
-
-    const existingTask = await prisma.task.findUnique({
-      where: { id: taskId, projectId },
-      select: { columnId: true, assigneeId: true },
-    });
 
     const updated = await prisma.task.update({
       where: { id: taskId, projectId },

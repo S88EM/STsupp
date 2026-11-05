@@ -14,6 +14,7 @@ export async function GET() {
         id: true,
         name: true,
         email: true,
+        city: true,
         role: true,
         isEmailVerified: true,
         avatarUrl: true,
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { name, email, password, role = "CLIENT", projectIds = [] } = body;
+    const { name, email, password, role = "CLIENT", projectIds = [], city } = body;
 
     // Only Primary Admin can create another user with ADMIN role
     if (role === "ADMIN" && !isPrimaryAdmin(currentUser.email)) {
@@ -96,6 +97,7 @@ export async function POST(req: Request) {
         data: {
           name: name.trim(),
           email: cleanEmail,
+          city: city?.trim() || null,
           passwordHash,
           role: role as any,
           isEmailVerified: true,

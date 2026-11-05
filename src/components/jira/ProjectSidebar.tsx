@@ -19,9 +19,8 @@ export type JiraNavSection =
   | "issues" // 3-panel Jira Issues registry (default active)
   | "board" // Kanban board
   | "backlog" // Backlog list
-  | "sprints" // Active sprints
   | "releases" // Releases
-  | "reports" // Reports
+  | "reports" // Reports (admin only)
   | "components"; // Components
 
 interface ProjectSidebarProps {
@@ -70,28 +69,15 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       label: "Список задач (Backlog)",
       icon: <ListTodo className="w-4 h-4" />,
     },
-    {
-      id: "sprints",
-      label: "Активні спринти",
-      icon: <Zap className="w-4 h-4 text-amber-400" />,
-      badge: "Sprint 1",
-    },
-    {
-      id: "releases",
-      label: "Релізи",
-      icon: <Package className="w-4 h-4 text-emerald-400" />,
-      badge: "v1.0",
-    },
-    {
-      id: "reports",
-      label: "Звіти",
-      icon: <BarChart3 className="w-4 h-4 text-cyan-400" />,
-    },
-    {
-      id: "components",
-      label: "Компоненти",
-      icon: <Boxes className="w-4 h-4 text-violet-400" />,
-    },
+    ...(isAdmin
+      ? [
+          {
+            id: "reports" as JiraNavSection,
+            label: "Звіти",
+            icon: <BarChart3 className="w-4 h-4 text-cyan-400" />,
+          },
+        ]
+      : []),
   ];
 
   return (

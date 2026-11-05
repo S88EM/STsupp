@@ -2,11 +2,12 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Lock, Mail, User, AlertCircle, CheckCircle, ExternalLink } from "lucide-react";
+import { ArrowRight, Lock, Mail, User, AlertCircle, CheckCircle, ExternalLink, MapPin } from "lucide-react";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [city, setCity] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,7 +18,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !password || loading) return;
+    if (!name.trim() || !email.trim() || !city.trim() || !password || loading) return;
 
     if (password !== confirmPassword) {
       setError("Паролі не співпадають");
@@ -35,7 +36,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), city: city.trim(), password }),
       });
 
       const data = await res.json();
@@ -153,6 +154,23 @@ export default function RegisterPage() {
                     placeholder="name@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full text-xs pl-9 pr-3 py-2.5 rounded-lg bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground/60"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">
+                  Місто <span className="text-destructive">*</span>
+                </label>
+                <div className="relative">
+                  <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="напр. Вінниця, Київ, Львів"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
                     required
                     className="w-full text-xs pl-9 pr-3 py-2.5 rounded-lg bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground/60"
                   />

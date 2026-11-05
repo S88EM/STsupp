@@ -19,6 +19,7 @@ function ProjectPageContent() {
   const searchParams = useSearchParams();
   const projectId = params?.projectId as string;
   const urlTaskId = searchParams?.get("taskId");
+  const urlSection = searchParams?.get("section") as JiraNavSection | null;
 
   const [project, setProject] = useState<any>(null);
   const [allProjects, setAllProjects] = useState<any[]>([]);
@@ -67,6 +68,12 @@ function ProjectPageContent() {
       setActiveSection("issues");
     }
   }, [urlTaskId]);
+
+  useEffect(() => {
+    if (urlSection && ["issues", "board", "backlog", "releases", "reports", "components"].includes(urlSection)) {
+      setActiveSection(urlSection);
+    }
+  }, [urlSection]);
 
   const fetchInitialData = async () => {
     try {
@@ -129,6 +136,8 @@ function ProjectPageContent() {
         viewMode={activeSection === "board" ? "board" : "list"}
         onViewModeChange={(mode) => setActiveSection(mode === "board" ? "board" : "issues")}
         onOpenNewTask={() => setIsCreateIssueOpen(true)}
+        activeSection={activeSection}
+        onSelectSection={(sec) => setActiveSection(sec as JiraNavSection)}
       />
 
       {/* Main Workspace: Left Sidebar + Center Workspace */}
@@ -179,6 +188,7 @@ function ProjectPageContent() {
               projectId={projectId}
               initialColumns={columns}
               onRefresh={fetchProjectData}
+              currentUser={currentUser}
             />
           </div>
         ) : activeSection === "backlog" ? (

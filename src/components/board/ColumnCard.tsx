@@ -20,6 +20,8 @@ interface ColumnCardProps {
   onAddTaskToColumn: (columnId: string) => void;
   onUpdateColumn: (columnId: string, updates: { name?: string; color?: string }) => void;
   onDeleteColumn: (columnId: string) => void;
+  isDragDisabled?: boolean;
+  canManageColumns?: boolean;
 }
 
 export const ColumnCard: React.FC<ColumnCardProps> = ({
@@ -28,6 +30,8 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
   onAddTaskToColumn,
   onUpdateColumn,
   onDeleteColumn,
+  isDragDisabled = false,
+  canManageColumns = true,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(column.name);
@@ -51,7 +55,7 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
             style={{ backgroundColor: column.color }}
           />
 
-          {isEditing ? (
+          {isEditing && canManageColumns ? (
             <div className="flex items-center gap-1 flex-1">
               <input
                 type="text"
@@ -77,9 +81,13 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
             </div>
           ) : (
             <h3
-              onClick={() => setIsEditing(true)}
-              className="text-xs font-semibold text-foreground tracking-tight truncate cursor-pointer hover:underline"
-              title="Натисніть щоб редагувати назву"
+              onClick={() => {
+                if (canManageColumns) setIsEditing(true);
+              }}
+              className={`text-xs font-semibold text-foreground tracking-tight truncate ${
+                canManageColumns ? "cursor-pointer hover:underline" : ""
+              }`}
+              title={canManageColumns ? "Натисніть щоб редагувати назву" : undefined}
             >
               {column.name}
             </h3>
@@ -101,41 +109,43 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
             <Plus className="w-3.5 h-3.5" />
           </button>
 
-          <div className="relative">
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <MoreHorizontal className="w-3.5 h-3.5" />
-            </button>
+          {canManageColumns && (
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <MoreHorizontal className="w-3.5 h-3.5" />
+              </button>
 
-            {menuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-36 bg-popover border border-border rounded-lg shadow-lg py-1 z-20 text-xs">
-                <button
-                  onClick={() => {
-                    setIsEditing(true);
-                    setMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-secondary text-foreground text-left"
-                >
-                  <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span>Перейменувати</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    if (confirm(`Видалити колонку "${column.name}"?`)) {
-                      onDeleteColumn(column.id);
-                    }
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-destructive/10 text-destructive text-left"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Видалити</span>
-                </button>
-              </div>
-            )}
-          </div>
+              {menuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-36 bg-popover border border-border rounded-lg shadow-lg py-1 z-20 text-xs">
+                  <button
+                    onClick={() => {
+                      setIsEditing(true);
+                      setMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-secondary text-foreground text-left"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span>Перейменувати</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      if (confirm(`Видалити колонку "${column.name}"?`)) {
+                        onDeleteColumn(column.id);
+                      }
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-destructive/10 text-destructive text-left"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Видалити</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -150,7 +160,13 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
             }`}
           >
             {column.tasks.map((task, index) => (
-              <TaskCard key={task.id} task={task} index={index} onClick={onTaskClick} />
+              <TaskCard
+                key={task.id}
+                task={task}
+                index={index}
+                onClick={onTaskClick}
+                isDragDisabled={isDragDisabled}
+              />
             ))}
             {provided.placeholder}
           </div>

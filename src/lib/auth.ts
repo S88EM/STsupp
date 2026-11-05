@@ -100,6 +100,10 @@ export function canDeleteTasks(role: string): boolean {
   return role === "ADMIN";
 }
 
+export function canChangeTaskStatus(role?: string): boolean {
+  return role === "ADMIN" || role === "ENGINEER";
+}
+
 export function canManageUsers(role: string): boolean {
   return role === "ADMIN";
 }

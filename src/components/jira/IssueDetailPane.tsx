@@ -95,6 +95,9 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
   const canChangeAssignee = Boolean(
     currentUser && (currentUser.role === "ADMIN" || currentUser.role === "ENGINEER")
   );
+  const canChangeStatus = Boolean(
+    currentUser && (currentUser.role === "ADMIN" || currentUser.role === "ENGINEER")
+  );
   const [staffUsers, setStaffUsers] = useState<any[]>([]);
   const [clientUsers, setClientUsers] = useState<any[]>([]);
   const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
@@ -184,6 +187,10 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
 
   const handleUpdateField = async (fields: Record<string, any>) => {
     if (!taskId) return;
+    if (fields.columnId !== undefined && !canChangeStatus) {
+      alert("Клієнти не мають права переводити задачу в інші статуси.");
+      return;
+    }
     try {
       const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
         method: "PATCH",
@@ -195,6 +202,9 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
         const updated = await res.json();
         setTask((prev: any) => ({ ...prev, ...updated }));
         onTaskUpdated();
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.error || "Не вдалося оновити задачу");
       }
     } catch (err) {
       console.error("Update task error:", err);
@@ -216,6 +226,7 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
   };
 
   const handleChangeStatus = async (colId: string) => {
+    if (!canChangeStatus) return;
     setShowStatusMenu(false);
     await handleUpdateField({ columnId: colId });
   };
@@ -420,7 +431,6 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
   const labelsList = task.aiContext?.labels || ["v1.0", "support"];
   const resolution = task.aiContext?.resolution || (currentColumn?.isDoneColumn ? "Вирішено" : "Не вирішено");
   const storyPoints = task.aiContext?.storyPoints ?? 3;
-  const sprintName = task.aiContext?.sprint || "Спринт 1 (Поточний)";
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto bg-background/50">
@@ -487,16 +497,26 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
 
           {/* Jira-style Workflow Status Transitions */}
           <div className="relative">
-            <button
-              onClick={() => setShowStatusMenu(!showStatusMenu)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-white transition-all shadow-sm"
-              style={{ backgroundColor: currentColumn?.color || "#3b82f6" }}
-            >
-              <span>{currentColumn?.name || "Статус"}</span>
-              <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
-            </button>
+            {canChangeStatus ? (
+              <button
+                onClick={() => setShowStatusMenu(!showStatusMenu)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-white transition-all shadow-sm hover:opacity-95"
+                style={{ backgroundColor: currentColumn?.color || "#3b82f6" }}
+              >
+                <span>{currentColumn?.name || "Статус"}</span>
+                <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
+              </button>
+            ) : (
+              <div
+                className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-white shadow-sm cursor-default"
+                style={{ backgroundColor: currentColumn?.color || "#3b82f6" }}
+                title="Змінювати статус задачі можуть лише адміністратор та інженер"
+              >
+                <span>{currentColumn?.name || "Статус"}</span>
+              </div>
+            )}
 
-            {showStatusMenu && (
+            {canChangeStatus && showStatusMenu && (
               <div className="absolute right-0 mt-1 w-44 rounded-lg bg-card border border-border shadow-xl py-1 z-30 animate-in fade-in-50 zoom-in-95">
                 <div className="px-3 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/60">
                   Змінити статус
@@ -1474,18 +1494,8 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
           {/* Agile Section */}
           <div className="space-y-3 pt-3 border-t border-border/60">
             <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Agile
+              Оцінка (Story Points)
             </h4>
-
-            <div className="flex items-center justify-between text-xs py-1 border-b border-border/40">
-              <span className="text-muted-foreground flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span>Спринт:</span>
-              </span>
-              <span className="font-medium text-foreground">
-                {sprintName}
-              </span>
-            </div>
 
             <div className="flex items-center justify-between text-xs py-1 border-b border-border/40">
               <span className="text-muted-foreground">Story Points:</span>

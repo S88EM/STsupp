@@ -42,13 +42,12 @@ su-exec postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = 'stsup_db'"
 # Database connection URL for internal Postgres
 export DATABASE_URL="postgresql://stuser:stpassword@127.0.0.1:5432/stsup_db?schema=public"
 
-# Run migrations & initial seed
+# Apply SQL schema directly via psql
 echo "[STsup] Applying database schema..."
-cd /app
-if [ -f "./node_modules/prisma/build/index.js" ]; then
-    node ./node_modules/prisma/build/index.js db push --skip-generate || true
-fi
+su-exec postgres psql -d stsup_db -f /app/prisma/init.sql
 
+# Seed demo data if first run
+cd /app
 if [ ! -f /data/.seeded ]; then
     echo "[STsup] Seeding initial demo project..."
     node prisma/seed.js || true

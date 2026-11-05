@@ -1,0 +1,23 @@
+name: "STsup"
+slug: "stsup"
+version: "0.1.0"
+description: "Швидкий Kanban-трекер задач у стилі Linear із гнучкими статусами та підтримкою AI Confluence"
+url: "https://github.com/S88EM/STsupp"
+arch:
+  - aarch64
+  - amd64
+  - armv7
+startup: services
+boot: auto
+init: false
+webui: "http://[HOST]:[PORT:3000]"
+ports:
+  3000/tcp: 3000
+ports_description:
+  3000/tcp: "Веб-інтерфейс STsup"
+map:
+  - share:rw
+options:
+  timezone: "Europe/Kyiv"
+schema:
+  timezone: str

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle, AlertCircle, ArrowRight, Mail, Loader2, Send } from "lucide-react";
@@ -8,33 +8,50 @@ import { CheckCircle, AlertCircle, ArrowRight, Mail, Loader2, Send } from "lucid
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") || "";
+  const errorParam = searchParams.get("error");
+  const successParam = searchParams.get("success");
 
   const [status, setStatus] = useState<"loading" | "success" | "error" | "idle">(
-    token ? "loading" : "idle"
+    successParam ? "success" : token ? "loading" : errorParam ? "error" : "idle"
   );
-  const [message, setMessage] = useState<string>("");
+  const [message, setMessage] = useState<string>(
+    errorParam === "expired"
+      ? "Термін дії посилання закінчився. Замовте новий лист підтвердження."
+      : errorParam
+      ? "Посилання для підтвердження недійсне."
+      : ""
+  );
   const [emailToResend, setEmailToResend] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState<string | null>(null);
   const [resendPreviewUrl, setResendPreviewUrl] = useState<string | null>(null);
 
+  const isVerifyingRef = useRef(false);
+  const verifiedTokenRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!token) {
-      setStatus("idle");
+    if (!token || successParam) {
+      if (!token && !errorParam && !successParam) {
+        setStatus("idle");
+      }
       return;
     }
 
-    let isMounted = true;
+    if (verifiedTokenRef.current === token || isVerifyingRef.current) {
+      return;
+    }
+    isVerifyingRef.current = true;
+
     const verifyToken = async () => {
       try {
         const res = await fetch("/api/auth/verify-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
+          body: JSON.stringify({ token: token.trim() }),
         });
 
         const data = await res.json();
-        if (!isMounted) return;
+        verifiedTokenRef.current = token;
 
         if (res.ok) {
           setStatus("success");
@@ -44,17 +61,15 @@ function VerifyEmailContent() {
           setMessage(data.error || "Недійсне або прострочене посилання підтвердження.");
         }
       } catch (err: any) {
-        if (!isMounted) return;
         setStatus("error");
         setMessage(err.message || "Помилка зв'язку із сервером.");
+      } finally {
+        isVerifyingRef.current = false;
       }
     };
 
     verifyToken();
-    return () => {
-      isMounted = false;
-    };
-  }, [token]);
+  }, [token, successParam, errorParam]);
 
   const handleResend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,9 +88,14 @@ function VerifyEmailContent() {
 
       const data = await res.json();
       if (res.ok) {
-        setResendSuccess(data.message || "Лист надіслано на вашу пошту.");
-        if (data.previewUrl) {
-          setResendPreviewUrl(data.previewUrl);
+        if (data.alreadyVerified) {
+          setStatus("success");
+          setMessage(data.message || "Цей обліковий запис уже підтверджено. Ви можете увійти до системи.");
+        } else {
+          setResendSuccess(data.message || "Лист надіслано на вашу пошту.");
+          if (data.previewUrl) {
+            setResendPreviewUrl(data.previewUrl);
+          }
         }
       } else {
         setMessage(data.error || "Не вдалося надіслати лист.");

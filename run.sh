@@ -17,6 +17,7 @@ fi
 # Ensure persistent directories exist in /data
 mkdir -p /data/postgres /data/uploads /run/postgresql
 chown -R postgres:postgres /data/postgres /run/postgresql
+chmod 777 /data/uploads
 
 # Initialize PostgreSQL cluster if not already present
 if [ ! -s /data/postgres/PG_VERSION ]; then
@@ -26,9 +27,9 @@ if [ ! -s /data/postgres/PG_VERSION ]; then
     echo "listen_addresses = '127.0.0.1'" >> /data/postgres/postgresql.conf
 fi
 
-# Start PostgreSQL daemon
+# Start PostgreSQL daemon (log inside /data/postgres where user postgres has permissions)
 echo "[STsup] Starting internal PostgreSQL service..."
-su-exec postgres pg_ctl -D /data/postgres -l /data/postgres.log -w start
+su-exec postgres pg_ctl -D /data/postgres -l /data/postgres/postgres.log -w start
 
 # Ensure user and database exist
 echo "[STsup] Checking database existence..."

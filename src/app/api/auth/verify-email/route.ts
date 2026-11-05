@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createToken, AUTH_COOKIE_NAME } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
@@ -31,13 +32,38 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2. If already verified, return success immediately (prevents duplicate request/refresh errors)
+    // 2. If already verified, return success and ensure session cookie is present
     if (user.isEmailVerified) {
-      return NextResponse.json({
+      const sessionToken = createToken({
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      });
+
+      const response = NextResponse.json({
         success: true,
         alreadyVerified: true,
-        message: "Вашу електронну пошту вже успішно підтверджено! Тепер ви можете увійти до системи.",
+        message: "Вашу електронну пошту вже успішно підтверджено! Вхід виконано.",
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
       });
+
+      response.cookies.set({
+        name: AUTH_COOKIE_NAME,
+        value: sessionToken,
+        httpOnly: true,
+        path: "/",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 30,
+        secure: process.env.COOKIE_SECURE === "true",
+      });
+
+      return response;
     }
 
     // 3. Check expiration (24h)
@@ -51,7 +77,7 @@ export async function POST(req: Request) {
     }
 
     // 4. Mark verified, keeping verificationToken so repeat requests/refreshes/antivirus scans still return success
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         isEmailVerified: true,
@@ -59,10 +85,36 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "Електронну пошту успішно підтверджено! Тепер ви можете увійти до системи.",
+    // 5. Automatically log the user in with a 30-day session cookie
+    const sessionToken = createToken({
+      userId: updatedUser.id,
+      email: updatedUser.email,
+      name: updatedUser.name,
+      role: updatedUser.role,
     });
+
+    const response = NextResponse.json({
+      success: true,
+      message: "Електронну пошту успішно підтверджено! Вхід виконано.",
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        role: updatedUser.role,
+      },
+    });
+
+    response.cookies.set({
+      name: AUTH_COOKIE_NAME,
+      value: sessionToken,
+      httpOnly: true,
+      path: "/",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 30,
+      secure: process.env.COOKIE_SECURE === "true",
+    });
+
+    return response;
   } catch (error: any) {
     console.error("Verify email error:", error);
     return NextResponse.json({ error: error.message || "Помилка сервера" }, { status: 500 });
@@ -89,11 +141,12 @@ export async function GET(req: Request) {
       return NextResponse.redirect(new URL("/verify-email?error=invalid_token", req.url));
     }
 
+    let targetUser = user;
     if (!user.isEmailVerified) {
       if (user.verificationTokenExpires && user.verificationTokenExpires < new Date()) {
         return NextResponse.redirect(new URL("/verify-email?error=expired", req.url));
       }
-      await prisma.user.update({
+      targetUser = await prisma.user.update({
         where: { id: user.id },
         data: {
           isEmailVerified: true,
@@ -102,8 +155,26 @@ export async function GET(req: Request) {
       });
     }
 
-    // Redirect to login page with verified notice
-    return NextResponse.redirect(new URL("/login?verified=true", req.url));
+    // Auto-login session cookie and redirect to main dashboard
+    const sessionToken = createToken({
+      userId: targetUser.id,
+      email: targetUser.email,
+      name: targetUser.name,
+      role: targetUser.role,
+    });
+
+    const response = NextResponse.redirect(new URL("/?verified=true", req.url));
+    response.cookies.set({
+      name: AUTH_COOKIE_NAME,
+      value: sessionToken,
+      httpOnly: true,
+      path: "/",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 30,
+      secure: process.env.COOKIE_SECURE === "true",
+    });
+
+    return response;
   } catch (error: any) {
     console.error("Verify email GET error:", error);
     return NextResponse.redirect(new URL("/verify-email?error=server_error", req.url));

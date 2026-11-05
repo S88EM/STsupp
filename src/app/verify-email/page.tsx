@@ -145,10 +145,10 @@ function VerifyEmailContent() {
             </div>
 
             <Link
-              href="/login"
+              href="/"
               className="w-full py-2.5 px-4 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center justify-center gap-2 transition-colors shadow-md shadow-primary/20"
             >
-              <span>Перейти до входу</span>
+              <span>Перейти до роботи в STsup</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

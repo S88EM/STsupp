@@ -40,8 +40,10 @@ export async function PATCH(
   { params }: { params: { taskId: string } }
 ) {
   try {
-    const body = await req.json();
-    const { subtaskId, isCompleted, title } = body;
+    const { searchParams } = new URL(req.url);
+    const body = await req.json().catch(() => ({}));
+    const subtaskId = body.subtaskId || searchParams.get("subtaskId");
+    const { isCompleted, title } = body;
 
     if (!subtaskId) {
       return NextResponse.json({ error: "subtaskId is required" }, { status: 400 });
@@ -65,7 +67,11 @@ export async function PATCH(
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const subtaskId = searchParams.get("subtaskId");
+    let subtaskId = searchParams.get("subtaskId");
+    if (!subtaskId) {
+      const body = await req.json().catch(() => ({}));
+      subtaskId = body.subtaskId;
+    }
 
     if (!subtaskId) {
       return NextResponse.json({ error: "subtaskId is required" }, { status: 400 });

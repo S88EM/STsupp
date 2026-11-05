@@ -267,25 +267,60 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
 
   const handleToggleSubtask = async (subtaskId: string, isCompleted: boolean) => {
     try {
+      // Optimistic update
+      setTask((prev: any) => ({
+        ...prev,
+        subtasks: (prev.subtasks || []).map((s: any) =>
+          s.id === subtaskId ? { ...s, isCompleted } : s
+        ),
+      }));
+
       const res = await fetch(
-        `/api/projects/${projectId}/tasks/${taskId}/subtasks?subtaskId=${subtaskId}`,
+        `/api/projects/${projectId}/tasks/${taskId}/subtasks`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ isCompleted }),
+          body: JSON.stringify({ subtaskId, isCompleted }),
         }
+      );
+      if (res.ok) {
+        onTaskUpdated();
+      } else {
+        // Rollback on failure
+        setTask((prev: any) => ({
+          ...prev,
+          subtasks: (prev.subtasks || []).map((s: any) =>
+            s.id === subtaskId ? { ...s, isCompleted: !isCompleted } : s
+          ),
+        }));
+      }
+    } catch (err) {
+      console.error("Subtask toggle error:", err);
+      // Rollback on failure
+      setTask((prev: any) => ({
+        ...prev,
+        subtasks: (prev.subtasks || []).map((s: any) =>
+          s.id === subtaskId ? { ...s, isCompleted: !isCompleted } : s
+        ),
+      }));
+    }
+  };
+
+  const handleDeleteSubtask = async (subtaskId: string) => {
+    try {
+      const res = await fetch(
+        `/api/projects/${projectId}/tasks/${taskId}/subtasks?subtaskId=${subtaskId}`,
+        { method: "DELETE" }
       );
       if (res.ok) {
         setTask((prev: any) => ({
           ...prev,
-          subtasks: prev.subtasks.map((s: any) =>
-            s.id === subtaskId ? { ...s, isCompleted } : s
-          ),
+          subtasks: (prev.subtasks || []).filter((s: any) => s.id !== subtaskId),
         }));
         onTaskUpdated();
       }
     } catch (err) {
-      console.error(err);
+      console.error("Delete subtask error:", err);
     }
   };
 
@@ -936,28 +971,38 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
             )}
 
             {/* Subtask list */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {subtasks.map((s: any) => (
-                <label
+                <div
                   key={s.id}
-                  className="flex items-center gap-2 text-xs p-1.5 rounded hover:bg-secondary/40 cursor-pointer transition-colors"
+                  className="flex items-center justify-between group p-1.5 rounded-lg hover:bg-secondary/40 transition-colors text-xs"
                 >
-                  <input
-                    type="checkbox"
-                    checked={s.isCompleted}
-                    onChange={(e) => handleToggleSubtask(s.id, e.target.checked)}
-                    className="rounded border-border text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                  />
-                  <span
-                    className={`flex-1 ${
-                      s.isCompleted
-                        ? "line-through text-muted-foreground opacity-70"
-                        : "text-foreground font-medium"
-                    }`}
+                  <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(s.isCompleted)}
+                      onChange={(e) => handleToggleSubtask(s.id, e.target.checked)}
+                      className="rounded border-border text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                    />
+                    <span
+                      className={`truncate ${
+                        s.isCompleted
+                          ? "line-through text-muted-foreground opacity-70"
+                          : "text-foreground font-medium"
+                      }`}
+                    >
+                      {s.title}
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteSubtask(s.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-destructive transition-opacity"
+                    title="Видалити підзадачу"
                   >
-                    {s.title}
-                  </span>
-                </label>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               ))}
             </div>
 

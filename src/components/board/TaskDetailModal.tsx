@@ -216,22 +216,39 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
 
   const handleToggleSubtask = async (subtaskId: string, current: boolean) => {
     try {
+      // Optimistic update
+      setTask((prev: any) => ({
+        ...prev,
+        subtasks: (prev.subtasks || []).map((s: any) =>
+          s.id === subtaskId ? { ...s, isCompleted: !current } : s
+        ),
+      }));
+
       const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}/subtasks`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subtaskId, isCompleted: !current }),
       });
       if (res.ok) {
+        onTaskUpdated();
+      } else {
+        // Rollback on failure
         setTask((prev: any) => ({
           ...prev,
-          subtasks: prev.subtasks.map((s: any) =>
-            s.id === subtaskId ? { ...s, isCompleted: !current } : s
+          subtasks: (prev.subtasks || []).map((s: any) =>
+            s.id === subtaskId ? { ...s, isCompleted: current } : s
           ),
         }));
-        onTaskUpdated();
       }
     } catch (err) {
       console.error(err);
+      // Rollback on failure
+      setTask((prev: any) => ({
+        ...prev,
+        subtasks: (prev.subtasks || []).map((s: any) =>
+          s.id === subtaskId ? { ...s, isCompleted: current } : s
+        ),
+      }));
     }
   };
 

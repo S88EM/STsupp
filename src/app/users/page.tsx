@@ -81,10 +81,13 @@ export default function UsersManagementPage() {
   const [newPassword, setNewPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
 
-  // Edit Name Modal State
-  const [editNameUser, setEditNameUser] = useState<UserItem | null>(null);
-  const [editNameValue, setEditNameValue] = useState("");
-  const [savingName, setSavingName] = useState(false);
+  // Edit User (Name, Email, City) Modal State
+  const [editUser, setEditUser] = useState<UserItem | null>(null);
+  const [editUserName, setEditUserName] = useState("");
+  const [editUserEmail, setEditUserEmail] = useState("");
+  const [editUserCity, setEditUserCity] = useState("");
+  const [savingUser, setSavingUser] = useState(false);
+  const [editUserError, setEditUserError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -304,39 +307,61 @@ export default function UsersManagementPage() {
     }
   };
 
-  const openEditNameModal = (user: UserItem) => {
-    setEditNameUser(user);
-    setEditNameValue(user.name);
+  const openEditUserModal = (user: UserItem) => {
+    setEditUser(user);
+    setEditUserName(user.name);
+    setEditUserEmail(user.email);
+    setEditUserCity(user.city || "");
+    setEditUserError(null);
   };
 
-  const handleSaveName = async (e: React.FormEvent) => {
+  const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editNameUser || !editNameValue.trim()) return;
+    if (!editUser || !editUserName.trim() || !editUserEmail.trim()) return;
 
     try {
-      setSavingName(true);
-      const res = await fetch(`/api/users/${editNameUser.id}`, {
+      setSavingUser(true);
+      setEditUserError(null);
+      const res = await fetch(`/api/users/${editUser.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editNameValue.trim() }),
+        body: JSON.stringify({
+          name: editUserName.trim(),
+          email: editUserEmail.trim().toLowerCase(),
+          city: editUserCity.trim() || null,
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Не вдалося оновити ім'я");
+        setEditUserError(data.error || "Не вдалося оновити дані користувача");
         return;
       }
 
-      const updatedName = editNameValue.trim();
+      const updatedName = editUserName.trim();
+      const updatedEmail = editUserEmail.trim().toLowerCase();
+      const updatedCity = editUserCity.trim() || null;
+
       setUsers((prev) =>
-        prev.map((u) => (u.id === editNameUser.id ? { ...u, name: updatedName } : u))
+        prev.map((u) =>
+          u.id === editUser.id
+            ? { ...u, name: updatedName, email: updatedEmail, city: updatedCity }
+            : u
+        )
       );
-      setEditNameUser(null);
-      showSuccess("Ім'я користувача успішно оновлено!");
+
+      if (currentUser?.userId === editUser.id) {
+        setCurrentUser((prev: any) =>
+          prev ? { ...prev, name: updatedName, email: updatedEmail } : prev
+        );
+      }
+
+      setEditUser(null);
+      showSuccess("Дані користувача (включно з email) успішно оновлено!");
     } catch (err: any) {
-      alert(err.message || "Помилка при оновленні імені");
+      setEditUserError(err.message || "Помилка при оновленні користувача");
     } finally {
-      setSavingName(false);
+      setSavingUser(false);
     }
   };
 
@@ -541,6 +566,14 @@ export default function UsersManagementPage() {
                         <td className="py-3 px-4 text-muted-foreground font-mono text-[11px]">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span>{u.email}</span>
+                            <button
+                              type="button"
+                              onClick={() => openEditUserModal(u)}
+                              title="Редагувати email та дані користувача"
+                              className="p-1 text-muted-foreground/60 hover:text-primary hover:bg-secondary rounded transition-colors inline-flex items-center cursor-pointer"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
                             {u.isEmailVerified === false && (
                               <div className="flex items-center gap-1">
                                 <span
@@ -651,9 +684,9 @@ export default function UsersManagementPage() {
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button
-                              onClick={() => openEditNameModal(u)}
-                              title={`Редагувати ім'я ${u.name}`}
-                              className="p-1.5 text-muted-foreground hover:text-primary hover:bg-secondary rounded-lg transition-colors"
+                              onClick={() => openEditUserModal(u)}
+                              title={`Редагувати користувача ${u.name}`}
+                              className="p-1.5 text-muted-foreground hover:text-primary hover:bg-secondary rounded-lg transition-colors cursor-pointer"
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
@@ -1105,53 +1138,103 @@ export default function UsersManagementPage() {
         </div>
       )}
 
-      {/* MODAL: Edit User Name */}
-      {editNameUser && (
+      {/* MODAL: Edit User (Name, Email, City) */}
+      {editUser && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in-50 zoom-in-95">
+          <div className="bg-card border border-border w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in-50 zoom-in-95">
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <Pencil className="w-4 h-4 text-primary" />
-                <span>Зміна імені користувача</span>
+                <span>Редагування користувача</span>
               </h2>
               <button
-                onClick={() => setEditNameUser(null)}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary"
+                onClick={() => setEditUser(null)}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveName} className="space-y-4">
+            {editUserError && (
+              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{editUserError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveUser} className="space-y-3.5">
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-1">
-                  Повне ім'я
+                  Повне ім'я <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="Введіть нове ім'я"
-                  value={editNameValue}
-                  onChange={(e) => setEditNameValue(e.target.value)}
+                  placeholder="Введіть повне ім'я"
+                  value={editUserName}
+                  onChange={(e) => setEditUserName(e.target.value)}
                   required
                   autoFocus
                   className="w-full text-xs py-2 px-3 rounded-lg bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-1">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">
+                  Email адреса <span className="text-destructive">*</span>
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="email"
+                    placeholder="email@example.com"
+                    value={editUserEmail}
+                    onChange={(e) => setEditUserEmail(e.target.value)}
+                    required
+                    disabled={!!(editUser.isPrimaryAdmin || editUser.email === "admin@stsup.local")}
+                    className="w-full text-xs font-mono pl-9 pr-3 py-2 rounded-lg bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                </div>
+                {editUser.isPrimaryAdmin || editUser.email === "admin@stsup.local" ? (
+                  <p className="text-[10px] text-amber-400 mt-1">
+                    ⚠️ Email Головного адміністратора задається у конфігурації Home Assistant або змінних середовища.
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Зміна email оновить логін користувача для входу в систему STsup.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">
+                  Місто
+                </label>
+                <div className="relative">
+                  <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Введіть місто (наприклад, Вінниця)"
+                    value={editUserCity}
+                    onChange={(e) => setEditUserCity(e.target.value)}
+                    className="w-full text-xs pl-9 pr-3 py-2 rounded-lg bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
                 <button
                   type="button"
-                  onClick={() => setEditNameUser(null)}
-                  className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:bg-secondary transition-colors"
+                  onClick={() => setEditUser(null)}
+                  className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:bg-secondary transition-colors cursor-pointer"
                 >
                   Скасувати
                 </button>
                 <button
                   type="submit"
-                  disabled={savingName || !editNameValue.trim()}
-                  className="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                  disabled={savingUser || !editUserName.trim() || !editUserEmail.trim()}
+                  className="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  {savingName ? "Збереження..." : "Зберегти"}
+                  {savingUser ? "Збереження..." : "Зберегти зміни"}
                 </button>
               </div>
             </form>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, hashPassword, canManageUsers, isPrimaryAdmin } from "@/lib/auth";
+import { getCurrentUser, hashPassword, canManageUsers, isPrimaryAdmin, createToken, AUTH_COOKIE_NAME } from "@/lib/auth";
 
 export async function PATCH(
   req: Request,
@@ -14,7 +14,7 @@ export async function PATCH(
 
     const { userId } = params;
     const body = await req.json();
-    const { name, role, projectIds, password, isEmailVerified, city } = body;
+    const { name, email, role, projectIds, password, isEmailVerified, city } = body;
 
     const targetUser = await prisma.user.findUnique({
       where: { id: userId },
@@ -42,7 +42,50 @@ export async function PATCH(
       }
     }
 
-    // 2. Check project assignment permissions
+    // 2. Validate and handle email update
+    let cleanEmail: string | undefined = undefined;
+    if (email !== undefined) {
+      if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim().toLowerCase())) {
+        return NextResponse.json(
+          { error: "Вкажіть коректну email адресу" },
+          { status: 400 }
+        );
+      }
+      cleanEmail = email.trim().toLowerCase();
+
+      if (cleanEmail !== targetUser.email.toLowerCase().trim()) {
+        if (isPrimaryAdmin(targetUser.email)) {
+          return NextResponse.json(
+            { error: "Email Головного адміністратора задається у конфігурації Home Assistant або змінних середовища" },
+            { status: 400 }
+          );
+        }
+
+        // Only Primary Admin can change another Admin's email
+        if (targetUser.role === "ADMIN" && !isCurrentUserSuperAdmin && targetUser.id !== currentUser.userId) {
+          return NextResponse.json(
+            { error: "Тільки Головний адміністратор може змінювати email інших адміністраторів" },
+            { status: 403 }
+          );
+        }
+
+        const existing = await prisma.user.findFirst({
+          where: {
+            email: cleanEmail,
+            NOT: { id: userId },
+          },
+        });
+
+        if (existing) {
+          return NextResponse.json(
+            { error: `Користувач із поштою ${cleanEmail} вже існує в системі` },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    // 3. Check project assignment permissions
     if (Array.isArray(projectIds)) {
       const isTargetAdmin = targetUser.role === "ADMIN" || role === "ADMIN";
       if (isTargetAdmin && !isCurrentUserSuperAdmin) {
@@ -78,6 +121,7 @@ export async function PATCH(
         where: { id: userId },
         data: {
           name: name?.trim() ? name.trim() : undefined,
+          email: cleanEmail || undefined,
           city: city !== undefined ? (city?.trim() || null) : undefined,
           role: role ? (role as any) : undefined,
           passwordHash: passwordHash || undefined,
@@ -107,7 +151,28 @@ export async function PATCH(
       }
     });
 
-    return NextResponse.json({ success: true });
+    const response = NextResponse.json({ success: true, email: cleanEmail || targetUser.email });
+
+    // If current logged-in admin updated their own email or name, refresh session cookie
+    if (currentUser.userId === userId && (cleanEmail || name)) {
+      const token = createToken({
+        userId: currentUser.userId,
+        email: cleanEmail || currentUser.email,
+        name: name?.trim() || currentUser.name,
+        role: role || currentUser.role,
+      });
+      response.cookies.set({
+        name: AUTH_COOKIE_NAME,
+        value: token,
+        httpOnly: true,
+        path: "/",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 30,
+        secure: process.env.COOKIE_SECURE === "true",
+      });
+    }
+
+    return response;
   } catch (error: any) {
     console.error("PATCH /api/users/[userId] error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

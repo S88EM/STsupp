@@ -8,8 +8,10 @@ COPY package.json package-lock.json* ./
 RUN npm ci
 
 FROM base AS builder
+WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
+RUN mkdir -p /app/public
 RUN npx prisma generate
 RUN npm run build
 
@@ -20,7 +22,7 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Directories for PostgreSQL and file storage
-RUN mkdir -p /data/postgres /data/uploads /run/postgresql && \
+RUN mkdir -p /data/postgres /data/uploads /run/postgresql /app/public && \
     chown -R postgres:postgres /run/postgresql
 
 COPY --from=builder /app/public ./public

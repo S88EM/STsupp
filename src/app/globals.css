@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    color-scheme: dark;
     --background: 220 20% 98%;
     --foreground: 224 71% 4%;
     --card: 0 0% 100%;
@@ -27,6 +28,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     --background: 224 28% 8%;
     --foreground: 210 20% 98%;
     --card: 224 25% 11%;
@@ -46,6 +48,15 @@
     --border: 224 20% 18%;
     --input: 224 20% 18%;
     --ring: 217 91% 60%;
+  }
+
+  select {
+    color-scheme: dark;
+  }
+
+  option {
+    background-color: hsl(224 25% 11%) !important;
+    color: hsl(210 20% 98%) !important;
   }
 }
 

@@ -1,27 +1,33 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
-// Helper to ensure at least one default user exists for the self-hosted instance
-async function getOrCreateDefaultUser() {
-  let user = await prisma.user.findFirst();
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email: "admin@stsup.local",
-        name: "Admin User",
-        role: "ADMIN",
-      },
-    });
-  }
-  return user;
-}
+import { getCurrentUser, canManageProjects, isPrimaryAdmin } from "@/lib/auth";
 
 export async function GET() {
   try {
+    const currentUser = await getCurrentUser();
+    const isSuperAdmin = currentUser?.role === "ADMIN" && isPrimaryAdmin(currentUser.email);
+
+    // ONLY the Primary Admin sees all projects unconditionally.
+    // Created Admins, Engineers, and Clients see ONLY assigned projects (or projects they own).
+    const whereClause = isSuperAdmin || !currentUser
+      ? {}
+      : {
+          OR: [
+            { ownerId: currentUser.userId },
+            { members: { some: { userId: currentUser.userId } } },
+          ],
+        };
+
     const projects = await prisma.project.findMany({
+      where: whereClause,
       include: {
         columns: {
           orderBy: { orderIndex: "asc" },
+        },
+        members: {
+          include: {
+            user: { select: { id: true, name: true, email: true, role: true, avatarUrl: true } },
+          },
         },
         _count: {
           select: {
@@ -42,11 +48,20 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser || !canManageProjects(currentUser.role)) {
+      return NextResponse.json(
+        { error: "Тільки адміністратор має право створювати нові проекти" },
+        { status: 403 }
+      );
+    }
+    const isSuperAdmin = currentUser.role === "ADMIN" && isPrimaryAdmin(currentUser.email);
+
     const body = await req.json();
-    const { name, key, description } = body;
+    const { name, key, description, memberIds } = body;
 
     if (!name || !key) {
-      return NextResponse.json({ error: "Name and Key are required" }, { status: 400 });
+      return NextResponse.json({ error: "Назва та ключ обов'язкові" }, { status: 400 });
     }
 
     const cleanKey = key.trim().toUpperCase();
@@ -58,15 +73,35 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Проект з ключем "${cleanKey}" вже існує` }, { status: 400 });
     }
 
-    const user = await getOrCreateDefaultUser();
+    // Initial project members: creator admin + any selected users
+    const membersToCreate: Array<{ userId: string; role: any }> = [
+      { userId: currentUser.userId, role: "ADMIN" },
+    ];
 
-    // Create project with default workflow columns
+    if (Array.isArray(memberIds) && memberIds.length > 0) {
+      const selectedUsers = await prisma.user.findMany({
+        where: { id: { in: memberIds.filter((id: string) => id !== currentUser.userId) } },
+        select: { id: true, role: true, email: true },
+      });
+
+      for (const u of selectedUsers) {
+        // Only Primary Admin can assign another Admin to a project
+        if (u.role === "ADMIN" && !isSuperAdmin) {
+          continue;
+        }
+        membersToCreate.push({
+          userId: u.id,
+          role: u.role,
+        });
+      }
+    }
+
     const project = await prisma.project.create({
       data: {
         name: name.trim(),
         key: cleanKey,
         description: description?.trim() || null,
-        ownerId: user.id,
+        ownerId: currentUser.userId,
         columns: {
           create: [
             { name: "Беклог", color: "#64748b", orderIndex: 0, isDoneColumn: false },
@@ -76,16 +111,12 @@ export async function POST(req: Request) {
           ],
         },
         members: {
-          create: {
-            userId: user.id,
-            role: "ADMIN",
-          },
+          create: membersToCreate,
         },
       },
       include: {
-        columns: {
-          orderBy: { orderIndex: "asc" },
-        },
+        columns: true,
+        members: true,
       },
     });
 

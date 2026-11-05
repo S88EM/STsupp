@@ -1,23 +1,53 @@
 const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcryptjs");
+const fs = require("fs");
 
 const prisma = new PrismaClient();
+
+function getAdminConfig() {
+  let haOptions = {};
+  try {
+    if (fs.existsSync("/data/options.json")) {
+      haOptions = JSON.parse(fs.readFileSync("/data/options.json", "utf8"));
+    }
+  } catch (e) {}
+
+  return {
+    adminEmail: (process.env.ADMIN_EMAIL || haOptions.admin_email || "admin@stsup.local").toLowerCase().trim(),
+    adminPassword: process.env.ADMIN_PASSWORD || haOptions.admin_password || "admin123",
+    adminName: process.env.ADMIN_NAME || haOptions.admin_name || "Євген",
+  };
+}
 
 async function main() {
   console.log("Seeding database...");
 
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@stsup.local";
-  const adminName = process.env.ADMIN_NAME || "Олег (Admin)";
+  const { adminEmail, adminPassword, adminName } = getAdminConfig();
 
-  // 1. Create default admin user
-  const admin = await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {},
-    create: {
-      email: adminEmail,
-      name: adminName,
-      role: "ADMIN",
-    },
-  });
+  const passwordHash = bcrypt.hashSync(adminPassword, bcrypt.genSaltSync(10));
+
+  // 1. Create or update default admin user with initial password hash and verified email
+  let admin = await prisma.user.findUnique({ where: { email: adminEmail } });
+  if (!admin) {
+    admin = await prisma.user.create({
+      data: {
+        email: adminEmail,
+        name: adminName,
+        passwordHash,
+        role: "ADMIN",
+        isEmailVerified: true,
+      },
+    });
+  } else {
+    admin = await prisma.user.update({
+      where: { id: admin.id },
+      data: {
+        passwordHash: admin.passwordHash || passwordHash,
+        isEmailVerified: true,
+        role: "ADMIN",
+      },
+    });
+  }
 
   // 2. Create demo project
   const existingProject = await prisma.project.findUnique({

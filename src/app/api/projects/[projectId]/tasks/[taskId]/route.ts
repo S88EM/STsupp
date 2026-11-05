@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser, hasProjectAccess, canDeleteTasks } from "@/lib/auth";
+import { notifyStatusChange, notifyTaskAssignment } from "@/lib/notifications";
 
 export async function GET(
   req: Request,
@@ -7,6 +9,14 @@ export async function GET(
 ) {
   try {
     const { projectId, taskId } = params;
+    const currentUser = await getCurrentUser();
+
+    if (currentUser) {
+      const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
+      if (!hasAccess) {
+        return NextResponse.json({ error: "У вас немає доступу до цієї задачі" }, { status: 403 });
+      }
+    }
 
     const task = await prisma.task.findUnique({
       where: { id: taskId, projectId },
@@ -43,8 +53,57 @@ export async function PATCH(
 ) {
   try {
     const { projectId, taskId } = params;
+    const currentUser = await getCurrentUser();
+
+    if (currentUser) {
+      const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
+      if (!hasAccess) {
+        return NextResponse.json({ error: "У вас немає доступу до цієї задачі" }, { status: 403 });
+      }
+    }
+
     const body = await req.json();
-    const { title, description, priority, columnId, dueDate, assigneeId } = body;
+    const { title, description, priority, columnId, dueDate, assigneeId, aiContext } = body;
+
+    // Only ADMIN and ENGINEER can change assigneeId. CLIENT is forbidden.
+    if (assigneeId !== undefined) {
+      if (!currentUser || (currentUser.role !== "ADMIN" && currentUser.role !== "ENGINEER")) {
+        return NextResponse.json(
+          { error: "Клієнти не мають права на зміну виконавця задачі" },
+          { status: 403 }
+        );
+      }
+
+      if (assigneeId) {
+        const targetUser = await prisma.user.findUnique({
+          where: { id: assigneeId },
+          select: { id: true, role: true, email: true },
+        });
+
+        if (!targetUser) {
+          return NextResponse.json(
+            { error: "Призначеного користувача не знайдено в системі" },
+            { status: 400 }
+          );
+        }
+
+        // Clients CANNOT be assigned to tasks in a project unless they have explicit access to this project!
+        if (targetUser.role === "CLIENT" || targetUser.role === "MEMBER" || targetUser.role === "VIEWER") {
+          const hasAccess = await hasProjectAccess(targetUser.id, projectId, targetUser.role, targetUser.email);
+          if (!hasAccess) {
+            return NextResponse.json(
+              { error: "Користувач (клієнт) не має доступу до цього проєкту і не може бути призначений виконавцем." },
+              { status: 400 }
+            );
+          }
+        }
+      }
+    }
+
+    const existingTask = await prisma.task.findUnique({
+      where: { id: taskId, projectId },
+      select: { columnId: true, assigneeId: true },
+    });
 
     const updated = await prisma.task.update({
       where: { id: taskId, projectId },
@@ -55,6 +114,7 @@ export async function PATCH(
         columnId: columnId !== undefined ? columnId : undefined,
         dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : undefined,
         assigneeId: assigneeId !== undefined ? (assigneeId || null) : undefined,
+        aiContext: aiContext !== undefined ? aiContext : undefined,
       },
       include: {
         column: true,
@@ -65,6 +125,29 @@ export async function PATCH(
         },
       },
     });
+
+    // 1. Notify on status change
+    if (existingTask && columnId && columnId !== existingTask.columnId) {
+      notifyStatusChange({
+        taskId,
+        oldColumnId: existingTask.columnId,
+        newColumnId: columnId,
+        updatedByUserId: currentUser?.userId,
+        origin: req.headers.get("origin") || undefined,
+      }).catch((err) => console.error("notifyStatusChange error:", err));
+    }
+
+    // 2. Notify on assignee assignment/reassignment
+    const targetAssigneeId = assigneeId !== undefined ? (assigneeId || null) : existingTask?.assigneeId;
+    if (existingTask && targetAssigneeId && targetAssigneeId !== existingTask.assigneeId) {
+      notifyTaskAssignment({
+        taskId,
+        oldAssigneeId: existingTask.assigneeId,
+        newAssigneeId: targetAssigneeId,
+        assignedByUserId: currentUser?.userId,
+        origin: req.headers.get("origin") || undefined,
+      }).catch((err) => console.error("notifyTaskAssignment error:", err));
+    }
 
     return NextResponse.json(updated);
   } catch (error: any) {
@@ -79,6 +162,15 @@ export async function DELETE(
 ) {
   try {
     const { projectId, taskId } = params;
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser || !canDeleteTasks(currentUser.role)) {
+      return NextResponse.json(
+        { error: "Тільки адміністратор має право видаляти задачі" },
+        { status: 403 }
+      );
+    }
+
     await prisma.task.delete({ where: { id: taskId, projectId } });
     return NextResponse.json({ success: true });
   } catch (error: any) {

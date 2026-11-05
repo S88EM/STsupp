@@ -2,10 +2,13 @@
 CREATE SCHEMA IF NOT EXISTS "public";
 
 DO $$ BEGIN
-    CREATE TYPE "Role" AS ENUM ('ADMIN', 'MEMBER', 'VIEWER');
+    CREATE TYPE "Role" AS ENUM ('ADMIN', 'ENGINEER', 'CLIENT', 'MEMBER', 'VIEWER');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
+
+ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'ENGINEER';
+ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'CLIENT';
 
 DO $$ BEGIN
     CREATE TYPE "Priority" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'URGENT');
@@ -26,10 +29,22 @@ CREATE TABLE IF NOT EXISTS "User" (
     "passwordHash" TEXT,
     "avatarUrl" TEXT,
     "role" "Role" NOT NULL DEFAULT 'MEMBER',
+    "resetToken" TEXT,
+    "resetTokenExpires" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
+
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "passwordHash" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "resetToken" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "resetTokenExpires" TIMESTAMP(3);
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "isEmailVerified" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "verificationToken" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "verificationTokenExpires" TIMESTAMP(3);
+
+-- Auto-verify existing admin and existing users
+UPDATE "User" SET "isEmailVerified" = true WHERE "role" = 'ADMIN' OR "email" = 'admin@stsup.local';
 
 CREATE TABLE IF NOT EXISTS "Project" (
     "id" TEXT NOT NULL,
@@ -191,4 +206,24 @@ EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 DO $$ BEGIN
     ALTER TABLE "AiRecommendation" ADD CONSTRAINT "AiRecommendation_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+CREATE TABLE IF NOT EXISTS "TaskWatcher" (
+    "id" TEXT NOT NULL,
+    "taskId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "TaskWatcher_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "TaskWatcher_taskId_userId_key" ON "TaskWatcher"("taskId", "userId");
+CREATE INDEX IF NOT EXISTS "TaskWatcher_taskId_idx" ON "TaskWatcher"("taskId");
+CREATE INDEX IF NOT EXISTS "TaskWatcher_userId_idx" ON "TaskWatcher"("userId");
+
+DO $$ BEGIN
+    ALTER TABLE "TaskWatcher" ADD CONSTRAINT "TaskWatcher_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    ALTER TABLE "TaskWatcher" ADD CONSTRAINT "TaskWatcher_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null; END $$;

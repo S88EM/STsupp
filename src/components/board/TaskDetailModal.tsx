@@ -17,6 +17,8 @@ import {
   Send,
   Bot,
   Paperclip,
+  Film,
+  FileText,
 } from "lucide-react";
 import { ColumnItem } from "./ColumnCard";
 import { formatTimeAgo } from "@/lib/utils";
@@ -41,13 +43,46 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   onTaskDeleted,
 }) => {
   const [task, setTask] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [newSubtask, setNewSubtask] = useState("");
   const [newComment, setNewComment] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [users, setUsers] = useState<any[]>([]);
+  const [staffUsers, setStaffUsers] = useState<any[]>([]);
+  const [projectClientUsers, setProjectClientUsers] = useState<any[]>([]);
+
+  const canChangeAssignee = Boolean(
+    currentUser && (currentUser.role === "ADMIN" || currentUser.role === "ENGINEER")
+  );
+
+  useEffect(() => {
+    if (canChangeAssignee && projectId) {
+      fetch(`/api/projects/${projectId}/assignees`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data) {
+            setStaffUsers(data.staff || []);
+            setProjectClientUsers(data.projectClients || []);
+            setUsers(data.all || []);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [canChangeAssignee, projectId]);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.user) setCurrentUser(data.user);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (taskId && isOpen) {
@@ -56,6 +91,58 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
       setTask(null);
     }
   }, [taskId, isOpen]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !taskId) return;
+
+    try {
+      setUploadingFile(true);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}/attachments`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const newAttachment = await res.json();
+        setTask((prev: any) => ({
+          ...prev,
+          attachments: [newAttachment, ...(prev.attachments || [])],
+        }));
+        onTaskUpdated();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Не вдалося завантажити файл");
+      }
+    } catch (err: any) {
+      alert(err.message || "Помилка при завантаженні");
+    } finally {
+      setUploadingFile(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    if (!taskId) return;
+    try {
+      const res = await fetch(
+        `/api/projects/${projectId}/tasks/${taskId}/attachments?attachmentId=${attachmentId}`,
+        { method: "DELETE" }
+      );
+      if (res.ok) {
+        setTask((prev: any) => ({
+          ...prev,
+          attachments: (prev.attachments || []).filter((a: any) => a.id !== attachmentId),
+        }));
+        onTaskUpdated();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const loadTaskDetails = async () => {
     if (!taskId) return;
@@ -260,13 +347,15 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleDeleteTask}
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-              title="Видалити задачу"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {currentUser?.role === "ADMIN" && (
+              <button
+                onClick={handleDeleteTask}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                title="Видалити задачу (доступно лише адміністратору)"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
@@ -456,6 +545,84 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                 )}
               </div>
 
+              {/* Attachments Section (Screenshots, Videos, Materials) */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <Paperclip className="w-4 h-4 text-primary" />
+                    <span>Матеріали та скріншоти ({task?.attachments?.length || 0})</span>
+                  </div>
+
+                  <label className="text-xs px-2.5 py-1 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground font-medium border border-border cursor-pointer transition-colors flex items-center gap-1.5">
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>{uploadingFile ? "Завантаження..." : "Додати файл / скріншот"}</span>
+                    <input
+                      type="file"
+                      onChange={handleFileUpload}
+                      disabled={uploadingFile}
+                      className="hidden"
+                      accept="image/*,video/*,.pdf,.doc,.docx,.zip,.txt"
+                    />
+                  </label>
+                </div>
+
+                {task?.attachments?.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                    {task.attachments.map((att: any) => {
+                      const isImage = att.mimeType?.startsWith("image/");
+                      const isVideo = att.mimeType?.startsWith("video/");
+
+                      return (
+                        <div
+                          key={att.id}
+                          className="group relative p-2 rounded-xl bg-secondary/30 border border-border/60 hover:border-border transition-all flex flex-col justify-between"
+                        >
+                          <a
+                            href={att.fileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="space-y-1.5 block"
+                          >
+                            {isImage ? (
+                              <div className="w-full h-24 rounded-lg bg-black/40 overflow-hidden flex items-center justify-center">
+                                <img
+                                  src={att.fileUrl}
+                                  alt={att.fileName}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                />
+                              </div>
+                            ) : isVideo ? (
+                              <div className="w-full h-24 rounded-lg bg-black/40 overflow-hidden flex flex-col items-center justify-center text-primary">
+                                <Film className="w-6 h-6 mb-1" />
+                                <span className="text-[10px] text-muted-foreground">Відеофайл</span>
+                              </div>
+                            ) : (
+                              <div className="w-full h-24 rounded-lg bg-secondary/50 flex flex-col items-center justify-center text-muted-foreground">
+                                <FileText className="w-6 h-6 mb-1" />
+                                <span className="text-[10px]">Документ</span>
+                              </div>
+                            )}
+                            <span className="text-[11px] font-medium text-foreground truncate block" title={att.fileName}>
+                              {att.fileName}
+                            </span>
+                          </a>
+
+                          {(currentUser?.role === "ADMIN" || currentUser?.role === "ENGINEER") && (
+                            <button
+                              onClick={() => handleDeleteAttachment(att.id)}
+                              className="opacity-0 group-hover:opacity-100 absolute top-2 right-2 p-1 rounded-md bg-background/80 text-muted-foreground hover:text-destructive shadow-sm transition-opacity"
+                              title="Видалити вкладення"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {/* Comments Section */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -521,6 +688,44 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
 
             {/* Right Meta Sidebar: Status, Priority, Due Date, Info */}
             <div className="w-full md:w-72 bg-secondary/10 p-6 space-y-5 flex-shrink-0 text-xs">
+              {/* Assignee Selector */}
+              <div>
+                <label className="font-semibold text-muted-foreground uppercase text-[10px] tracking-wider block mb-1.5">
+                  Виконавець
+                </label>
+                {canChangeAssignee ? (
+                  <select
+                    value={task?.assigneeId || ""}
+                    onChange={(e) => handleUpdateField("assigneeId", e.target.value || null)}
+                    className="w-full bg-secondary/60 border border-border rounded-lg py-1.5 px-2.5 font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                  >
+                    <option value="">Не призначено</option>
+                    {staffUsers.length > 0 && (
+                      <optgroup label={`Співробітники (${staffUsers.length})`}>
+                        {staffUsers.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} ({u.role === "ADMIN" ? "Адмін" : "Інженер"})
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {projectClientUsers.length > 0 && (
+                      <optgroup label={`Клієнти цього проєкту (${projectClientUsers.length})`}>
+                        {projectClientUsers.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} (Клієнт)
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                ) : (
+                  <div className="w-full bg-secondary/30 border border-border/60 rounded-lg py-1.5 px-2.5 font-medium text-foreground">
+                    {task?.assignee?.name || "Не призначено"}
+                  </div>
+                )}
+              </div>
+
               {/* Status Selector */}
               <div>
                 <label className="font-semibold text-muted-foreground uppercase text-[10px] tracking-wider block mb-1.5">

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser, hasProjectAccess } from "@/lib/auth";
+import { notifyTaskAssignment } from "@/lib/notifications";
 
 export async function POST(
   req: Request,
@@ -7,11 +9,48 @@ export async function POST(
 ) {
   try {
     const { projectId } = params;
+    const currentUser = await getCurrentUser();
+
+    if (currentUser) {
+      const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
+      if (!hasAccess) {
+        return NextResponse.json({ error: "У вас немає доступу до створення задач у цьому проекті" }, { status: 403 });
+      }
+    }
+
     const body = await req.json();
-    const { title, description, columnId, priority = "MEDIUM", dueDate, assigneeId } = body;
+    const { title, description, columnId, priority = "MEDIUM", dueDate, assigneeId, aiContext } = body;
 
     if (!title?.trim()) {
       return NextResponse.json({ error: "Назва задачі обов'язкова" }, { status: 400 });
+    }
+
+    if (assigneeId) {
+      if (currentUser?.role === "CLIENT") {
+        return NextResponse.json(
+          { error: "Клієнти не мають права призначати виконавця задачі" },
+          { status: 403 }
+        );
+      }
+
+      const targetUser = await prisma.user.findUnique({
+        where: { id: assigneeId },
+        select: { id: true, role: true, email: true },
+      });
+
+      if (!targetUser) {
+        return NextResponse.json({ error: "Призначеного користувача не знайдено" }, { status: 400 });
+      }
+
+      if (targetUser.role === "CLIENT" || targetUser.role === "MEMBER" || targetUser.role === "VIEWER") {
+        const hasAccess = await hasProjectAccess(targetUser.id, projectId, targetUser.role, targetUser.email);
+        if (!hasAccess) {
+          return NextResponse.json(
+            { error: "Користувач (клієнт) не має доступу до цього проєкту і не може бути призначений виконавцем" },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     const project = await prisma.project.findUnique({
@@ -45,8 +84,16 @@ export async function POST(
     });
     const nextOrder = lastInColumn ? lastInColumn.orderIndex + 1 : 0;
 
-    // Get default creator
-    const creator = await prisma.user.findFirst();
+    // Use current authenticated user or fallback to first user
+    let creatorId = currentUser?.userId;
+    if (!creatorId) {
+      const fallbackUser = await prisma.user.findFirst();
+      creatorId = fallbackUser?.id;
+    }
+
+    if (!creatorId) {
+      return NextResponse.json({ error: "Користувача не знайдено" }, { status: 400 });
+    }
 
     const task = await prisma.task.create({
       data: {
@@ -59,22 +106,29 @@ export async function POST(
         priority,
         orderIndex: nextOrder,
         dueDate: dueDate ? new Date(dueDate) : null,
-        creatorId: creator!.id,
+        creatorId,
         assigneeId: assigneeId || null,
+        aiContext: aiContext || undefined,
       },
       include: {
         assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
         creator: { select: { id: true, name: true, email: true } },
         subtasks: true,
         _count: {
-          select: {
-            comments: true,
-            attachments: true,
-            subtasks: true,
-          },
+          select: { comments: true, attachments: true, subtasks: true },
         },
       },
     });
+
+    if (assigneeId) {
+      notifyTaskAssignment({
+        taskId: task.id,
+        oldAssigneeId: null,
+        newAssigneeId: assigneeId,
+        assignedByUserId: currentUser?.userId || creatorId,
+        origin: req.headers.get("origin") || undefined,
+      }).catch((err) => console.error("notifyTaskAssignment error on create:", err));
+    }
 
     return NextResponse.json(task, { status: 201 });
   } catch (error: any) {

@@ -18,6 +18,7 @@ export async function GET() {
       user: cfg.user,
       hasPass: Boolean(cfg.pass),
       from: cfg.from,
+      appUrl: cfg.appUrl || "",
       isConfigured: isMailConfigured(),
     });
   } catch (error: any) {
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { host, port, secure, user, pass, from } = body;
+    const { host, port, secure, user, pass, from, appUrl } = body;
 
     const saved = saveMailConfig({
       host: host !== undefined ? String(host).trim() : undefined,
@@ -43,11 +44,12 @@ export async function POST(req: Request) {
       user: user !== undefined ? String(user).trim() : undefined,
       pass: pass !== undefined && pass !== "" ? String(pass) : undefined,
       from: from !== undefined ? String(from).trim() : undefined,
+      appUrl: appUrl !== undefined ? String(appUrl).trim() : undefined,
     });
 
     return NextResponse.json({
       success: true,
-      message: "Налаштування поштового сервера успішно збережено",
+      message: "Налаштування поштового сервера та адреси системи успішно збережено",
       config: {
         host: saved.host,
         port: saved.port,
@@ -55,6 +57,7 @@ export async function POST(req: Request) {
         user: saved.user,
         hasPass: Boolean(saved.pass),
         from: saved.from,
+        appUrl: saved.appUrl || "",
         isConfigured: isMailConfigured(),
       },
     });

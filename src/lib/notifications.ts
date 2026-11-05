@@ -3,11 +3,14 @@ import {
   sendStatusChangedEmail,
   sendTaskAssignedEmail,
   sendCommentAddedEmail,
+  getAppUrl,
 } from "@/lib/email";
 
 function getBaseUrl(origin?: string): string {
-  if (origin && origin.startsWith("http")) return origin;
-  return process.env.NEXTAUTH_URL || "http://localhost:3000";
+  if (origin && origin.startsWith("http") && !origin.includes("localhost") && !origin.includes("127.0.0.1")) {
+    return origin.replace(/\/+$/, "");
+  }
+  return getAppUrl();
 }
 
 /**

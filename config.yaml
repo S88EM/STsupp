@@ -1,6 +1,6 @@
 name: "STsup"
 slug: "stsup"
-version: "0.1.8"
+version: "0.1.9"
 description: "Швидкий Kanban-трекер задач у стилі Linear із гнучкими статусами, авторизацією та підтримкою AI Confluence"
 url: "https://github.com/S88EM/STsupp"
 arch:
@@ -19,6 +19,7 @@ map:
   - share:rw
 options:
   timezone: "Europe/Kyiv"
+  app_url: ""
   admin_email: "admin@stsup.local"
   admin_password: ""
   smtp_host: ""
@@ -29,6 +30,7 @@ options:
   smtp_from: "STsup <no-reply@stsup.local>"
 schema:
   timezone: str
+  app_url: str?
   admin_email: email?
   admin_password: password?
   smtp_host: str?

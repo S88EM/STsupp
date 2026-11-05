@@ -16,6 +16,7 @@ import {
   Save,
   RefreshCw,
   Info,
+  Globe,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 
@@ -34,6 +35,7 @@ export default function SettingsPage() {
   const [hasSavedPass, setHasSavedPass] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [from, setFrom] = useState("");
+  const [appUrl, setAppUrl] = useState("");
   const [isConfigured, setIsConfigured] = useState(false);
 
   // Test email
@@ -70,6 +72,7 @@ export default function SettingsPage() {
         setUser(smtpData.user || "");
         setHasSavedPass(Boolean(smtpData.hasPass));
         setFrom(smtpData.from || "");
+        setAppUrl(smtpData.appUrl || "");
         setIsConfigured(Boolean(smtpData.isConfigured));
       }
     } catch (err) {
@@ -96,6 +99,7 @@ export default function SettingsPage() {
           user,
           pass: pass || undefined,
           from,
+          appUrl,
         }),
       });
 
@@ -261,6 +265,24 @@ export default function SettingsPage() {
               </div>
 
               <form onSubmit={handleSave} className="p-5 space-y-4">
+                {/* System / App URL */}
+                <div className="p-3.5 rounded-xl bg-blue-500/5 border border-blue-500/20 space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Адреса системи для посилань (App URL)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="http://192.168.1.100:3000 або http://homeassistant.local:3000"
+                    value={appUrl}
+                    onChange={(e) => setAppUrl(e.target.value)}
+                    className="w-full text-xs font-mono py-2 px-3 rounded-lg bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                  />
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Вкажіть адресу вашого Home Assistant або домен (наприклад, <code className="text-blue-400">http://192.168.1.100:3000</code>). Вона автоматично підставлятиметься у всі листи замість localhost.
+                  </p>
+                </div>
+
                 {/* Presets */}
                 <div>
                   <span className="text-[11px] text-muted-foreground font-medium block mb-1.5">

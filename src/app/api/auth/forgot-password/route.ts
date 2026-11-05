@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { sendPasswordResetEmail, isMailConfigured } from "@/lib/email";
+import { sendPasswordResetEmail, isMailConfigured, getAppUrl } from "@/lib/email";
 
 export async function POST(req: Request) {
   try {
@@ -37,8 +37,8 @@ export async function POST(req: Request) {
       },
     });
 
-    const origin = req.headers.get("origin") || process.env.NEXTAUTH_URL || "http://localhost:3000";
-    const resetUrl = `${origin}/reset-password?token=${token}`;
+    const baseUrl = getAppUrl(req);
+    const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
     const mailResult = await sendPasswordResetEmail({
       to: user.email,

@@ -9,6 +9,7 @@ export interface MailConfig {
   user: string;
   pass: string;
   from: string;
+  appUrl?: string;
 }
 
 function getSmtpConfigFilePath(): string {
@@ -53,8 +54,9 @@ export function getMailConfig(): MailConfig {
   const user = (savedConfig.user || process.env.SMTP_USER || haOptions.smtp_user || "").trim();
   const pass = (savedConfig.pass || process.env.SMTP_PASS || process.env.SMTP_PASSWORD || haOptions.smtp_password || "").trim();
   const from = (savedConfig.from || process.env.SMTP_FROM || haOptions.smtp_from || '"STsup" <no-reply@stsup.local>').trim();
+  const appUrl = (savedConfig.appUrl || process.env.APP_URL || haOptions.app_url || "").trim();
 
-  return { host, port, secure, user, pass, from };
+  return { host, port, secure, user, pass, from, appUrl };
 }
 
 export function saveMailConfig(newCfg: Partial<MailConfig>): MailConfig {
@@ -66,6 +68,7 @@ export function saveMailConfig(newCfg: Partial<MailConfig>): MailConfig {
     user: (newCfg.user !== undefined ? newCfg.user : current.user).trim(),
     pass: newCfg.pass !== undefined && newCfg.pass !== "" ? newCfg.pass.trim() : current.pass,
     from: (newCfg.from !== undefined && newCfg.from.trim() ? newCfg.from.trim() : current.from).trim(),
+    appUrl: newCfg.appUrl !== undefined ? newCfg.appUrl.trim() : current.appUrl,
   };
 
   const configPath = getSmtpConfigFilePath();
@@ -75,6 +78,54 @@ export function saveMailConfig(newCfg: Partial<MailConfig>): MailConfig {
   }
   fs.writeFileSync(configPath, JSON.stringify(updated, null, 2), "utf8");
   return updated;
+}
+
+/**
+ * Returns the effective base URL of the STsup application for links in emails and notifications.
+ * Priority:
+ * 1. Configured appUrl in /data/smtp.json or Home Assistant options (/data/options.json)
+ * 2. APP_URL environment variable
+ * 3. Incoming request headers (Origin, Host, X-Forwarded-Host)
+ * 4. NEXTAUTH_URL or fallback
+ */
+export function getAppUrl(req?: Request): string {
+  // 1. Check configured appUrl
+  const cfg = getMailConfig();
+  if (cfg.appUrl && cfg.appUrl.trim()) {
+    return cfg.appUrl.trim().replace(/\/+$/, "");
+  }
+
+  // 2. Check APP_URL env variable
+  if (process.env.APP_URL && process.env.APP_URL.trim()) {
+    return process.env.APP_URL.trim().replace(/\/+$/, "");
+  }
+
+  // 3. Check incoming request headers
+  if (req) {
+    const forwardedProto = req.headers.get("x-forwarded-proto") || "http";
+    const forwardedHost = req.headers.get("x-forwarded-host");
+    const origin = req.headers.get("origin");
+    const host = req.headers.get("host");
+
+    if (forwardedHost && !forwardedHost.includes("localhost") && !forwardedHost.includes("127.0.0.1")) {
+      return `${forwardedProto}://${forwardedHost}`.replace(/\/+$/, "");
+    }
+    if (origin && !origin.includes("localhost") && !origin.includes("127.0.0.1")) {
+      return origin.trim().replace(/\/+$/, "");
+    }
+    if (host && !host.includes("localhost") && !host.includes("127.0.0.1")) {
+      return `${forwardedProto}://${host}`.replace(/\/+$/, "");
+    }
+    if (origin) {
+      return origin.trim().replace(/\/+$/, "");
+    }
+    if (host) {
+      return `${forwardedProto}://${host}`.replace(/\/+$/, "");
+    }
+  }
+
+  // 4. Fallback to NEXTAUTH_URL or localhost
+  return (process.env.NEXTAUTH_URL || "http://localhost:3000").trim().replace(/\/+$/, "");
 }
 
 export async function testMailConnection(testEmail?: string, customCfg?: Partial<MailConfig>) {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, createToken, AUTH_COOKIE_NAME } from "@/lib/auth";
-import { sendVerificationEmail, isMailConfigured } from "@/lib/email";
+import { sendVerificationEmail, isMailConfigured, getAppUrl } from "@/lib/email";
 import { ensureDefaultAdmin } from "@/lib/init-admin";
 
 export async function POST(req: Request) {
@@ -60,10 +60,10 @@ export async function POST(req: Request) {
       },
     });
 
-    const origin = req.headers.get("origin") || process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const baseUrl = getAppUrl(req);
 
     if (!isEmailVerified && verificationToken) {
-      const verificationUrl = `${origin}/verify-email?token=${verificationToken}`;
+      const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
 
       // Send verification email in background
       sendVerificationEmail({

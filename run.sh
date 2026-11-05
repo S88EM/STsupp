@@ -21,6 +21,12 @@ if [ -f /data/options.json ]; then
     if [ -n "$ADM_PASS" ]; then
         export ADMIN_PASSWORD="$ADM_PASS"
     fi
+    APP_URL_VAL=$(grep -o '"app_url"[^,}]*' /data/options.json | cut -d'"' -f4)
+    if [ -n "$APP_URL_VAL" ]; then
+        export APP_URL="$APP_URL_VAL"
+        export NEXTAUTH_URL="$APP_URL_VAL"
+        echo "[STsup] App URL configured: $APP_URL"
+    fi
 fi
 
 # Ensure persistent directories exist in /data

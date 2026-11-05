@@ -33,8 +33,11 @@ su-exec postgres pg_ctl -D /data/postgres -l /data/postgres/postgres.log -w star
 
 # Ensure user and database exist
 echo "[STsup] Checking database existence..."
+su-exec postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname = 'stuser'" | grep -q 1 || \
+    su-exec postgres psql -c "CREATE USER stuser WITH SUPERUSER PASSWORD 'stpassword';"
+
 su-exec postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = 'stsup_db'" | grep -q 1 || \
-    su-exec postgres psql -c "CREATE USER stuser WITH SUPERUSER PASSWORD 'stpassword'; CREATE DATABASE stsup_db OWNER stuser;"
+    su-exec postgres psql -c "CREATE DATABASE stsup_db OWNER stuser;"
 
 # Database connection URL for internal Postgres
 export DATABASE_URL="postgresql://stuser:stpassword@127.0.0.1:5432/stsup_db?schema=public"

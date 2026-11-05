@@ -5,13 +5,16 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Seeding database...");
 
+  const adminEmail = process.env.ADMIN_EMAIL || "admin@stsup.local";
+  const adminName = process.env.ADMIN_NAME || "Олег (Admin)";
+
   // 1. Create default admin user
   const admin = await prisma.user.upsert({
-    where: { email: "admin@stsup.local" },
+    where: { email: adminEmail },
     update: {},
     create: {
-      email: "admin@stsup.local",
-      name: "Олег (Admin)",
+      email: adminEmail,
+      name: adminName,
       role: "ADMIN",
     },
   });
@@ -50,7 +53,7 @@ async function main() {
     const inProgressCol = project.columns.find((c) => c.name === "В роботі");
     const doneCol = project.columns.find((c) => c.name === "Готово");
 
-    // Create demo tasks
+    // Tasks in progress
     if (inProgressCol) {
       await prisma.task.create({
         data: {
@@ -74,6 +77,7 @@ async function main() {
       });
     }
 
+    // Backlog tasks
     if (backlogCol) {
       await prisma.task.create({
         data: {
@@ -87,8 +91,31 @@ async function main() {
           creatorId: admin.id,
         },
       });
+
+      // New backlog task for SMTP & Admin configuration
+      await prisma.task.create({
+        data: {
+          projectId: project.id,
+          columnId: backlogCol.id,
+          taskNumber: 4,
+          code: "ST-4",
+          title: "Налаштування поштового сервера (SMTP) та першого адміна через файл конфігурації",
+          description: "1. Читання параметрів SMTP (хост, порт, логін, пароль, SSL) із файлу конфігурації (.env / HA options).\n2. Створення першого користувача (Admin) на основі конфігураційного файлу.\n3. Реєстрація нових користувачів із підтвердженням пошти.\n4. Відновлення та скидання пароля через email-посилання.\n5. Email-сповіщення при зміні статусу, додаванні коментаря чи призначенні задачі.",
+          priority: "HIGH",
+          creatorId: admin.id,
+          subtasks: {
+            create: [
+              { title: "Додати параметри SMTP та Admin до файлу конфігурації (.env / config.yaml)", isCompleted: false, orderIndex: 0 },
+              { title: "Створити поштовий сервіс Nodemailer для відправки листів", isCompleted: false, orderIndex: 1 },
+              { title: "Реалізувати форму та API відновлення пароля", isCompleted: false, orderIndex: 2 },
+              { title: "Реалізувати відправку сповіщень про події в задачах", isCompleted: false, orderIndex: 3 },
+            ],
+          },
+        },
+      });
     }
 
+    // Done tasks
     if (doneCol) {
       await prisma.task.create({
         data: {

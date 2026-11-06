@@ -75,23 +75,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         }
       })
       .catch(() => {});
-
-    // Global shortcut 'c' or 'C' for create task
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        (e.key === "c" || e.key === "C") &&
-        !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)
-      ) {
-        if (onOpenNewTask) {
-          e.preventDefault();
-          onOpenNewTask();
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onOpenNewTask]);
+  }, []);
 
   // Click outside listener for dropdowns
   useEffect(() => {
@@ -404,24 +388,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* 2. Center: Prominent Blue Create Button */}
-      {onOpenNewTask && (
-        <div className="flex items-center justify-center">
-          <button
-            onClick={onOpenNewTask}
-            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm shadow-blue-500/20 transition-all hover:shadow-md"
-            title="Створити задачу (Гаряча клавіша: C)"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>Створити</span>
-            <kbd className="hidden sm:inline-block ml-1 px-1.5 py-0.2 text-[10px] bg-white/20 rounded font-mono font-normal">
-              C
-            </kbd>
-          </button>
-        </div>
-      )}
-
-      {/* 3. Right Group: Search, Notifications, Help & Profile */}
+      {/* 2. Right Group: Search, Notifications, Help & Profile */}
       <div className="flex items-center gap-1.5 sm:gap-2.5">
         {/* Search input (Quick search) */}
         <div className="relative hidden lg:block">
@@ -451,7 +418,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <button
           className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors hidden sm:inline-flex"
           title="Довідка та гарячі клавіші"
-          onClick={() => alert("STsup Jira Edition v1.0\nГарячі клавіші:\n• 'C' — Створити нову задачу\n• 'Esc' — Закрити активне вікно")}
+          onClick={() => alert("STsup Jira Edition v1.0\nГарячі клавіші:\n• 'Esc' — Закрити активне вікно")}
         >
           <HelpCircle className="w-4 h-4" />
         </button>

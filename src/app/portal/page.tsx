@@ -239,21 +239,6 @@ export default function ClientPortalPage() {
     loadTickets(true);
   }, [loadTickets]);
 
-  // Global hotkey 'c' for new ticket
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        (e.key === "c" || e.key === "C") &&
-        !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)
-      ) {
-        e.preventDefault();
-        setIsCreateModalOpen(true);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });

@@ -36,28 +36,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     setColumns(initialColumns);
   }, [initialColumns]);
 
-  // Global keyboard shortcuts (Linear style)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // If typing in input or textarea, ignore
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement
-      ) {
-        return;
-      }
-
-      if (e.key === "c" || e.key === "C") {
-        e.preventDefault();
-        setIsNewTaskOpen(true);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
   const handleDragEnd = async (result: DropResult) => {
     if (!canChangeStatus) return;
     const { source, destination, draggableId } = result;

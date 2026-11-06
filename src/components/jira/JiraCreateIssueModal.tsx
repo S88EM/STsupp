@@ -291,10 +291,18 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
   // Components & Labels from Admin Dictionary
   const [dictionaries, setDictionaries] = useState<{
     componentsByType: Record<string, string[]>;
+    componentsByProject: Record<string, Record<string, string[]>>;
     labels: string[];
-  }>({ componentsByType: {}, labels: [] });
+  }>({ componentsByType: {}, componentsByProject: {}, labels: [] });
   const [selectedComponents, setSelectedComponents] = useState<string[]>([]);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+
+  const getAvailableComponents = (pId = selectedProjectId, type = issueType): string[] => {
+    if (pId && dictionaries.componentsByProject?.[pId]?.[type]) {
+      return dictionaries.componentsByProject[pId][type];
+    }
+    return dictionaries.componentsByType?.[type] || [];
+  };
 
   const canChangeAssignee = Boolean(
     currentUser && (currentUser.role === "ADMIN" || currentUser.role === "ENGINEER")
@@ -344,7 +352,13 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
 
   const handleIssueTypeChange = (newType: string) => {
     setIssueType(newType);
-    const validComps = dictionaries.componentsByType[newType] || [];
+    const validComps = getAvailableComponents(selectedProjectId, newType);
+    setSelectedComponents((prev) => prev.filter((c) => validComps.includes(c)));
+  };
+
+  const handleProjectChange = (newProjectId: string) => {
+    setSelectedProjectId(newProjectId);
+    const validComps = getAvailableComponents(newProjectId, issueType);
     setSelectedComponents((prev) => prev.filter((c) => validComps.includes(c)));
   };
 
@@ -580,7 +594,7 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
               label="Проєкт"
               required
               value={selectedProjectId}
-              onChange={(val) => setSelectedProjectId(val)}
+              onChange={handleProjectChange}
               options={projectOptions}
             />
 
@@ -692,10 +706,10 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
             <CustomMultiSelect
               label="Компоненти"
               selectedValues={selectedComponents}
-              options={dictionaries.componentsByType[issueType] || []}
+              options={getAvailableComponents(selectedProjectId, issueType)}
               onChange={setSelectedComponents}
               placeholder="Оберіть компонент зі списку..."
-              emptyNotice={`Немає налаштованих компонентів для типу "${issueTypeOptions.find((t) => t.value === issueType)?.label || issueType}"`}
+              emptyNotice={`Немає налаштованих компонентів для проєкту та типу "${issueTypeOptions.find((t) => t.value === issueType)?.label || issueType}"`}
               badgeClass="bg-secondary text-foreground font-mono border border-border/80"
             />
 

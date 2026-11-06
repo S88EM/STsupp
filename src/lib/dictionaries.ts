@@ -10,6 +10,7 @@ export interface TaskDictionaries {
     SUPPORT: string[];
     [key: string]: string[];
   };
+  componentsByProject: Record<string, Record<string, string[]>>;
   labels: string[];
 }
 
@@ -21,6 +22,7 @@ export const DEFAULT_TASK_DICTIONARIES: TaskDictionaries = {
     IMPROVEMENT: ["Швидкодія", "UX/Дизайн", "Рефакторинг", "Безпека", "Документація"],
     SUPPORT: ["Консультація", "Налаштування", "Доступ", "Документація", "Загальні питання"],
   },
+  componentsByProject: {},
   labels: [
     "v1.0",
     "v1.1",
@@ -54,6 +56,10 @@ export function getTaskDictionaries(): TaskDictionaries {
           ...DEFAULT_TASK_DICTIONARIES.componentsByType,
           ...(parsed.componentsByType || {}),
         },
+        componentsByProject:
+          parsed.componentsByProject && typeof parsed.componentsByProject === "object"
+            ? parsed.componentsByProject
+            : {},
         labels: Array.isArray(parsed.labels) ? parsed.labels : DEFAULT_TASK_DICTIONARIES.labels,
       };
     }
@@ -64,7 +70,18 @@ export function getTaskDictionaries(): TaskDictionaries {
   return DEFAULT_TASK_DICTIONARIES;
 }
 
-export function saveTaskDictionaries(dict: TaskDictionaries): TaskDictionaries {
+export function getProjectComponents(
+  dict: TaskDictionaries,
+  projectId?: string | null,
+  taskType: string = "TASK"
+): string[] {
+  if (projectId && dict.componentsByProject?.[projectId]?.[taskType]) {
+    return dict.componentsByProject[projectId][taskType];
+  }
+  return dict.componentsByType?.[taskType] || DEFAULT_TASK_DICTIONARIES.componentsByType[taskType as any] || [];
+}
+
+export function saveTaskDictionaries(dict: Partial<TaskDictionaries>): TaskDictionaries {
   const filePath = getDictionariesFilePath();
   const dir = path.dirname(filePath);
   if (!fs.existsSync(dir)) {
@@ -79,8 +96,23 @@ export function saveTaskDictionaries(dict: TaskDictionaries): TaskDictionaries {
     }
   }
 
+  // Clean componentsByProject
+  const rawByProject = dict.componentsByProject || {};
+  const cleanByProject: Record<string, Record<string, string[]>> = {};
+  for (const [pId, typesMap] of Object.entries(rawByProject)) {
+    if (typesMap && typeof typesMap === "object") {
+      cleanByProject[pId] = {};
+      for (const [tType, comps] of Object.entries(typesMap)) {
+        if (Array.isArray(comps)) {
+          cleanByProject[pId][tType] = comps;
+        }
+      }
+    }
+  }
+
   const cleanData: TaskDictionaries = {
     componentsByType: cleanByType as any,
+    componentsByProject: cleanByProject,
     labels: Array.isArray(dict.labels) ? dict.labels : [],
   };
 

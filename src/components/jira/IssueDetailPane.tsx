@@ -95,8 +95,9 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
   // Components & Labels Dictionaries & Menus
   const [dictionaries, setDictionaries] = useState<{
     componentsByType: Record<string, string[]>;
+    componentsByProject: Record<string, Record<string, string[]>>;
     labels: string[];
-  }>({ componentsByType: {}, labels: [] });
+  }>({ componentsByType: {}, componentsByProject: {}, labels: [] });
   const [showComponentsMenu, setShowComponentsMenu] = useState(false);
   const [showLabelsMenu, setShowLabelsMenu] = useState(false);
   const componentsMenuRef = useRef<HTMLDivElement>(null);
@@ -877,19 +878,33 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
                     </button>
                   )}
 
-                  {/* Components Popover (Strictly from Admin Dictionary for current task type) */}
+                  {/* Components Popover (Strictly from Admin Dictionary for current project & task type) */}
                   {!isClosed && showComponentsMenu && (
-                    <div className="absolute right-0 top-full mt-1 w-56 rounded-xl bg-card border border-border shadow-2xl p-1 z-40 animate-in fade-in-50 zoom-in-95">
-                      <div className="px-2.5 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/60">
-                        Компоненти для {typeInfo.label}
+                    <div className="absolute right-0 top-full mt-1 w-60 rounded-xl bg-card border border-border shadow-2xl p-1 z-40 animate-in fade-in-50 zoom-in-95">
+                      <div className="px-2.5 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/60 flex items-center justify-between">
+                        <span>Компоненти ({typeInfo.label})</span>
+                        {projectKey && (
+                          <span className="font-mono text-primary text-[9px]">[{projectKey}]</span>
+                        )}
                       </div>
                       <div className="max-h-48 overflow-y-auto py-1 space-y-0.5">
-                        {(dictionaries.componentsByType[typeInfo.id] || []).length === 0 ? (
-                          <div className="p-2 text-center text-[11px] text-muted-foreground">
-                            Немає компонентів для типу {typeInfo.label}
-                          </div>
-                        ) : (
-                          (dictionaries.componentsByType[typeInfo.id] || []).map((comp) => {
+                        {(() => {
+                          const targetProjectId = task?.projectId || projectId;
+                          const availableForProject: string[] =
+                            (targetProjectId &&
+                              dictionaries.componentsByProject?.[targetProjectId]?.[typeInfo.id]) ||
+                            dictionaries.componentsByType?.[typeInfo.id] ||
+                            [];
+
+                          if (availableForProject.length === 0) {
+                            return (
+                              <div className="p-2 text-center text-[11px] text-muted-foreground">
+                                Немає компонентів для проєкту та типу {typeInfo.label}
+                              </div>
+                            );
+                          }
+
+                          return availableForProject.map((comp: string) => {
                             const isSelected = componentsList.includes(comp);
                             return (
                               <button
@@ -908,8 +923,8 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
                                 )}
                               </button>
                             );
-                          })
-                        )}
+                          });
+                        })()}
                       </div>
                     </div>
                   )}

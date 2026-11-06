@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getTaskDictionaries, saveTaskDictionaries, DEFAULT_TASK_DICTIONARIES } from "@/lib/dictionaries";
 
@@ -12,7 +13,15 @@ export async function GET() {
     }
 
     const dict = getTaskDictionaries();
-    return NextResponse.json(dict);
+    const projects = await prisma.project.findMany({
+      select: { id: true, name: true, key: true },
+      orderBy: { name: "asc" },
+    });
+
+    return NextResponse.json({
+      ...dict,
+      projects,
+    });
   } catch (error: any) {
     console.error("GET /api/settings/dictionaries error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -36,14 +45,51 @@ export async function POST(req: Request) {
       ? DEFAULT_TASK_DICTIONARIES
       : {
           componentsByType: body.componentsByType || {},
+          componentsByProject: body.componentsByProject || {},
           labels: Array.isArray(body.labels) ? body.labels : [],
         };
 
     const saved = saveTaskDictionaries(targetDict);
 
+    // Apply component renames to existing tasks in database
+    if (Array.isArray(body.renames) && body.renames.length > 0) {
+      for (const rename of body.renames) {
+        const { projectId, oldName, newName } = rename;
+        if (!oldName || !newName || oldName === newName) continue;
+
+        const whereClause: any = {};
+        if (projectId) {
+          whereClause.projectId = projectId;
+        }
+
+        const tasks = await prisma.task.findMany({
+          where: whereClause,
+          select: { id: true, aiContext: true },
+        });
+
+        for (const t of tasks) {
+          const ctx = (t.aiContext || {}) as any;
+          if (Array.isArray(ctx.components) && ctx.components.includes(oldName)) {
+            const updatedComponents = ctx.components.map((c: string) => (c === oldName ? newName : c));
+            await prisma.task.update({
+              where: { id: t.id },
+              data: {
+                aiContext: {
+                  ...ctx,
+                  components: updatedComponents,
+                },
+              },
+            });
+          }
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      message: isReset ? "Довідники скинуто до початкових значень" : "Довідники успішно оновлено",
+      message: isReset
+        ? "Довідники скинуто до початкових значень"
+        : "Довідники успішно оновлено, а зміни застосовано до задач",
       dictionaries: saved,
     });
   } catch (error: any) {

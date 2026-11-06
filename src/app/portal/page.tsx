@@ -16,6 +16,7 @@ import {
   Paperclip,
   Shield,
   User,
+  UserCheck,
   AlertCircle,
   RefreshCw,
   FolderGit2,
@@ -49,8 +50,9 @@ interface TicketItem {
   projectId: string;
   columnId: string;
   creatorId?: string | null;
+  assigneeId?: string | null;
   aiContext?: any;
-  assignee?: { id: string; name: string; email: string; avatarUrl?: string | null } | null;
+  assignee?: { id: string; name: string; email: string; role?: string; avatarUrl?: string | null } | null;
   creator?: { id: string; name: string; email: string } | null;
   column?: { id: string; name: string; color?: string; isDoneColumn?: boolean; orderIndex?: number } | null;
   project?: {
@@ -63,7 +65,7 @@ interface TicketItem {
   _count?: { comments: number; attachments: number; subtasks: number };
 }
 
-type PortalStatusFilter = "all" | "in_progress" | "backlog" | "resolved" | "comments";
+type PortalStatusFilter = "all" | "in_progress" | "backlog" | "awaiting_response" | "resolved";
 
 function isTaskResolved(t: TicketItem): boolean {
   if (t.column?.isDoneColumn) return true;
@@ -121,6 +123,19 @@ function isTaskInProgress(t: TicketItem): boolean {
   if (isTaskResolved(t)) return false;
   if (isTaskBacklog(t)) return false;
   return true;
+}
+
+function isAwaitingClientResponse(t: TicketItem, currentUserId?: string): boolean {
+  if (isTaskResolved(t)) return false;
+  // If the task is assigned to the current client user
+  if (currentUserId && (t.assigneeId === currentUserId || t.assignee?.id === currentUserId)) {
+    return true;
+  }
+  // Or if the assignee has the CLIENT role
+  if (t.assignee && t.assignee.role === "CLIENT") {
+    return true;
+  }
+  return false;
 }
 
 export default function ClientPortalPage() {
@@ -262,19 +277,20 @@ export default function ClientPortalPage() {
     let inProgress = 0;
     let resolved = 0;
     let backlog = 0;
-    let withComments = 0;
+    let awaitingResponse = 0;
 
     for (const t of allTickets) {
       if (isTaskResolved(t)) {
         resolved++;
-      } else if (isTaskInProgress(t)) {
-        inProgress++;
-      } else if (isTaskBacklog(t)) {
-        backlog++;
-      }
-
-      if ((t._count?.comments || 0) > 0) {
-        withComments++;
+      } else {
+        if (isAwaitingClientResponse(t, currentUser?.id)) {
+          awaitingResponse++;
+        }
+        if (isTaskInProgress(t)) {
+          inProgress++;
+        } else if (isTaskBacklog(t)) {
+          backlog++;
+        }
       }
     }
 
@@ -283,9 +299,9 @@ export default function ClientPortalPage() {
       inProgress,
       resolved,
       backlog,
-      withComments,
+      awaitingResponse,
     };
-  }, [allTickets]);
+  }, [allTickets, currentUser?.id]);
 
   // Displayed tickets filtered strictly according to active status, priority, and search query
   const displayedTickets = useMemo(() => {
@@ -298,8 +314,8 @@ export default function ClientPortalPage() {
       list = list.filter(isTaskResolved);
     } else if (statusFilter === "backlog") {
       list = list.filter(isTaskBacklog);
-    } else if (statusFilter === "comments") {
-      list = list.filter((t) => (t._count?.comments || 0) > 0);
+    } else if (statusFilter === "awaiting_response") {
+      list = list.filter((t) => isAwaitingClientResponse(t, currentUser?.id));
     }
 
     // 2. Priority Filter
@@ -319,7 +335,7 @@ export default function ClientPortalPage() {
     }
 
     return list;
-  }, [allTickets, statusFilter, priorityFilter, searchQuery]);
+  }, [allTickets, statusFilter, priorityFilter, searchQuery, currentUser?.id]);
 
   const getPriorityBadge = (p: string) => {
     switch (p) {
@@ -505,7 +521,7 @@ export default function ClientPortalPage() {
 
         {/* Metric / KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {/* Card: Всі звернення */}
+          {/* Card 1: Всі звернення */}
           <button
             onClick={() => setStatusFilter("all")}
             className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
@@ -522,7 +538,7 @@ export default function ClientPortalPage() {
             <span className="text-[11px] text-muted-foreground mt-1 block">У доступних проєктах</span>
           </button>
 
-          {/* Card: В роботі */}
+          {/* Card 2: В роботі */}
           <button
             onClick={() => setStatusFilter("in_progress")}
             className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
@@ -539,7 +555,7 @@ export default function ClientPortalPage() {
             <span className="text-[11px] text-muted-foreground mt-1 block">Активні задачі інженерів</span>
           </button>
 
-          {/* Card: Вирішено */}
+          {/* Card 3: Вирішено */}
           <button
             onClick={() => setStatusFilter("resolved")}
             className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
@@ -556,21 +572,31 @@ export default function ClientPortalPage() {
             <span className="text-[11px] text-muted-foreground mt-1 block">Успішно закриті тікети</span>
           </button>
 
-          {/* Card: З діалогом */}
+          {/* Card 4: Очікує відповіді */}
           <button
-            onClick={() => setStatusFilter("comments")}
+            onClick={() => setStatusFilter("awaiting_response")}
             className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-              statusFilter === "comments"
-                ? "bg-purple-500/15 border-purple-500/50 shadow-sm ring-1 ring-purple-500/40"
+              statusFilter === "awaiting_response"
+                ? "bg-purple-500/15 border-purple-500/50 shadow-sm ring-1 ring-purple-500/40 text-purple-400"
                 : "bg-card/70 border-border hover:bg-card"
             }`}
           >
             <div className="flex items-center justify-between text-muted-foreground mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wider">З діалогом</span>
-              <MessageSquare className="w-4 h-4 text-purple-400" />
+              <span className="text-xs font-semibold uppercase tracking-wider">Очікує відповіді</span>
+              <AlertCircle
+                className={`w-4 h-4 ${
+                  metrics.awaitingResponse > 0 ? "text-amber-400 animate-pulse" : "text-purple-400"
+                }`}
+              />
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-purple-400">{metrics.withComments}</div>
-            <span className="text-[11px] text-muted-foreground mt-1 block">Тікети з коментарями</span>
+            <div
+              className={`text-2xl sm:text-3xl font-bold ${
+                metrics.awaitingResponse > 0 ? "text-amber-400" : "text-purple-400"
+              }`}
+            >
+              {metrics.awaitingResponse}
+            </div>
+            <span className="text-[11px] text-muted-foreground mt-1 block">Призначено на вас інженером</span>
           </button>
         </div>
 
@@ -620,6 +646,19 @@ export default function ClientPortalPage() {
                 }`}
               >
                 У черзі ({metrics.backlog})
+              </button>
+              <button
+                onClick={() => setStatusFilter("awaiting_response")}
+                className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                  statusFilter === "awaiting_response"
+                    ? "bg-card text-purple-400 font-semibold shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span>Очікує відповіді ({metrics.awaitingResponse})</span>
+                {metrics.awaitingResponse > 0 && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                )}
               </button>
               <button
                 onClick={() => setStatusFilter("resolved")}
@@ -689,6 +728,8 @@ export default function ClientPortalPage() {
                   <Clock className="w-6 h-6 text-blue-400" />
                 ) : statusFilter === "backlog" ? (
                   <Inbox className="w-6 h-6 text-amber-400" />
+                ) : statusFilter === "awaiting_response" ? (
+                  <UserCheck className="w-6 h-6 text-purple-400" />
                 ) : (
                   <LifeBuoy className="w-6 h-6" />
                 )}
@@ -701,6 +742,8 @@ export default function ClientPortalPage() {
                     ? "Немає звернень у роботі"
                     : statusFilter === "backlog"
                     ? "Немає звернень у черзі"
+                    : statusFilter === "awaiting_response"
+                    ? "Немає звернень, що очікують відповіді"
                     : searchQuery
                     ? "Звернень за запитом не знайдено"
                     : "Звернень не знайдено"}
@@ -712,6 +755,8 @@ export default function ClientPortalPage() {
                     ? "Наразі жодне звернення не перебуває в активній розробці. Тікети очікують у черзі або вже вирішені."
                     : statusFilter === "backlog"
                     ? "Усі ваші звернення вже взяті інженерами в активну роботу або вирішені."
+                    : statusFilter === "awaiting_response"
+                    ? "Чудово! Наразі всі ваші звернення знаходяться в обробці інженерів і не потребують вашої відповіді."
                     : searchQuery
                     ? `За запитом «${searchQuery}» результатів не виявлено. Спробуйте змінити критерії пошуку.`
                     : "У вас ще немає створених звернень. Створіть перше звернення, і наша служба підтримки допоможе вам!"}
@@ -729,88 +774,114 @@ export default function ClientPortalPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {displayedTickets.map((ticket) => (
-                <div
-                  key={ticket.id}
-                  onClick={() => {
-                    setSelectedTicketId(ticket.id);
-                    setSelectedTicketProjectId(ticket.projectId);
-                  }}
-                  className="p-4 rounded-2xl bg-card hover:bg-secondary/30 border border-border transition-all cursor-pointer group hover:shadow-md hover:border-primary/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                >
-                  {/* Left: Code, Title, Project */}
-                  <div className="space-y-1.5 flex-1 pr-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-2 py-0.5 rounded-lg bg-secondary/80 font-mono text-[11px] font-bold text-primary border border-border group-hover:border-primary/40 transition-colors">
-                        {ticket.code}
-                      </span>
+              {displayedTickets.map((ticket) => {
+                const isWaitingForClient = isAwaitingClientResponse(ticket, currentUser?.id);
 
-                      {ticket.project && (
-                        <span className="text-[11px] text-muted-foreground font-medium">
-                          {ticket.project.name}
+                return (
+                  <div
+                    key={ticket.id}
+                    onClick={() => {
+                      setSelectedTicketId(ticket.id);
+                      setSelectedTicketProjectId(ticket.projectId);
+                    }}
+                    className={`p-4 rounded-2xl bg-card hover:bg-secondary/30 border transition-all cursor-pointer group hover:shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                      isWaitingForClient
+                        ? "border-amber-500/50 bg-amber-500/[0.03]"
+                        : "border-border hover:border-primary/30"
+                    }`}
+                  >
+                    {/* Left: Code, Title, Project */}
+                    <div className="space-y-1.5 flex-1 pr-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-0.5 rounded-lg bg-secondary/80 font-mono text-[11px] font-bold text-primary border border-border group-hover:border-primary/40 transition-colors">
+                          {ticket.code}
                         </span>
-                      )}
 
-                      {getPriorityBadge(ticket.priority)}
-                    </div>
+                        {ticket.project && (
+                          <span className="text-[11px] text-muted-foreground font-medium">
+                            {ticket.project.name}
+                          </span>
+                        )}
 
-                    <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
-                      {ticket.title}
-                    </h3>
+                        {getPriorityBadge(ticket.priority)}
 
-                    {ticket.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-1 leading-relaxed">
-                        {ticket.description}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Right: Status badge, Assignee, Stats & Date */}
-                  <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/60">
-                    {/* Status Pill */}
-                    {ticket.column && (
-                      <span
-                        className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold text-white shadow-xs"
-                        style={{ backgroundColor: ticket.column.color || "#3b82f6" }}
-                      >
-                        {ticket.column.name}
-                      </span>
-                    )}
-
-                    {/* Assigned Engineer */}
-                    <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[9px]">
-                        {ticket.assignee ? ticket.assignee.name.slice(0, 2).toUpperCase() : "?"}
+                        {/* Distinctive pill if awaiting client reply */}
+                        {isWaitingForClient && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30 shadow-xs animate-pulse">
+                            <AlertCircle className="w-3 h-3" />
+                            <span>Очікує вашої відповіді</span>
+                          </span>
+                        )}
                       </div>
-                      <span className="truncate max-w-[120px]">
-                        {ticket.assignee ? ticket.assignee.name : "Не призначено"}
+
+                      <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
+                        {ticket.title}
+                      </h3>
+
+                      {ticket.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-1 leading-relaxed">
+                          {ticket.description}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Right: Status badge, Assignee, Stats & Date */}
+                    <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/60">
+                      {/* Status Pill */}
+                      {ticket.column && (
+                        <span
+                          className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold text-white shadow-xs"
+                          style={{ backgroundColor: ticket.column.color || "#3b82f6" }}
+                        >
+                          {ticket.column.name}
+                        </span>
+                      )}
+
+                      {/* Assigned Engineer / Person */}
+                      <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <div
+                          className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[9px] ${
+                            isWaitingForClient
+                              ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                              : "bg-primary/20 text-primary"
+                          }`}
+                        >
+                          {ticket.assignee ? ticket.assignee.name.slice(0, 2).toUpperCase() : "?"}
+                        </div>
+                        <span className="truncate max-w-[130px]">
+                          {isWaitingForClient
+                            ? "Ви (Відповідальний)"
+                            : ticket.assignee
+                            ? ticket.assignee.name
+                            : "Не призначено"}
+                        </span>
+                      </div>
+
+                      {/* Counters: Comments & Attachments */}
+                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                        {(ticket._count?.comments || 0) > 0 && (
+                          <span className="flex items-center gap-1" title="Кількість коментарів">
+                            <MessageSquare className="w-3.5 h-3.5 text-purple-400" />
+                            <span>{ticket._count?.comments}</span>
+                          </span>
+                        )}
+
+                        {(ticket._count?.attachments || 0) > 0 && (
+                          <span className="flex items-center gap-1" title="Кількість файлів">
+                            <Paperclip className="w-3.5 h-3.5 text-primary" />
+                            <span>{ticket._count?.attachments}</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Timeago */}
+                      <span className="text-[11px] text-muted-foreground whitespace-nowrap min-w-[70px] text-right">
+                        {formatTimeAgo(ticket.updatedAt || ticket.createdAt)}
                       </span>
                     </div>
-
-                    {/* Counters: Comments & Attachments */}
-                    <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
-                      {(ticket._count?.comments || 0) > 0 && (
-                        <span className="flex items-center gap-1" title="Кількість коментарів">
-                          <MessageSquare className="w-3.5 h-3.5 text-purple-400" />
-                          <span>{ticket._count?.comments}</span>
-                        </span>
-                      )}
-
-                      {(ticket._count?.attachments || 0) > 0 && (
-                        <span className="flex items-center gap-1" title="Кількість файлів">
-                          <Paperclip className="w-3.5 h-3.5 text-primary" />
-                          <span>{ticket._count?.attachments}</span>
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Timeago */}
-                    <span className="text-[11px] text-muted-foreground whitespace-nowrap min-w-[70px] text-right">
-                      {formatTimeAgo(ticket.updatedAt || ticket.createdAt)}
-                    </span>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

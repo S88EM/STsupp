@@ -111,6 +111,17 @@ export async function GET(req: Request) {
           name: { in: ["Беклог", "Backlog", "Новий", "Нові", "New", "To Do", "Відкрито"], mode: "insensitive" },
         },
       });
+    } else if (filter === "awaiting_response") {
+      andConditions.push({
+        assigneeId: currentUser.userId,
+        column: {
+          isDoneColumn: false,
+          name: {
+            notIn: ["Готово", "Done", "Resolved", "Вирішено", "Закрито", "Closed"],
+            mode: "insensitive",
+          },
+        },
+      });
     }
 
     if (priority && ["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(priority)) {
@@ -144,7 +155,7 @@ export async function GET(req: Request) {
           },
         },
         column: true,
-        assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        assignee: { select: { id: true, name: true, email: true, role: true, avatarUrl: true } },
         creator: { select: { id: true, name: true, email: true } },
         subtasks: { orderBy: { orderIndex: "asc" } },
         attachments: {

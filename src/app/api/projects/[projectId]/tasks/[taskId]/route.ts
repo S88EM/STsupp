@@ -67,11 +67,50 @@ export async function PATCH(
 
     const existingTask = await prisma.task.findUnique({
       where: { id: taskId, projectId },
-      select: { columnId: true, assigneeId: true },
+      select: { columnId: true, assigneeId: true, aiContext: true },
     });
 
     if (!existingTask) {
       return NextResponse.json({ error: "Задачу не знайдено" }, { status: 404 });
+    }
+
+    // Protection for permanently closed tasks
+    const existingAiContext = (existingTask.aiContext || {}) as Record<string, any>;
+    const isAlreadyClosed = Boolean(existingAiContext.isClosed);
+
+    if (isAlreadyClosed) {
+      // Forbid moving out of Done or reopening
+      if (columnId !== undefined && columnId !== existingTask.columnId) {
+        return NextResponse.json(
+          { error: "Ця задача повністю закрита. Перевідкриття або переміщення в іншу колонку заблоковано." },
+          { status: 400 }
+        );
+      }
+      if (aiContext !== undefined) {
+        if (aiContext.isClosed === false) {
+          return NextResponse.json(
+            { error: "Неможливо повторно відкрити повністю закриту задачу." },
+            { status: 400 }
+          );
+        }
+        if (aiContext.resolution && aiContext.resolution !== "Вирішено") {
+          return NextResponse.json(
+            { error: "Рішення закритої задачі зафіксовано як «Вирішено»." },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    // If closing now, enforce resolution = "Вирішено"
+    let mergedAiContext = aiContext;
+    if (aiContext !== undefined && aiContext.isClosed === true) {
+      mergedAiContext = {
+        ...existingAiContext,
+        ...aiContext,
+        isClosed: true,
+        resolution: "Вирішено",
+      };
     }
 
     // Only ADMIN and ENGINEER can change task column/status. CLIENT is forbidden.
@@ -128,7 +167,7 @@ export async function PATCH(
         columnId: columnId !== undefined ? columnId : undefined,
         dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : undefined,
         assigneeId: assigneeId !== undefined ? (assigneeId || null) : undefined,
-        aiContext: aiContext !== undefined ? aiContext : undefined,
+        aiContext: mergedAiContext !== undefined ? mergedAiContext : undefined,
       },
       include: {
         column: true,

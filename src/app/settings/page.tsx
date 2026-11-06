@@ -17,14 +17,33 @@ import {
   RefreshCw,
   Info,
   Globe,
+  Tag,
+  Plus,
+  Trash2,
+  RotateCcw,
+  CheckSquare,
+  Bug,
+  Bookmark,
+  Zap,
+  Wrench,
+  Check,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
+
+const TASK_TYPE_TABS = [
+  { id: "TASK", label: "Задача", icon: CheckSquare, color: "text-blue-400" },
+  { id: "BUG", label: "Баг", icon: Bug, color: "text-red-400" },
+  { id: "STORY", label: "Історія", icon: Bookmark, color: "text-emerald-400" },
+  { id: "IMPROVEMENT", label: "Покращення", icon: Zap, color: "text-violet-400" },
+  { id: "SUPPORT", label: "Підтримка", icon: Wrench, color: "text-amber-400" },
+];
 
 export default function SettingsPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [activeTab, setActiveTab] = useState<"smtp" | "dictionaries">("smtp");
 
   // SMTP Settings
   const [host, setHost] = useState("");
@@ -44,6 +63,16 @@ export default function SettingsPage() {
   const [testError, setTestError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
+  // Dictionaries Settings
+  const [componentsByType, setComponentsByType] = useState<Record<string, string[]>>({});
+  const [labels, setLabels] = useState<string[]>([]);
+  const [activeTaskType, setActiveTaskType] = useState<string>("TASK");
+  const [newComponentInput, setNewComponentInput] = useState("");
+  const [newLabelInput, setNewLabelInput] = useState("");
+  const [dictSaving, setDictSaving] = useState(false);
+  const [dictSuccess, setDictSuccess] = useState<string | null>(null);
+  const [dictError, setDictError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchInitialData();
   }, []);
@@ -51,9 +80,10 @@ export default function SettingsPage() {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [meRes, smtpRes] = await Promise.all([
+      const [meRes, smtpRes, dictRes] = await Promise.all([
         fetch("/api/auth/me"),
         fetch("/api/settings/smtp"),
+        fetch("/api/settings/dictionaries"),
       ]);
 
       if (meRes.ok) {
@@ -74,6 +104,12 @@ export default function SettingsPage() {
         setFrom(smtpData.from || "");
         setAppUrl(smtpData.appUrl || "");
         setIsConfigured(Boolean(smtpData.isConfigured));
+      }
+
+      if (dictRes.ok) {
+        const dictData = await dictRes.json();
+        setComponentsByType(dictData.componentsByType || {});
+        setLabels(dictData.labels || []);
       }
     } catch (err) {
       console.error("Failed to load settings:", err);
@@ -165,6 +201,110 @@ export default function SettingsPage() {
     setSecure(presetSecure);
   };
 
+  const handleAddComponent = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const val = newComponentInput.trim();
+    if (!val) return;
+
+    const currentComps = componentsByType[activeTaskType] || [];
+    if (currentComps.includes(val)) {
+      alert(`Компонент "${val}" вже є у списку для цього типу задачі.`);
+      return;
+    }
+
+    setComponentsByType((prev) => ({
+      ...prev,
+      [activeTaskType]: [...(prev[activeTaskType] || []), val],
+    }));
+    setNewComponentInput("");
+  };
+
+  const handleRemoveComponent = (compToRemove: string) => {
+    setComponentsByType((prev) => ({
+      ...prev,
+      [activeTaskType]: (prev[activeTaskType] || []).filter((c) => c !== compToRemove),
+    }));
+  };
+
+  const handleAddLabel = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const val = newLabelInput.trim();
+    if (!val) return;
+
+    if (labels.includes(val)) {
+      alert(`Мітка "${val}" вже є у довіднику.`);
+      return;
+    }
+
+    setLabels((prev) => [...prev, val]);
+    setNewLabelInput("");
+  };
+
+  const handleRemoveLabel = (lblToRemove: string) => {
+    setLabels((prev) => prev.filter((l) => l !== lblToRemove));
+  };
+
+  const handleSaveDictionaries = async () => {
+    try {
+      setDictSaving(true);
+      setDictSuccess(null);
+      setDictError(null);
+
+      const res = await fetch("/api/settings/dictionaries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          componentsByType,
+          labels,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setDictError(data.error || "Не вдалося зберегти довідники");
+      } else {
+        setDictSuccess(data.message || "Довідники компонентів та міток успішно збережено!");
+        setTimeout(() => setDictSuccess(null), 4000);
+      }
+    } catch (err: any) {
+      setDictError(err.message || "Помилка зв'язку із сервером");
+    } finally {
+      setDictSaving(false);
+    }
+  };
+
+  const handleResetDictionaries = async () => {
+    if (!confirm("Ви впевнені, що бажаєте скинути списки компонентів та міток до стандартних значень системи?")) {
+      return;
+    }
+
+    try {
+      setDictSaving(true);
+      setDictSuccess(null);
+      setDictError(null);
+
+      const res = await fetch("/api/settings/dictionaries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reset: true }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setDictError(data.error || "Не вдалося скинути довідники");
+      } else {
+        setComponentsByType(data.dictionaries?.componentsByType || {});
+        setLabels(data.dictionaries?.labels || []);
+        setDictSuccess("Довідники успішно скинуто до початкових стандартних значень!");
+        setTimeout(() => setDictSuccess(null), 4000);
+      }
+    } catch (err: any) {
+      setDictError(err.message || "Помилка зв'язку із сервером");
+    } finally {
+      setDictSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground text-sm">
@@ -236,15 +376,46 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Success Banner */}
-        {saveSuccess && (
-          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2 animate-in fade-in duration-200">
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-            <span>{saveSuccess}</span>
-          </div>
-        )}
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-2 border-b border-border">
+          <button
+            type="button"
+            onClick={() => setActiveTab("smtp")}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+              activeTab === "smtp"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Mail className="w-4 h-4" />
+            <span>Поштовий сервер (SMTP)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("dictionaries")}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+              activeTab === "dictionaries"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Tag className="w-4 h-4" />
+            <span>Довідники: Компоненти та Мітки</span>
+          </button>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Tab 1: SMTP Settings */}
+        {activeTab === "smtp" && (
+          <>
+            {/* Success Banner */}
+            {saveSuccess && (
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2 animate-in fade-in duration-200">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                <span>{saveSuccess}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main SMTP Form (8 cols) */}
           <div className="lg:col-span-7 space-y-6">
             <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
@@ -527,6 +698,233 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+      </>
+    )}
+
+    {/* Tab 2: Dictionaries Settings */}
+    {activeTab === "dictionaries" && (
+      <div className="space-y-6 animate-in fade-in duration-200">
+        {/* Alerts */}
+        {dictSuccess && (
+          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            <span>{dictSuccess}</span>
+          </div>
+        )}
+        {dictError && (
+          <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <span>{dictError}</span>
+          </div>
+        )}
+
+        {/* Top Actions & Description */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-card border border-border">
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Tag className="w-4 h-4 text-primary" />
+              <span>Керування довідниками для задач</span>
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Задайте фіксований перелік компонентів для кожного типу задачі та список глобальних міток. Клієнти зможуть обирати значення лише із цих списків без можливості вільного вводу.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              type="button"
+              onClick={handleResetDictionaries}
+              disabled={dictSaving}
+              className="px-3 py-1.5 rounded-lg border border-border bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+              title="Скинути до стандартних значень"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>За замовчуванням</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveDictionaries}
+              disabled={dictSaving}
+              className="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+            >
+              {dictSaving ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Збереження...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Зберегти довідники</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Card 1: Components by Task Type (7 cols) */}
+          <div className="lg:col-span-7 rounded-2xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-border bg-secondary/30">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <CheckSquare className="w-4 h-4 text-blue-400" />
+                <span>Компоненти за типами задач</span>
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Оберіть тип задачі нижче для налаштування доступних компонентів
+              </p>
+
+              {/* Task Type Tabs */}
+              <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-border/60">
+                {TASK_TYPE_TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTaskType === tab.id;
+                  const count = (componentsByType[tab.id] || []).length;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTaskType(tab.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                        isActive
+                          ? "bg-secondary text-foreground border border-border shadow-xs"
+                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/40 border border-transparent"
+                      }`}
+                    >
+                      <Icon className={`w-3.5 h-3.5 ${tab.color}`} />
+                      <span>{tab.label}</span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-background border border-border/80">
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+              {/* Components List for active type */}
+              <div>
+                <span className="text-xs font-semibold text-foreground block mb-2">
+                  Доступні компоненти для типу «
+                  {TASK_TYPE_TABS.find((t) => t.id === activeTaskType)?.label || activeTaskType}»:
+                </span>
+
+                {(componentsByType[activeTaskType] || []).length === 0 ? (
+                  <div className="p-4 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground">
+                    Для цього типу задачі ще не задано жодного компонента.
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {(componentsByType[activeTaskType] || []).map((comp) => (
+                      <span
+                        key={comp}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-secondary text-xs font-mono text-foreground border border-border"
+                      >
+                        <span>{comp}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveComponent(comp)}
+                          className="text-muted-foreground hover:text-destructive transition-colors ml-0.5 cursor-pointer"
+                          title="Видалити компонент"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Add Component Form */}
+              <form onSubmit={handleAddComponent} className="pt-4 border-t border-border flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder={`Новий компонент для ${TASK_TYPE_TABS.find((t) => t.id === activeTaskType)?.label || activeTaskType}...`}
+                  value={newComponentInput}
+                  onChange={(e) => setNewComponentInput(e.target.value)}
+                  className="flex-1 text-xs py-2 px-3 rounded-lg bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                />
+                <button
+                  type="submit"
+                  disabled={!newComponentInput.trim()}
+                  className="px-3 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-40"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Додати</span>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* Card 2: Global Labels (5 cols) */}
+          <div className="lg:col-span-5 rounded-2xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-border bg-secondary/30">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-primary" />
+                  <span>Довідник міток (Labels)</span>
+                </h3>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border">
+                  {labels.length} міток
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Фіксований список міток, доступних для вибору користувачами в задачах
+              </p>
+            </div>
+
+            <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+              {/* Labels List */}
+              <div>
+                {labels.length === 0 ? (
+                  <div className="p-4 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground">
+                    У довіднику ще немає жодної мітки.
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {labels.map((lbl) => (
+                      <span
+                        key={lbl}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium border border-primary/20"
+                      >
+                        <span>{lbl}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveLabel(lbl)}
+                          className="text-primary/70 hover:text-destructive transition-colors ml-0.5 cursor-pointer"
+                          title="Видалити мітку"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Add Label Form */}
+              <form onSubmit={handleAddLabel} className="pt-4 border-t border-border flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Нова мітка (наприклад: urgent, frontend)..."
+                  value={newLabelInput}
+                  onChange={(e) => setNewLabelInput(e.target.value)}
+                  className="flex-1 text-xs py-2 px-3 rounded-lg bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                />
+                <button
+                  type="submit"
+                  disabled={!newLabelInput.trim()}
+                  className="px-3 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-40"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Додати</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
       </main>
     </div>
   );

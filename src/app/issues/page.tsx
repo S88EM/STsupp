@@ -31,6 +31,8 @@ function IssuesPageContent() {
   const [filterMode, setFilterMode] = useState<FilterType>(urlFilter);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedComponent, setSelectedComponent] = useState<string>("");
+  const [selectedLabel, setSelectedLabel] = useState<string>("");
   const [tasks, setTasks] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -61,6 +63,12 @@ function IssuesPageContent() {
       }
       if (searchQuery.trim()) {
         params.set("search", searchQuery.trim());
+      }
+      if (selectedComponent) {
+        params.set("component", selectedComponent);
+      }
+      if (selectedLabel) {
+        params.set("label", selectedLabel);
       }
 
       const [tasksRes, meRes] = await Promise.all([
@@ -97,7 +105,7 @@ function IssuesPageContent() {
 
   useEffect(() => {
     fetchTasks();
-  }, [filterMode, selectedProjectId]);
+  }, [filterMode, selectedProjectId, selectedComponent, selectedLabel]);
 
   const handleFilterChange = (mode: FilterType) => {
     setFilterMode(mode);
@@ -106,19 +114,62 @@ function IssuesPageContent() {
     router.replace(`/issues?${params.toString()}`);
   };
 
-  const activeTask = tasks.find((t) => t.id === selectedTaskId) || tasks[0] || null;
+  // Available components & labels extracted from tasks
+  const availableComponents = useMemo(() => {
+    const set = new Set<string>();
+    tasks.forEach((t) => {
+      const comps = t.aiContext?.components;
+      if (Array.isArray(comps)) {
+        comps.forEach((c: string) => {
+          if (c && typeof c === "string") set.add(c);
+        });
+      }
+    });
+    return Array.from(set).sort();
+  }, [tasks]);
+
+  const availableLabels = useMemo(() => {
+    const set = new Set<string>();
+    tasks.forEach((t) => {
+      const lbls = t.aiContext?.labels;
+      if (Array.isArray(lbls)) {
+        lbls.forEach((l: string) => {
+          if (l && typeof l === "string") set.add(l);
+        });
+      }
+    });
+    return Array.from(set).sort();
+  }, [tasks]);
 
   const filteredTasks = useMemo(() => {
-    if (!searchQuery.trim()) return tasks;
-    const q = searchQuery.toLowerCase().trim();
-    return tasks.filter(
-      (t) =>
-        t.title.toLowerCase().includes(q) ||
-        t.code.toLowerCase().includes(q) ||
-        t.project?.name?.toLowerCase().includes(q) ||
-        t.assignee?.name?.toLowerCase().includes(q)
-    );
-  }, [tasks, searchQuery]);
+    return tasks.filter((t) => {
+      // 1. Text Search
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesCode = t.code.toLowerCase().includes(q);
+        const matchesTitle = t.title.toLowerCase().includes(q);
+        const matchesProject = t.project?.name?.toLowerCase().includes(q);
+        const matchesAssignee = t.assignee?.name?.toLowerCase().includes(q);
+        if (!matchesCode && !matchesTitle && !matchesProject && !matchesAssignee) return false;
+      }
+
+      // 2. Component Filter
+      if (selectedComponent) {
+        const comps = t.aiContext?.components;
+        if (!Array.isArray(comps) || !comps.includes(selectedComponent)) return false;
+      }
+
+      // 3. Label Filter
+      if (selectedLabel) {
+        const lbls = t.aiContext?.labels;
+        if (!Array.isArray(lbls) || !lbls.includes(selectedLabel)) return false;
+      }
+
+      return true;
+    });
+  }, [tasks, searchQuery, selectedComponent, selectedLabel]);
+
+  const activeTask = filteredTasks.find((t) => t.id === selectedTaskId) || filteredTasks[0] || null;
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
@@ -234,6 +285,72 @@ function IssuesPageContent() {
               </button>
             ))}
           </div>
+
+          {/* Attributes Filters: Components & Labels */}
+          {(availableComponents.length > 0 || availableLabels.length > 0) && (
+            <div className="p-3 border-t border-border/80 space-y-3 bg-secondary/10">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
+                  Фільтрація полів
+                </span>
+                {(selectedComponent || selectedLabel) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedComponent("");
+                      setSelectedLabel("");
+                    }}
+                    className="text-[10px] text-muted-foreground hover:text-destructive px-1 rounded transition-colors cursor-pointer"
+                    title="Скинути фільтри"
+                  >
+                    Скинути
+                  </button>
+                )}
+              </div>
+
+              {/* Component Filter */}
+              {availableComponents.length > 0 && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground px-1 block">
+                    Компонент:
+                  </label>
+                  <select
+                    value={selectedComponent}
+                    onChange={(e) => setSelectedComponent(e.target.value)}
+                    className="w-full text-xs py-1.5 px-2 rounded-lg bg-secondary/60 border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary truncate cursor-pointer"
+                  >
+                    <option value="">Всі компоненти</option>
+                    {availableComponents.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Label Filter */}
+              {availableLabels.length > 0 && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground px-1 block">
+                    Мітка:
+                  </label>
+                  <select
+                    value={selectedLabel}
+                    onChange={(e) => setSelectedLabel(e.target.value)}
+                    className="w-full text-xs py-1.5 px-2 rounded-lg bg-secondary/60 border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary truncate cursor-pointer"
+                  >
+                    <option value="">Всі мітки</option>
+                    {availableLabels.map((l) => (
+                      <option key={l} value={l}>
+                        {l}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Middle Column: Task List */}
@@ -300,6 +417,36 @@ function IssuesPageContent() {
                 className="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
+
+            {/* Active Component / Label filter tags */}
+            {(selectedComponent || selectedLabel) && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                {selectedComponent && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-secondary text-foreground border border-border">
+                    <span>компонент: {selectedComponent}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedComponent("")}
+                      className="hover:text-destructive font-bold ml-0.5 cursor-pointer"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {selectedLabel && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
+                    <span>мітка: {selectedLabel}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLabel("")}
+                      className="hover:text-destructive font-bold ml-0.5 cursor-pointer"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* List Items */}

@@ -35,6 +35,7 @@ import {
   Minus,
   Search,
   UserX,
+  Lock,
 } from "lucide-react";
 import { ColumnItem } from "@/components/board/ColumnCard";
 import { formatTimeAgo } from "@/lib/utils";
@@ -90,6 +91,38 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [showTypeMenu, setShowTypeMenu] = useState(false);
   const [showPriorityMenu, setShowPriorityMenu] = useState(false);
+
+  // Components & Labels Dictionaries & Menus
+  const [dictionaries, setDictionaries] = useState<{
+    componentsByType: Record<string, string[]>;
+    labels: string[];
+  }>({ componentsByType: {}, labels: [] });
+  const [showComponentsMenu, setShowComponentsMenu] = useState(false);
+  const [showLabelsMenu, setShowLabelsMenu] = useState(false);
+  const componentsMenuRef = useRef<HTMLDivElement>(null);
+  const labelsMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch("/api/settings/dictionaries")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) setDictionaries(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (componentsMenuRef.current && !componentsMenuRef.current.contains(e.target as Node)) {
+        setShowComponentsMenu(false);
+      }
+      if (labelsMenuRef.current && !labelsMenuRef.current.contains(e.target as Node)) {
+        setShowLabelsMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
   // Assignee Management Permissions & State
   const canChangeAssignee = Boolean(
@@ -240,6 +273,42 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
   const handleChangePriority = async (prio: string) => {
     setShowPriorityMenu(false);
     await handleUpdateField({ priority: prio });
+  };
+
+  const handleClosePermanently = async () => {
+    if (
+      !confirm(
+        "Ви дійсно бажаєте закрити задачу повністю?\n\nПісля закриття можливість її повторного відкриття або переміщення в іншу колонку буде заблоковано, а рішення набуде значення «Вирішено»."
+      )
+    ) {
+      return;
+    }
+    const newContext = {
+      ...(task?.aiContext || {}),
+      isClosed: true,
+      resolution: "Вирішено",
+      closedAt: new Date().toISOString(),
+      closedBy: currentUser?.name || currentUser?.email,
+    };
+    await handleUpdateField({ aiContext: newContext });
+  };
+
+  const handleToggleComponent = async (comp: string) => {
+    const current = Array.isArray(task?.aiContext?.components) ? task.aiContext.components : [];
+    const updated = current.includes(comp)
+      ? current.filter((c: string) => c !== comp)
+      : [...current, comp];
+    const newContext = { ...(task?.aiContext || {}), components: updated };
+    await handleUpdateField({ aiContext: newContext });
+  };
+
+  const handleToggleLabel = async (lbl: string) => {
+    const current = Array.isArray(task?.aiContext?.labels) ? task.aiContext.labels : [];
+    const updated = current.includes(lbl)
+      ? current.filter((l: string) => l !== lbl)
+      : [...current, lbl];
+    const newContext = { ...(task?.aiContext || {}), labels: updated };
+    await handleUpdateField({ aiContext: newContext });
   };
 
   const handleAddSubtask = async (e: React.FormEvent) => {
@@ -461,10 +530,17 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
   const completedSubtasks = subtasks.filter((s: any) => s.isCompleted).length;
   const subtasksPercent = subtasks.length > 0 ? Math.round((completedSubtasks / subtasks.length) * 100) : 0;
 
-  // Metadata from aiContext
-  const componentsList = task.aiContext?.components || ["Core", "Frontend"];
-  const labelsList = task.aiContext?.labels || ["v1.0", "support"];
-  const resolution = task.aiContext?.resolution || (currentColumn?.isDoneColumn ? "Вирішено" : "Не вирішено");
+  // Metadata from aiContext & workflow
+  const isClosed = Boolean(task.aiContext?.isClosed);
+  const isDone = Boolean(
+    currentColumn?.isDoneColumn ||
+    ["готово", "done", "вирішено", "resolved"].includes(currentColumn?.name?.toLowerCase().trim())
+  );
+  const componentsList: string[] = Array.isArray(task.aiContext?.components) ? task.aiContext.components : [];
+  const labelsList: string[] = Array.isArray(task.aiContext?.labels) ? task.aiContext.labels : [];
+  const resolution: string = isClosed
+    ? "Вирішено"
+    : task.aiContext?.resolution || "Не вирішено";
   const storyPoints = task.aiContext?.storyPoints ?? 3;
 
   return (
@@ -530,12 +606,32 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
             </button>
           )}
 
+          {/* Action: Permanently Close Task (Workflow: Available when in Done status) */}
+          {isDone && !isClosed && (
+            <button
+              onClick={handleClosePermanently}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-all cursor-pointer animate-in fade-in"
+              title="Закрити задачу повністю (без можливості повторного відкриття)"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Закрити задачу повністю</span>
+            </button>
+          )}
+
           {/* Jira-style Workflow Status Transitions */}
           <div className="relative">
-            {canChangeStatus ? (
+            {isClosed ? (
+              <div
+                className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-white shadow-sm bg-slate-700/90 border border-slate-600/80 cursor-not-allowed select-none"
+                title="Ця задача повністю закрита. Повторне відкриття заблоковано."
+              >
+                <Lock className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{currentColumn?.name || "Готово"} (Закрита 🔒)</span>
+              </div>
+            ) : canChangeStatus ? (
               <button
                 onClick={() => setShowStatusMenu(!showStatusMenu)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-white transition-all shadow-sm hover:opacity-95"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-white transition-all shadow-sm hover:opacity-95 cursor-pointer"
                 style={{ backgroundColor: currentColumn?.color || "#3b82f6" }}
               >
                 <span>{currentColumn?.name || "Статус"}</span>
@@ -750,52 +846,193 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
               </div>
 
               {/* Components */}
-              <div className="flex items-center justify-between py-1 border-b border-border/50">
+              <div
+                className="flex items-center justify-between py-1.5 border-b border-border/50 relative"
+                ref={componentsMenuRef}
+              >
                 <span className="text-muted-foreground">Компоненти:</span>
-                <div className="flex flex-wrap gap-1">
-                  {componentsList.map((comp: string, idx: number) => (
-                    <span
-                      key={idx}
-                      className="px-1.5 py-0.2 rounded bg-secondary text-[11px] font-mono text-muted-foreground border border-border/80"
+                <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap gap-1 max-w-[200px] justify-end">
+                    {componentsList.length === 0 ? (
+                      <span className="text-[11px] text-muted-foreground/70 italic">Не обрано</span>
+                    ) : (
+                      componentsList.map((comp: string, idx: number) => (
+                        <span
+                          key={idx}
+                          className="px-1.5 py-0.2 rounded bg-secondary text-[11px] font-mono text-muted-foreground border border-border/80"
+                        >
+                          {comp}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                  {!isClosed && (
+                    <button
+                      type="button"
+                      onClick={() => setShowComponentsMenu(!showComponentsMenu)}
+                      className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                      title="Редагувати компоненти"
                     >
-                      {comp}
-                    </span>
-                  ))}
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  )}
+
+                  {/* Components Popover (Strictly from Admin Dictionary for current task type) */}
+                  {!isClosed && showComponentsMenu && (
+                    <div className="absolute right-0 top-full mt-1 w-56 rounded-xl bg-card border border-border shadow-2xl p-1 z-40 animate-in fade-in-50 zoom-in-95">
+                      <div className="px-2.5 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/60">
+                        Компоненти для {typeInfo.label}
+                      </div>
+                      <div className="max-h-48 overflow-y-auto py-1 space-y-0.5">
+                        {(dictionaries.componentsByType[typeInfo.id] || []).length === 0 ? (
+                          <div className="p-2 text-center text-[11px] text-muted-foreground">
+                            Немає компонентів для типу {typeInfo.label}
+                          </div>
+                        ) : (
+                          (dictionaries.componentsByType[typeInfo.id] || []).map((comp) => {
+                            const isSelected = componentsList.includes(comp);
+                            return (
+                              <button
+                                key={comp}
+                                type="button"
+                                onClick={() => handleToggleComponent(comp)}
+                                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-colors text-left cursor-pointer ${
+                                  isSelected
+                                    ? "bg-primary/15 text-primary font-semibold"
+                                    : "text-foreground hover:bg-secondary/70"
+                                }`}
+                              >
+                                <span className="truncate pr-1 font-mono text-[11px]">{comp}</span>
+                                {isSelected && (
+                                  <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                                )}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Labels */}
-              <div className="flex items-center justify-between py-1 border-b border-border/50">
+              <div
+                className="flex items-center justify-between py-1.5 border-b border-border/50 relative"
+                ref={labelsMenuRef}
+              >
                 <span className="text-muted-foreground">Мітки:</span>
-                <div className="flex flex-wrap gap-1">
-                  {labelsList.map((lbl: string, idx: number) => (
-                    <span
-                      key={idx}
-                      className="px-1.5 py-0.2 rounded bg-primary/10 text-primary text-[11px] font-medium border border-primary/20"
+                <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap gap-1 max-w-[200px] justify-end">
+                    {labelsList.length === 0 ? (
+                      <span className="text-[11px] text-muted-foreground/70 italic">Не обрано</span>
+                    ) : (
+                      labelsList.map((lbl: string, idx: number) => (
+                        <span
+                          key={idx}
+                          className="px-1.5 py-0.2 rounded bg-primary/10 text-primary text-[11px] font-medium border border-primary/20"
+                        >
+                          {lbl}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                  {!isClosed && (
+                    <button
+                      type="button"
+                      onClick={() => setShowLabelsMenu(!showLabelsMenu)}
+                      className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                      title="Редагувати мітки"
                     >
-                      {lbl}
-                    </span>
-                  ))}
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  )}
+
+                  {/* Labels Popover (Strictly from Admin Dictionary) */}
+                  {!isClosed && showLabelsMenu && (
+                    <div className="absolute right-0 top-full mt-1 w-52 rounded-xl bg-card border border-border shadow-2xl p-1 z-40 animate-in fade-in-50 zoom-in-95">
+                      <div className="px-2.5 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/60">
+                        Довідник міток
+                      </div>
+                      <div className="max-h-48 overflow-y-auto py-1 space-y-0.5">
+                        {dictionaries.labels.length === 0 ? (
+                          <div className="p-2 text-center text-[11px] text-muted-foreground">
+                            Довідник міток порожній
+                          </div>
+                        ) : (
+                          dictionaries.labels.map((lbl) => {
+                            const isSelected = labelsList.includes(lbl);
+                            return (
+                              <button
+                                key={lbl}
+                                type="button"
+                                onClick={() => handleToggleLabel(lbl)}
+                                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-colors text-left cursor-pointer ${
+                                  isSelected
+                                    ? "bg-primary/15 text-primary font-semibold"
+                                    : "text-foreground hover:bg-secondary/70"
+                                }`}
+                              >
+                                <span className="truncate pr-1 text-[11px]">{lbl}</span>
+                                {isSelected && (
+                                  <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                                )}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Status */}
               <div className="flex items-center justify-between py-1 border-b border-border/50">
                 <span className="text-muted-foreground">Статус:</span>
-                <span
-                  className="px-2 py-0.5 rounded text-[11px] font-semibold text-white"
-                  style={{ backgroundColor: currentColumn?.color || "#3b82f6" }}
-                >
-                  {currentColumn?.name}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="px-2 py-0.5 rounded text-[11px] font-semibold text-white"
+                    style={{ backgroundColor: currentColumn?.color || "#3b82f6" }}
+                  >
+                    {currentColumn?.name}
+                  </span>
+                  {isClosed && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-emerald-400 border border-slate-700 flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" />
+                      <span>Закрита</span>
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Resolution */}
               <div className="flex items-center justify-between py-1 border-b border-border/50">
                 <span className="text-muted-foreground">Рішення:</span>
-                <span className="font-medium text-foreground">
-                  {resolution}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`font-semibold text-xs flex items-center gap-1 ${
+                      isClosed || resolution === "Вирішено"
+                        ? "text-emerald-400"
+                        : "text-foreground"
+                    }`}
+                  >
+                    {(isClosed || resolution === "Вирішено") && (
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    )}
+                    <span>{resolution}</span>
+                  </span>
+                  {isDone && !isClosed && (
+                    <button
+                      type="button"
+                      onClick={handleClosePermanently}
+                      className="text-[10px] px-2 py-0.5 rounded bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 font-semibold transition-colors cursor-pointer"
+                      title="Закрити задачу повністю"
+                    >
+                      Закрити повністю
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

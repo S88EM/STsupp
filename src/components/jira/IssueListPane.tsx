@@ -130,6 +130,34 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMode, setFilterMode] = useState<"all" | "my" | "open">("all");
+  const [selectedComponent, setSelectedComponent] = useState<string>("");
+  const [selectedLabel, setSelectedLabel] = useState<string>("");
+
+  const availableComponents = useMemo(() => {
+    const set = new Set<string>();
+    tasks.forEach((t) => {
+      const comps = t.aiContext?.components;
+      if (Array.isArray(comps)) {
+        comps.forEach((c) => {
+          if (c && typeof c === "string") set.add(c);
+        });
+      }
+    });
+    return Array.from(set).sort();
+  }, [tasks]);
+
+  const availableLabels = useMemo(() => {
+    const set = new Set<string>();
+    tasks.forEach((t) => {
+      const lbls = t.aiContext?.labels;
+      if (Array.isArray(lbls)) {
+        lbls.forEach((l) => {
+          if (l && typeof l === "string") set.add(l);
+        });
+      }
+    });
+    return Array.from(set).sort();
+  }, [tasks]);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
@@ -152,9 +180,21 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
         }
       }
 
+      // 3. Component Filter
+      if (selectedComponent) {
+        const comps = t.aiContext?.components;
+        if (!Array.isArray(comps) || !comps.includes(selectedComponent)) return false;
+      }
+
+      // 4. Label Filter
+      if (selectedLabel) {
+        const lbls = t.aiContext?.labels;
+        if (!Array.isArray(lbls) || !lbls.includes(selectedLabel)) return false;
+      }
+
       return true;
     });
-  }, [tasks, searchQuery, filterMode, currentUserId]);
+  }, [tasks, searchQuery, filterMode, currentUserId, selectedComponent, selectedLabel]);
 
   return (
     <div className="w-80 md:w-96 flex flex-col border-r border-border bg-card/40 flex-shrink-0 select-none">
@@ -220,6 +260,57 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
             className="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg bg-secondary/40 border border-border/80 focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground/60"
           />
         </div>
+
+        {/* Component & Label Filter Selectors */}
+        {(availableComponents.length > 0 || availableLabels.length > 0) && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            {availableComponents.length > 0 && (
+              <select
+                value={selectedComponent}
+                onChange={(e) => setSelectedComponent(e.target.value)}
+                className="text-[10px] py-1 px-1.5 rounded bg-secondary/60 border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary max-w-[130px] truncate cursor-pointer"
+                title="Фільтр за компонентом"
+              >
+                <option value="">Компоненти (Всі)</option>
+                {availableComponents.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {availableLabels.length > 0 && (
+              <select
+                value={selectedLabel}
+                onChange={(e) => setSelectedLabel(e.target.value)}
+                className="text-[10px] py-1 px-1.5 rounded bg-secondary/60 border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary max-w-[110px] truncate cursor-pointer"
+                title="Фільтр за міткою"
+              >
+                <option value="">Мітки (Всі)</option>
+                {availableLabels.map((l) => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {(selectedComponent || selectedLabel) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedComponent("");
+                  setSelectedLabel("");
+                }}
+                className="text-[10px] text-muted-foreground hover:text-destructive px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                title="Скинути фільтри компонентів та міток"
+              >
+                ✕ Скинути
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Task List */}

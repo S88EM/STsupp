@@ -15,6 +15,8 @@ export async function GET(req: Request) {
     const filter = searchParams.get("filter") || "all"; // "all" | "my" | "open"
     const search = searchParams.get("search")?.trim() || "";
     const projectId = searchParams.get("projectId")?.trim() || "";
+    const component = searchParams.get("component")?.trim() || "";
+    const label = searchParams.get("label")?.trim() || "";
 
     // 1. Determine projects permitted to the user
     const isSuperAdmin = currentUser.role === "ADMIN" && isPrimaryAdmin(currentUser.email);
@@ -102,10 +104,24 @@ export async function GET(req: Request) {
       },
     });
 
+    let resultTasks = tasks;
+    if (component) {
+      resultTasks = resultTasks.filter((t: any) => {
+        const comps = t.aiContext?.components;
+        return Array.isArray(comps) && comps.includes(component);
+      });
+    }
+    if (label) {
+      resultTasks = resultTasks.filter((t: any) => {
+        const lbls = t.aiContext?.labels;
+        return Array.isArray(lbls) && lbls.includes(label);
+      });
+    }
+
     return NextResponse.json({
-      tasks,
+      tasks: resultTasks,
       projects: accessibleProjects,
-      totalCount: tasks.length,
+      totalCount: resultTasks.length,
       filter,
     });
   } catch (error: any) {

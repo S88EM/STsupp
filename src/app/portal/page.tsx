@@ -158,7 +158,7 @@ export default function ClientPortalPage() {
   // Filters
   const [statusFilter, setStatusFilter] = useState<PortalStatusFilter>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
-  const [scopeFilter, setScopeFilter] = useState<"my" | "all">("my");
+  const [scopeFilter, setScopeFilter] = useState<"all" | "my">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Modals
@@ -182,10 +182,6 @@ export default function ClientPortalPage() {
       .then((data) => {
         if (data?.user) {
           setCurrentUser(data.user);
-          // If engineer or admin, default scope to 'all' so they see project tickets, else 'my'
-          if (data.user.role === "ADMIN" || data.user.role === "ENGINEER") {
-            setScopeFilter("all");
-          }
         }
       })
       .catch(() => router.replace("/login"));
@@ -699,16 +695,16 @@ export default function ClientPortalPage() {
                 </select>
               </div>
 
-              {/* Scope Switcher: My vs All */}
+              {/* Scope Switcher: My vs All Organization/Project */}
               <div className="flex items-center gap-1.5 ml-2">
                 <span className="text-muted-foreground">Відображати:</span>
                 <select
                   value={scopeFilter}
-                  onChange={(e) => setScopeFilter(e.target.value as "my" | "all")}
-                  className="text-xs px-2.5 py-1 rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  onChange={(e) => setScopeFilter(e.target.value as "all" | "my")}
+                  className="text-xs px-2.5 py-1 rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                 >
-                  <option value="my">Тільки мої звернення</option>
-                  <option value="all">Всі звернення проєкту</option>
+                  <option value="all">Всі звернення організації / проєкту</option>
+                  <option value="my">Мої звернення</option>
                 </select>
               </div>
             </div>
@@ -766,7 +762,9 @@ export default function ClientPortalPage() {
                     ? "Чудово! Наразі всі ваші звернення знаходяться в обробці інженерів і не потребують вашої відповіді."
                     : searchQuery
                     ? `За запитом «${searchQuery}» результатів не виявлено. Спробуйте змінити критерії пошуку.`
-                    : "У вас ще немає створених звернень. Створіть перше звернення, і наша служба підтримки допоможе вам!"}
+                    : scopeFilter === "my"
+                    ? "У вас ще немає створених звернень. Перемкніть фільтр на «Всі звернення організації / проєкту» або створіть нове звернення."
+                    : "У цьому проєкті ще немає зареєстрованих звернень. Створіть перше звернення, і наша служба підтримки допоможе вам!"}
                 </p>
               </div>
               {statusFilter === "all" && !searchQuery && (
@@ -807,6 +805,24 @@ export default function ClientPortalPage() {
                         {ticket.project && (
                           <span className="text-[11px] text-muted-foreground font-medium">
                             {ticket.project.name}
+                          </span>
+                        )}
+
+                        {ticket.creator && (
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold border ${
+                              ticket.creatorId === currentUser?.id
+                                ? "bg-primary/10 text-primary border-primary/25"
+                                : "bg-secondary text-muted-foreground border-border/80"
+                            }`}
+                            title={`Створив(-ла): ${ticket.creator.name} (${ticket.creator.email})`}
+                          >
+                            <User className="w-3 h-3" />
+                            <span>
+                              {ticket.creatorId === currentUser?.id
+                                ? "Ви (Автор)"
+                                : ticket.creator.name}
+                            </span>
                           </span>
                         )}
 

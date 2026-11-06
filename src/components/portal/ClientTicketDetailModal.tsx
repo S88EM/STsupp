@@ -25,6 +25,8 @@ import {
   Sparkles,
   Pencil,
   ArrowRightLeft,
+  History,
+  ChevronDown,
 } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
 
@@ -47,8 +49,65 @@ interface CommentItem {
     id: string;
     name: string;
     email: string;
+    role?: string;
     avatarUrl?: string | null;
   } | null;
+}
+
+interface AuditLogItem {
+  id: string;
+  actorId?: string | null;
+  actorName: string;
+  actorEmail: string;
+  action: string;
+  targetType: string;
+  targetId?: string | null;
+  details?: any;
+  createdAt: string;
+}
+
+function renderAuditLogMessage(log: AuditLogItem): { title: string; subtitle?: string } {
+  const details = log.details || {};
+  const changes = details.changes || {};
+
+  if (changes.action === "RETURNED_TO_SUPPORT_BY_CLIENT") {
+    return {
+      title: "Повернуто до служби підтримки",
+      subtitle: details.replyCommentAdded ? "Надано відповідь та передано інженеру" : "Передано в активну чергу підтримки",
+    };
+  }
+
+  const items: string[] = [];
+  if (changes.priority) {
+    const pMap: Record<string, string> = {
+      LOW: "Низький",
+      MEDIUM: "Середній",
+      HIGH: "Високий",
+      URGENT: "Терміновий",
+      CRITICAL: "Терміновий",
+    };
+    const oldP = pMap[changes.priority.old] || changes.priority.old;
+    const newP = pMap[changes.priority.new] || changes.priority.new;
+    items.push(`Змінено критичність: ${oldP} ➔ ${newP}`);
+  }
+  if (changes.title) {
+    items.push(`Змінено назву: «${changes.title.new}»`);
+  }
+  if (changes.description) {
+    items.push("Оновлено опис звернення");
+  }
+  if (changes.status) {
+    items.push(`Змінено статус: ${changes.status.old} ➔ ${changes.status.new}`);
+  }
+
+  if (items.length > 0) {
+    return {
+      title: items[0],
+      subtitle: items.length > 1 ? items.slice(1).join(" • ") : undefined,
+    };
+  }
+
+  return { title: "Оновлено параметри задачі" };
 }
 
 interface ClientTicketDetailModalProps {
@@ -116,19 +175,29 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
   const [copiedCode, setCopiedCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Edit ticket state (for ticket author)
+  // Edit ticket state
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editPriority, setEditPriority] = useState<"LOW" | "MEDIUM" | "HIGH" | "URGENT">("MEDIUM");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
 
+  const isTaskClosed = Boolean(
+    task?.column?.isDoneColumn ||
+    task?.aiContext?.isClosed ||
+    ["готово", "done", "resolved", "вирішено", "закрито", "closed"].includes((task?.column?.name || "").toLowerCase())
+  );
+
   const isAuthor = Boolean(
     currentUser && (task?.creatorId === currentUser.id || task?.creator?.id === currentUser.id)
   );
+
+  // All client representatives of the project can edit active tickets of their organization
+  const canEdit = Boolean(currentUser && !isTaskClosed);
 
   const isWaitingForResponse = useMemo(() => {
     return isTicketAwaitingResponse(task, currentUser?.id);
@@ -207,6 +276,7 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
       }));
       setIsEditing(false);
       onTicketUpdated?.();
+      await loadTask();
     } catch (err: any) {
       console.error("Save edit error:", err);
       setError(err.message || "Помилка при збереженні змін");
@@ -603,7 +673,7 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-3">
                   <h1 className="text-lg font-bold text-foreground leading-snug flex-1">{task.title}</h1>
-                  {isAuthor && (
+                  {canEdit && (
                     <button
                       type="button"
                       onClick={() => {
@@ -612,12 +682,18 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
                         setEditPriority(task.priority === "CRITICAL" ? "URGENT" : (task.priority || "MEDIUM"));
                         setIsEditing(true);
                       }}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-secondary/80 hover:bg-secondary text-foreground border border-border/80 transition-colors shadow-xs flex-shrink-0"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-secondary/80 hover:bg-secondary text-foreground border border-border/80 transition-colors shadow-xs flex-shrink-0 cursor-pointer"
                       title="Редагувати назву, опис та критичність"
                     >
                       <Pencil className="w-3.5 h-3.5 text-primary" />
                       <span>Редагувати</span>
                     </button>
+                  )}
+                  {isTaskClosed && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex-shrink-0">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Вирішено</span>
+                    </span>
                   )}
                 </div>
                 <div className="text-xs text-foreground/90 whitespace-pre-line leading-relaxed p-3.5 rounded-xl bg-secondary/30 border border-border/80">
@@ -626,32 +702,83 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
               </div>
             )}
 
-            {/* Assigned Engineer Card */}
-            <div className="p-3 rounded-xl bg-secondary/20 border border-border/60 flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs">
-                  {task.assignee ? (
-                    task.assignee.name.slice(0, 2).toUpperCase()
-                  ) : (
-                    <User className="w-4 h-4 text-muted-foreground" />
-                  )}
-                </div>
-                <div>
-                  <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                    Відповідальний спеціаліст
+            {/* Meta Cards: Creator & Assigned Engineer */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              {/* Creator Card */}
+              <div className="p-3 rounded-xl bg-secondary/20 border border-border/60 flex items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5 truncate">
+                  <div className="w-8 h-8 rounded-full bg-secondary text-foreground flex items-center justify-center font-bold text-xs flex-shrink-0">
+                    {task.creator ? task.creator.name.slice(0, 2).toUpperCase() : "К"}
                   </div>
-                  <div className="font-semibold text-foreground">
-                    {task.assignee ? task.assignee.name : "Очікує призначення інженера"}
+                  <div className="truncate">
+                    <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                      Автор звернення
+                    </div>
+                    <div className="font-semibold text-foreground truncate">
+                      {isAuthor ? "Ви (Автор)" : task.creator ? task.creator.name : "Клієнт"}
+                    </div>
                   </div>
                 </div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-secondary text-muted-foreground border border-border flex-shrink-0">
+                  {isAuthor ? "Ваше" : "Організація"}
+                </span>
               </div>
 
-              {task.assignee && (
-                <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-medium flex items-center gap-1">
-                  <Shield className="w-3 h-3" />
-                  <span>Інженер підтримки</span>
-                </span>
-              )}
+              {/* Assignee / Responsible Card */}
+              <div className="p-3 rounded-xl bg-secondary/20 border border-border/60 flex items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5 truncate">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                      task.assignee?.role === "CLIENT"
+                        ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                        : "bg-primary/20 text-primary"
+                    }`}
+                  >
+                    {task.assignee ? (
+                      task.assignee.name.slice(0, 2).toUpperCase()
+                    ) : (
+                      <User className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="truncate">
+                    <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                      {task.assignee?.role === "CLIENT"
+                        ? "Очікує відповіді від"
+                        : "Відповідальний спеціаліст"}
+                    </div>
+                    <div className="font-semibold text-foreground truncate">
+                      {task.assignee ? (
+                        task.assignee.role === "CLIENT" && task.assignee.id === currentUser?.id
+                          ? "Ви (Клієнт)"
+                          : task.assignee.name
+                      ) : (
+                        "Очікує призначення інженера"
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {task.assignee && (
+                  <span
+                    className={`px-2 py-0.5 rounded-lg text-[10px] font-medium flex items-center gap-1 flex-shrink-0 ${
+                      task.assignee.role === "CLIENT"
+                        ? "bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30"
+                        : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                    }`}
+                  >
+                    {task.assignee.role === "CLIENT" ? (
+                      <>
+                        <AlertCircle className="w-3 h-3" />
+                        <span>Клієнт</span>
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="w-3 h-3" />
+                        <span>Інженер підтримки</span>
+                      </>
+                    )}
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Attachments Section */}
@@ -731,6 +858,59 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
               )}
             </div>
 
+            {/* Audit / Activity History Section */}
+            {task.auditLogs && task.auditLogs.length > 0 && (
+              <div className="rounded-xl border border-border/70 bg-secondary/15 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+                  className="w-full flex items-center justify-between p-3 text-left hover:bg-secondary/30 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <History className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-xs font-bold text-foreground">
+                      Історія активності та змін ({task.auditLogs.length})
+                    </span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 text-muted-foreground transition-transform ${
+                      isHistoryOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {isHistoryOpen && (
+                  <div className="p-3 pt-0 space-y-2 border-t border-border/50 divide-y divide-border/40 max-h-60 overflow-y-auto">
+                    {task.auditLogs.map((log: AuditLogItem) => {
+                      const msg = renderAuditLogMessage(log);
+                      const isActorMe = currentUser && log.actorId === currentUser.id;
+                      return (
+                        <div key={log.id} className="pt-2 text-[11px] flex items-start justify-between gap-2">
+                          <div className="space-y-0.5 flex-1 pr-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-foreground">
+                                {isActorMe ? "Ви" : log.actorName || log.actorEmail}
+                              </span>
+                              <span className="text-muted-foreground/60">•</span>
+                              <span className="text-primary font-medium">{msg.title}</span>
+                            </div>
+                            {msg.subtitle && (
+                              <div className="text-muted-foreground text-[10px]">
+                                {msg.subtitle}
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                            {formatTimeAgo(log.createdAt)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Conversation Timeline (Comments) */}
             <div className="space-y-3 pt-2 border-t border-border/80">
               <span className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -741,9 +921,10 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
               <div className="space-y-3">
                 {sortedComments.length > 0 ? (
                   sortedComments.map((comment: CommentItem) => {
-                    const isStaff = comment.authorType === "USER" && comment.author?.id !== currentUser?.id;
-                    const isClientMe = comment.author?.id === currentUser?.id;
                     const isAi = comment.authorType === "AI_ASSISTANT";
+                    const isClientMe = comment.author?.id === currentUser?.id;
+                    const isClientColleague = !isClientMe && comment.author?.role === "CLIENT";
+                    const isStaff = !isAi && !isClientMe && !isClientColleague;
 
                     return (
                       <div
@@ -751,6 +932,8 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
                         className={`p-3.5 rounded-xl border text-xs space-y-1.5 transition-colors ${
                           isStaff
                             ? "bg-primary/5 border-primary/20 shadow-xs"
+                            : isClientColleague
+                            ? "bg-blue-500/[0.04] border-blue-500/20"
                             : isAi
                             ? "bg-purple-500/5 border-purple-500/20"
                             : "bg-secondary/30 border-border"
@@ -762,6 +945,8 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
                               className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] ${
                                 isStaff
                                   ? "bg-primary text-primary-foreground"
+                                  : isClientColleague
+                                  ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
                                   : isAi
                                   ? "bg-purple-500 text-white"
                                   : "bg-secondary text-foreground"
@@ -776,6 +961,8 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
                             <span className="font-semibold text-foreground">
                               {isClientMe
                                 ? "Ви (Клієнт)"
+                                : isClientColleague
+                                ? comment.author?.name || "Колега"
                                 : isAi
                                 ? "AI Асистент"
                                 : comment.author?.name || "Служба підтримки"}
@@ -783,6 +970,16 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
                             {isStaff && (
                               <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/20 text-primary">
                                 Служба підтримки
+                              </span>
+                            )}
+                            {isClientColleague && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/20">
+                                Організація
+                              </span>
+                            )}
+                            {isClientMe && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-secondary text-muted-foreground border border-border">
+                                Ви
                               </span>
                             )}
                           </div>

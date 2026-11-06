@@ -113,7 +113,11 @@ export async function GET(req: Request) {
       });
     } else if (filter === "awaiting_response") {
       andConditions.push({
-        assigneeId: currentUser.userId,
+        OR: [
+          { assigneeId: currentUser.userId },
+          { assignee: { role: "CLIENT" } },
+          { column: { name: { contains: "очікує", mode: "insensitive" } } },
+        ],
         column: {
           isDoneColumn: false,
           name: {
@@ -156,7 +160,7 @@ export async function GET(req: Request) {
         },
         column: true,
         assignee: { select: { id: true, name: true, email: true, role: true, avatarUrl: true } },
-        creator: { select: { id: true, name: true, email: true } },
+        creator: { select: { id: true, name: true, email: true, role: true } },
         subtasks: { orderBy: { orderIndex: "asc" } },
         attachments: {
           orderBy: { createdAt: "desc" },

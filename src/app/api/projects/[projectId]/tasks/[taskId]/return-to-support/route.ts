@@ -47,16 +47,8 @@ export async function POST(
       return NextResponse.json({ error: "Задачу не знайдено" }, { status: 404 });
     }
 
-    // Role check: If CLIENT, verify this task is either created by or assigned to this client
-    if (currentUser.role === "CLIENT") {
-      const isMine = task.creatorId === currentUser.userId || task.assigneeId === currentUser.userId;
-      if (!isMine) {
-        return NextResponse.json(
-          { error: "Ви можете повертати в підтримку лише власні задачі або задачі, призначені на вас." },
-          { status: 403 }
-        );
-      }
-    }
+    // Role check: If CLIENT, verify they have project access (already verified above)
+    // Clients can return any task of their project/organization to support after providing feedback
 
     // Protection: closed / done tasks cannot be returned without reopening
     if (task.column.isDoneColumn) {

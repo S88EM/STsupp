@@ -23,13 +23,13 @@ export async function GET(
       where: { id: taskId, projectId },
       include: {
         column: true,
-        assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
-        creator: { select: { id: true, name: true, email: true } },
+        assignee: { select: { id: true, name: true, email: true, avatarUrl: true, role: true } },
+        creator: { select: { id: true, name: true, email: true, role: true } },
         subtasks: { orderBy: { orderIndex: "asc" } },
         comments: {
           orderBy: { createdAt: "asc" },
           include: {
-            author: { select: { id: true, name: true, email: true, avatarUrl: true } },
+            author: { select: { id: true, name: true, email: true, avatarUrl: true, role: true } },
           },
         },
         attachments: { orderBy: { createdAt: "desc" } },
@@ -41,7 +41,19 @@ export async function GET(
       return NextResponse.json({ error: "Задачу не знайдено" }, { status: 404 });
     }
 
-    return NextResponse.json(task);
+    const auditLogs = await prisma.auditLog.findMany({
+      where: {
+        targetType: "TASK",
+        targetId: taskId,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
+
+    return NextResponse.json({
+      ...task,
+      auditLogs,
+    });
   } catch (error: any) {
     console.error("GET /api/projects/[id]/tasks/[taskId] error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -88,24 +100,29 @@ export async function PATCH(
       return NextResponse.json({ error: "Задачу не знайдено" }, { status: 404 });
     }
 
+    // Protection for permanently closed tasks
+    const existingAiContext = (existingTask.aiContext || {}) as Record<string, any>;
+    const isAlreadyClosed = Boolean(existingAiContext.isClosed);
+
     // Role-based restrictions for CLIENT:
-    // Clients can ONLY edit their own tasks (created under their account) and only title, description, priority.
+    // Clients have access to edit tasks within their organization/project,
+    // but strictly limited to allowed fields: title, description, priority.
     if (currentUser.role === "CLIENT") {
-      if (existingTask.creatorId !== currentUser.userId) {
+      if (isAlreadyClosed) {
         return NextResponse.json(
-          { error: "Клієнти мають право редагувати виключно власні звернення (створені під своїм обліковим записом)." },
-          { status: 403 }
+          { error: "Ця задача остаточно вирішена та закрита. Клієнтам заборонено редагувати або перевідкривати закриті задачі." },
+          { status: 400 }
         );
       }
       if (columnId !== undefined && columnId !== existingTask.columnId) {
         return NextResponse.json(
-          { error: "Клієнти не мають права змінювати статус задачі." },
+          { error: "Клієнти не мають права змінювати статус задачі безпосередньо. Для повернення задачі в роботу скористайтеся дією «Повернути в підтримку»." },
           { status: 403 }
         );
       }
       if (assigneeId !== undefined && assigneeId !== existingTask.assigneeId) {
         return NextResponse.json(
-          { error: "Клієнти не мають права змінювати виконавця задачі." },
+          { error: "Клієнти не мають права призначати або змінювати внутрішніх виконавців задачі." },
           { status: 403 }
         );
       }
@@ -117,7 +134,7 @@ export async function PATCH(
       }
       if (aiContext !== undefined) {
         return NextResponse.json(
-          { error: "Клієнти не мають права змінювати параметри ШІ для задачі." },
+          { error: "Клієнти не мають права змінювати службові поля або параметри ШІ для задачі." },
           { status: 403 }
         );
       }
@@ -141,10 +158,6 @@ export async function PATCH(
         { status: 400 }
       );
     }
-
-    // Protection for permanently closed tasks
-    const existingAiContext = (existingTask.aiContext || {}) as Record<string, any>;
-    const isAlreadyClosed = Boolean(existingAiContext.isClosed);
 
     if (isAlreadyClosed) {
       // Forbid moving out of Done or reopening
@@ -273,7 +286,7 @@ export async function PATCH(
       include: {
         column: true,
         assignee: { select: { id: true, name: true, email: true, role: true, avatarUrl: true } },
-        creator: { select: { id: true, name: true, email: true } },
+        creator: { select: { id: true, name: true, email: true, role: true } },
         subtasks: { orderBy: { orderIndex: "asc" } },
         _count: {
           select: { comments: true, attachments: true, subtasks: true },

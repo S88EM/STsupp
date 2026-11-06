@@ -22,9 +22,9 @@ export const DEFAULT_TELEGRAM_CONFIG: TelegramConfig = {
   isEnabled: false,
   events: {
     taskCreated: true,
-    statusChanged: false,
-    commentAdded: false,
-    assigneeChanged: false,
+    statusChanged: true,
+    commentAdded: true,
+    assigneeChanged: true,
   },
 };
 
@@ -115,9 +115,18 @@ export function getTelegramConfig(): TelegramConfig {
       savedConfig.events?.taskCreated !== undefined
         ? Boolean(savedConfig.events.taskCreated)
         : DEFAULT_TELEGRAM_CONFIG.events.taskCreated,
-    statusChanged: Boolean(savedConfig.events?.statusChanged),
-    commentAdded: Boolean(savedConfig.events?.commentAdded),
-    assigneeChanged: Boolean(savedConfig.events?.assigneeChanged),
+    statusChanged:
+      savedConfig.events?.statusChanged !== undefined
+        ? Boolean(savedConfig.events.statusChanged)
+        : DEFAULT_TELEGRAM_CONFIG.events.statusChanged,
+    commentAdded:
+      savedConfig.events?.commentAdded !== undefined
+        ? Boolean(savedConfig.events.commentAdded)
+        : DEFAULT_TELEGRAM_CONFIG.events.commentAdded,
+    assigneeChanged:
+      savedConfig.events?.assigneeChanged !== undefined
+        ? Boolean(savedConfig.events.assigneeChanged)
+        : DEFAULT_TELEGRAM_CONFIG.events.assigneeChanged,
   };
 
   return {
@@ -407,6 +416,232 @@ export async function notifyTelegramTaskCreated({
     return { sent: true };
   } catch (error: any) {
     console.error("[Telegram Notification Exception]", error);
+    return { sent: false, reason: error.message };
+  }
+}
+
+export async function notifyTelegramStatusChanged({
+  task,
+  project,
+  oldStatus,
+  newStatus,
+  updatedByName,
+  origin,
+}: {
+  task: {
+    id: string;
+    code: string;
+    title: string;
+  };
+  project: {
+    id: string;
+    name: string;
+    key: string;
+  };
+  oldStatus: string;
+  newStatus: string;
+  updatedByName?: string | null;
+  origin?: string;
+}): Promise<{ sent: boolean; reason?: string }> {
+  try {
+    const cfg = getTelegramConfig();
+    if (!cfg.isEnabled) {
+      return { sent: false, reason: "Telegram сповіщення вимкнено" };
+    }
+    if (!cfg.events.statusChanged) {
+      return { sent: false, reason: "Тригер 'statusChanged' вимкнено" };
+    }
+    if (!cfg.botToken || !cfg.chatId) {
+      return { sent: false, reason: "Не налаштовано токен бота або ID групи" };
+    }
+
+    const baseUrl =
+      origin && origin.startsWith("http") && !origin.includes("localhost") && !origin.includes("127.0.0.1")
+        ? origin.replace(/\/+$/, "")
+        : getAppUrl();
+    const taskUrl = `${baseUrl}/projects/${project.id}?taskId=${task.id}`;
+    const updater = updatedByName?.trim() || "Користувач системи";
+
+    const lines = [
+      `🔄 <b>Зміна статусу задачі в STsup</b>`,
+      ``,
+      `📌 <b>Ключ:</b> <code>${escapeHtml(task.code)}</code>`,
+      `📝 <b>Назва:</b> ${escapeHtml(task.title)}`,
+      `📂 <b>Проєкт:</b> ${escapeHtml(project.name)} (<code>${escapeHtml(project.key)}</code>)`,
+      `📊 <b>Перехід:</b> <code>${escapeHtml(oldStatus)}</code> ➔ <code>${escapeHtml(newStatus)}</code>`,
+      `👤 <b>Оновив(ла):</b> ${escapeHtml(updater)}`,
+      ``,
+      `🔗 <a href="${taskUrl}">Переглянути задачу в STsup</a>`,
+    ];
+
+    const result = await sendTelegramMessage({
+      botToken: cfg.botToken,
+      chatId: cfg.chatId,
+      text: lines.join("\n"),
+    });
+
+    if (!result.ok) {
+      console.error("[Telegram Notification Error - StatusChanged]", result.description);
+      return { sent: false, reason: result.description };
+    }
+
+    return { sent: true };
+  } catch (error: any) {
+    console.error("[Telegram Notification Exception - StatusChanged]", error);
+    return { sent: false, reason: error.message };
+  }
+}
+
+export async function notifyTelegramCommentAdded({
+  task,
+  project,
+  commentAuthorName,
+  commentText,
+  origin,
+}: {
+  task: {
+    id: string;
+    code: string;
+    title: string;
+  };
+  project: {
+    id: string;
+    name?: string;
+    key?: string;
+  };
+  commentAuthorName: string;
+  commentText: string;
+  origin?: string;
+}): Promise<{ sent: boolean; reason?: string }> {
+  try {
+    const cfg = getTelegramConfig();
+    if (!cfg.isEnabled) {
+      return { sent: false, reason: "Telegram сповіщення вимкнено" };
+    }
+    if (!cfg.events.commentAdded) {
+      return { sent: false, reason: "Тригер 'commentAdded' вимкнено" };
+    }
+    if (!cfg.botToken || !cfg.chatId) {
+      return { sent: false, reason: "Не налаштовано токен бота або ID групи" };
+    }
+
+    const baseUrl =
+      origin && origin.startsWith("http") && !origin.includes("localhost") && !origin.includes("127.0.0.1")
+        ? origin.replace(/\/+$/, "")
+        : getAppUrl();
+    const taskUrl = `${baseUrl}/projects/${project.id}?taskId=${task.id}`;
+
+    const snippet = commentText.length > 250
+      ? commentText.substring(0, 247) + "..."
+      : commentText;
+
+    const lines = [
+      `💬 <b>Новий коментар у задачі STsup</b>`,
+      ``,
+      `📌 <b>Ключ:</b> <code>${escapeHtml(task.code)}</code>`,
+      `📝 <b>Назва:</b> ${escapeHtml(task.title)}`,
+      ...(project.name ? [`📂 <b>Проєкт:</b> ${escapeHtml(project.name)}`] : []),
+      `👤 <b>Автор коментаря:</b> ${escapeHtml(commentAuthorName)}`,
+      `💬 <b>Текст коментаря:</b>`,
+      `<i>«${escapeHtml(snippet)}»</i>`,
+      ``,
+      `🔗 <a href="${taskUrl}">Переглянути коментар у STsup</a>`,
+    ];
+
+    const result = await sendTelegramMessage({
+      botToken: cfg.botToken,
+      chatId: cfg.chatId,
+      text: lines.join("\n"),
+    });
+
+    if (!result.ok) {
+      console.error("[Telegram Notification Error - CommentAdded]", result.description);
+      return { sent: false, reason: result.description };
+    }
+
+    return { sent: true };
+  } catch (error: any) {
+    console.error("[Telegram Notification Exception - CommentAdded]", error);
+    return { sent: false, reason: error.message };
+  }
+}
+
+export async function notifyTelegramTaskAssignment({
+  task,
+  project,
+  assigneeName,
+  assignedByName,
+  priority,
+  origin,
+}: {
+  task: {
+    id: string;
+    code: string;
+    title: string;
+  };
+  project: {
+    id: string;
+    name?: string;
+    key?: string;
+  };
+  assigneeName: string;
+  assignedByName?: string | null;
+  priority?: string;
+  origin?: string;
+}): Promise<{ sent: boolean; reason?: string }> {
+  try {
+    const cfg = getTelegramConfig();
+    if (!cfg.isEnabled) {
+      return { sent: false, reason: "Telegram сповіщення вимкнено" };
+    }
+    if (!cfg.events.assigneeChanged) {
+      return { sent: false, reason: "Тригер 'assigneeChanged' вимкнено" };
+    }
+    if (!cfg.botToken || !cfg.chatId) {
+      return { sent: false, reason: "Не налаштовано токен бота або ID групи" };
+    }
+
+    const baseUrl =
+      origin && origin.startsWith("http") && !origin.includes("localhost") && !origin.includes("127.0.0.1")
+        ? origin.replace(/\/+$/, "")
+        : getAppUrl();
+    const taskUrl = `${baseUrl}/projects/${project.id}?taskId=${task.id}`;
+
+    let priorityLabel = "🟡 Середній";
+    const p = (priority || "").toUpperCase();
+    if (p === "URGENT") priorityLabel = "🔴 Терміновий";
+    else if (p === "HIGH") priorityLabel = "🟠 Високий";
+    else if (p === "LOW") priorityLabel = "🟢 Низький";
+
+    const assigner = assignedByName?.trim() || "Користувач системи";
+
+    const lines = [
+      `🎯 <b>Призначено виконавця в STsup</b>`,
+      ``,
+      `📌 <b>Ключ:</b> <code>${escapeHtml(task.code)}</code>`,
+      `📝 <b>Назва:</b> ${escapeHtml(task.title)}`,
+      ...(project.name ? [`📂 <b>Проєкт:</b> ${escapeHtml(project.name)}`] : []),
+      `👤 <b>Новий виконавець:</b> <b>${escapeHtml(assigneeName)}</b>`,
+      `⚡ <b>Пріоритет:</b> ${priorityLabel}`,
+      `👤 <b>Призначив(ла):</b> ${escapeHtml(assigner)}`,
+      ``,
+      `🔗 <a href="${taskUrl}">Переглянути задачу в STsup</a>`,
+    ];
+
+    const result = await sendTelegramMessage({
+      botToken: cfg.botToken,
+      chatId: cfg.chatId,
+      text: lines.join("\n"),
+    });
+
+    if (!result.ok) {
+      console.error("[Telegram Notification Error - TaskAssignment]", result.description);
+      return { sent: false, reason: result.description };
+    }
+
+    return { sent: true };
+  } catch (error: any) {
+    console.error("[Telegram Notification Exception - TaskAssignment]", error);
     return { sent: false, reason: error.message };
   }
 }

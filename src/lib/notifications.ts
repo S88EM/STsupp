@@ -5,6 +5,11 @@ import {
   sendCommentAddedEmail,
   getAppUrl,
 } from "@/lib/email";
+import {
+  notifyTelegramStatusChanged,
+  notifyTelegramCommentAdded,
+  notifyTelegramTaskAssignment,
+} from "@/lib/telegram";
 
 function getBaseUrl(origin?: string): string {
   if (origin && origin.startsWith("http") && !origin.includes("localhost") && !origin.includes("127.0.0.1")) {
@@ -85,6 +90,16 @@ export async function notifyStatusChange({
         taskUrl,
       }).catch((err) => console.error(`[Notification Error] Status change to ${recipient.email}:`, err));
     }
+
+    // Send Telegram notification
+    notifyTelegramStatusChanged({
+      task: { id: task.id, code: task.code, title: task.title },
+      project: { id: task.project.id, name: task.project.name, key: task.project.key },
+      oldStatus: oldColumn.name,
+      newStatus: newColumn.name,
+      updatedByName,
+      origin,
+    }).catch((err) => console.error("[Telegram Error] notifyTelegramStatusChanged:", err));
   } catch (error) {
     console.error("[Notification Error] notifyStatusChange failed:", error);
   }
@@ -145,6 +160,21 @@ export async function notifyTaskAssignment({
       priority: task.priority,
       taskUrl,
     }).catch((err) => console.error(`[Notification Error] Task assignment to ${newAssignee.email}:`, err));
+
+    // Send Telegram notification
+    const project = await prisma.project.findUnique({
+      where: { id: task.projectId },
+      select: { id: true, name: true, key: true },
+    });
+
+    notifyTelegramTaskAssignment({
+      task: { id: task.id, code: task.code, title: task.title },
+      project: { id: task.projectId, name: project?.name, key: project?.key },
+      assigneeName: newAssignee.name,
+      assignedByName,
+      priority: task.priority,
+      origin,
+    }).catch((err) => console.error("[Telegram Error] notifyTelegramTaskAssignment:", err));
   } catch (error) {
     console.error("[Notification Error] notifyTaskAssignment failed:", error);
   }
@@ -232,6 +262,20 @@ export async function notifyNewComment({
         taskUrl,
       }).catch((err) => console.error(`[Notification Error] New comment to ${recipient.email}:`, err));
     }
+
+    // Send Telegram notification
+    const project = await prisma.project.findUnique({
+      where: { id: task.projectId },
+      select: { id: true, name: true, key: true },
+    });
+
+    notifyTelegramCommentAdded({
+      task: { id: task.id, code: task.code, title: task.title },
+      project: { id: task.projectId, name: project?.name, key: project?.key },
+      commentAuthorName,
+      commentText: comment.content,
+      origin,
+    }).catch((err) => console.error("[Telegram Error] notifyTelegramCommentAdded:", err));
   } catch (error) {
     console.error("[Notification Error] notifyNewComment failed:", error);
   }

@@ -78,10 +78,11 @@ export default function SettingsPage() {
   const [telegramEnabled, setTelegramEnabled] = useState(false);
   const [telegramEvents, setTelegramEvents] = useState({
     taskCreated: true,
-    statusChanged: false,
-    commentAdded: false,
-    assigneeChanged: false,
+    statusChanged: true,
+    commentAdded: true,
+    assigneeChanged: true,
   });
+  const [telegramPreviewTab, setTelegramPreviewTab] = useState<"created" | "status" | "comment" | "assignee">("created");
   const [telegramSaving, setTelegramSaving] = useState(false);
   const [telegramTesting, setTelegramTesting] = useState(false);
   const [telegramSaveSuccess, setTelegramSaveSuccess] = useState<string | null>(null);
@@ -158,9 +159,9 @@ export default function SettingsPage() {
         if (tgData.events) {
           setTelegramEvents({
             taskCreated: tgData.events.taskCreated !== undefined ? Boolean(tgData.events.taskCreated) : true,
-            statusChanged: Boolean(tgData.events.statusChanged),
-            commentAdded: Boolean(tgData.events.commentAdded),
-            assigneeChanged: Boolean(tgData.events.assigneeChanged),
+            statusChanged: tgData.events.statusChanged !== undefined ? Boolean(tgData.events.statusChanged) : true,
+            commentAdded: tgData.events.commentAdded !== undefined ? Boolean(tgData.events.commentAdded) : true,
+            assigneeChanged: tgData.events.assigneeChanged !== undefined ? Boolean(tgData.events.assigneeChanged) : true,
           });
         }
       }
@@ -1470,7 +1471,9 @@ export default function SettingsPage() {
 
               <div className="space-y-3">
                 {/* Trigger 1: Task Created (Active) */}
-                <label className="flex items-start gap-3 p-3.5 rounded-xl border border-primary/30 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors">
+                <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${
+                  telegramEvents.taskCreated ? "border-primary/30 bg-primary/5 hover:bg-primary/10" : "border-border bg-card hover:bg-secondary/20"
+                }`}>
                   <input
                     type="checkbox"
                     checked={telegramEvents.taskCreated}
@@ -1482,8 +1485,10 @@ export default function SettingsPage() {
                   <div className="flex-1 space-y-0.5">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-semibold text-foreground">Створення нової задачі</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium">
-                        Активно
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                        telegramEvents.taskCreated ? "bg-emerald-500/20 text-emerald-400" : "bg-secondary text-muted-foreground"
+                      }`}>
+                        {telegramEvents.taskCreated ? "Активно" : "Вимкнено"}
                       </span>
                     </div>
                     <p className="text-[11px] text-muted-foreground">
@@ -1492,8 +1497,10 @@ export default function SettingsPage() {
                   </div>
                 </label>
 
-                {/* Trigger 2: Status Changed (Reserved / Coming soon) */}
-                <div className="flex items-start gap-3 p-3.5 rounded-xl border border-border/60 bg-secondary/20 opacity-70">
+                {/* Trigger 2: Status Changed (Active) */}
+                <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${
+                  telegramEvents.statusChanged ? "border-primary/30 bg-primary/5 hover:bg-primary/10" : "border-border bg-card hover:bg-secondary/20"
+                }`}>
                   <input
                     type="checkbox"
                     checked={telegramEvents.statusChanged || false}
@@ -1505,18 +1512,22 @@ export default function SettingsPage() {
                   <div className="flex-1 space-y-0.5">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-semibold text-foreground">Зміна статусу задачі</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border font-medium">
-                        Зарезервовано
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                        telegramEvents.statusChanged ? "bg-emerald-500/20 text-emerald-400" : "bg-secondary text-muted-foreground"
+                      }`}>
+                        {telegramEvents.statusChanged ? "Активно" : "Вимкнено"}
                       </span>
                     </div>
                     <p className="text-[11px] text-muted-foreground">
                       Сповіщати учасників при переміщенні задачі між колонками (наприклад, В процесі → Готово → Закрито)
                     </p>
                   </div>
-                </div>
+                </label>
 
-                {/* Trigger 3: New Comment (Reserved / Coming soon) */}
-                <div className="flex items-start gap-3 p-3.5 rounded-xl border border-border/60 bg-secondary/20 opacity-70">
+                {/* Trigger 3: New Comment (Active) */}
+                <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${
+                  telegramEvents.commentAdded ? "border-primary/30 bg-primary/5 hover:bg-primary/10" : "border-border bg-card hover:bg-secondary/20"
+                }`}>
                   <input
                     type="checkbox"
                     checked={telegramEvents.commentAdded || false}
@@ -1528,18 +1539,22 @@ export default function SettingsPage() {
                   <div className="flex-1 space-y-0.5">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-semibold text-foreground">Новий коментар у задачі</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border font-medium">
-                        Зарезервовано
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                        telegramEvents.commentAdded ? "bg-emerald-500/20 text-emerald-400" : "bg-secondary text-muted-foreground"
+                      }`}>
+                        {telegramEvents.commentAdded ? "Активно" : "Вимкнено"}
                       </span>
                     </div>
                     <p className="text-[11px] text-muted-foreground">
                       Публікувати сповіщення, коли користувач або клієнт залишає коментар у задачі
                     </p>
                   </div>
-                </div>
+                </label>
 
-                {/* Trigger 4: Assignee Changed (Reserved / Coming soon) */}
-                <div className="flex items-start gap-3 p-3.5 rounded-xl border border-border/60 bg-secondary/20 opacity-70">
+                {/* Trigger 4: Assignee Changed (Active) */}
+                <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${
+                  telegramEvents.assigneeChanged ? "border-primary/30 bg-primary/5 hover:bg-primary/10" : "border-border bg-card hover:bg-secondary/20"
+                }`}>
                   <input
                     type="checkbox"
                     checked={telegramEvents.assigneeChanged || false}
@@ -1551,15 +1566,17 @@ export default function SettingsPage() {
                   <div className="flex-1 space-y-0.5">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-semibold text-foreground">Призначення виконавця</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border font-medium">
-                        Зарезервовано
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                        telegramEvents.assigneeChanged ? "bg-emerald-500/20 text-emerald-400" : "bg-secondary text-muted-foreground"
+                      }`}>
+                        {telegramEvents.assigneeChanged ? "Активно" : "Вимкнено"}
                       </span>
                     </div>
                     <p className="text-[11px] text-muted-foreground">
                       Сповіщати групу при призначенні або перепризначенні відповідального співробітника
                     </p>
                   </div>
-                </div>
+                </label>
               </div>
             </div>
           </div>
@@ -1576,6 +1593,54 @@ export default function SettingsPage() {
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
                   Live Preview
                 </span>
+              </div>
+
+              {/* Sub-tabs for Preview */}
+              <div className="flex items-center border-b border-border bg-secondary/10 px-3 py-1.5 gap-1 overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setTelegramPreviewTab("created")}
+                  className={`text-[10px] font-medium px-2 py-1 rounded-md transition-colors cursor-pointer ${
+                    telegramPreviewTab === "created"
+                      ? "bg-primary text-primary-foreground font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Створення
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTelegramPreviewTab("status")}
+                  className={`text-[10px] font-medium px-2 py-1 rounded-md transition-colors cursor-pointer ${
+                    telegramPreviewTab === "status"
+                      ? "bg-primary text-primary-foreground font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Статус
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTelegramPreviewTab("comment")}
+                  className={`text-[10px] font-medium px-2 py-1 rounded-md transition-colors cursor-pointer ${
+                    telegramPreviewTab === "comment"
+                      ? "bg-primary text-primary-foreground font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Коментар
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTelegramPreviewTab("assignee")}
+                  className={`text-[10px] font-medium px-2 py-1 rounded-md transition-colors cursor-pointer ${
+                    telegramPreviewTab === "assignee"
+                      ? "bg-primary text-primary-foreground font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Виконавець
+                </button>
               </div>
 
               {/* Simulated Telegram Chat Bubble */}
@@ -1598,49 +1663,93 @@ export default function SettingsPage() {
 
                 {/* Message Body */}
                 <div className="rounded-xl bg-[#182533] p-3.5 text-xs text-zinc-200 border border-zinc-700/40 space-y-2 shadow-inner">
-                  <div className="font-bold text-white text-[13px] flex items-center gap-1.5">
-                    <span>🚀 Нова задача в STsup</span>
-                  </div>
+                  {telegramPreviewTab === "created" && (
+                    <>
+                      <div className="font-bold text-white text-[13px] flex items-center gap-1.5">
+                        <span>🚀 Нова задача в STsup</span>
+                      </div>
+                      <div className="space-y-1 text-[11px] text-zinc-300">
+                        <div><span className="text-zinc-400">📌 Ключ: </span><span className="font-mono bg-[#101921] px-1.5 py-0.5 rounded text-blue-300 font-semibold">ST-101</span></div>
+                        <div><span className="text-zinc-400">📝 Назва: </span><span className="text-white font-medium">Налаштування модуля сповіщень Telegram</span></div>
+                        <div><span className="text-zinc-400">📂 Проєкт: </span><span>Portal Support (<code>ST</code>)</span></div>
+                        <div><span className="text-zinc-400">🏷 Тип: </span><span>📋 Задача</span></div>
+                        <div><span className="text-zinc-400">⚡ Пріоритет: </span><span className="text-amber-300">🟡 Середній</span></div>
+                        <div><span className="text-zinc-400">👤 Автор: </span><span className="text-white">Євген Щербак</span></div>
+                        <div><span className="text-zinc-400">🧩 Компоненти: </span><span>Інтеграція, API</span></div>
+                      </div>
+                      <div className="pt-2 border-t border-zinc-700/50">
+                        <span className="text-blue-400 hover:text-blue-300 underline cursor-pointer flex items-center gap-1 text-[11px] font-medium">
+                          <span>Переглянути задачу в STsup</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </span>
+                      </div>
+                    </>
+                  )}
 
-                  <div className="space-y-1 text-[11px] text-zinc-300">
-                    <div>
-                      <span className="text-zinc-400">📌 Ключ: </span>
-                      <span className="font-mono bg-[#101921] px-1.5 py-0.5 rounded text-blue-300 font-semibold">
-                        ST-101
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-zinc-400">📝 Назва: </span>
-                      <span className="text-white font-medium">Налаштування модуля сповіщень Telegram</span>
-                    </div>
-                    <div>
-                      <span className="text-zinc-400">📂 Проєкт: </span>
-                      <span>Portal Support (<code>ST</code>)</span>
-                    </div>
-                    <div>
-                      <span className="text-zinc-400">🏷 Тип: </span>
-                      <span>📋 Задача</span>
-                    </div>
-                    <div>
-                      <span className="text-zinc-400">⚡ Пріоритет: </span>
-                      <span className="text-amber-300">🟡 Середній</span>
-                    </div>
-                    <div>
-                      <span className="text-zinc-400">👤 Автор: </span>
-                      <span className="text-white">Євген Щербак</span>
-                    </div>
-                    <div>
-                      <span className="text-zinc-400">🧩 Компоненти: </span>
-                      <span>Інтеграція, API</span>
-                    </div>
-                  </div>
+                  {telegramPreviewTab === "status" && (
+                    <>
+                      <div className="font-bold text-white text-[13px] flex items-center gap-1.5">
+                        <span>🔄 Зміна статусу задачі в STsup</span>
+                      </div>
+                      <div className="space-y-1 text-[11px] text-zinc-300">
+                        <div><span className="text-zinc-400">📌 Ключ: </span><span className="font-mono bg-[#101921] px-1.5 py-0.5 rounded text-blue-300 font-semibold">ST-101</span></div>
+                        <div><span className="text-zinc-400">📝 Назва: </span><span className="text-white font-medium">Налаштування модуля сповіщень Telegram</span></div>
+                        <div><span className="text-zinc-400">📂 Проєкт: </span><span>Portal Support (<code>ST</code>)</span></div>
+                        <div><span className="text-zinc-400">📊 Перехід: </span><span className="font-mono bg-[#101921] px-1.5 py-0.5 rounded text-zinc-300">В процесі</span> ➔ <span className="font-mono bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-semibold">Готово</span></div>
+                        <div><span className="text-zinc-400">👤 Оновив(ла): </span><span className="text-white">Євген Щербак</span></div>
+                      </div>
+                      <div className="pt-2 border-t border-zinc-700/50">
+                        <span className="text-blue-400 hover:text-blue-300 underline cursor-pointer flex items-center gap-1 text-[11px] font-medium">
+                          <span>Переглянути задачу в STsup</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </span>
+                      </div>
+                    </>
+                  )}
 
-                  <div className="pt-2 border-t border-zinc-700/50">
-                    <span className="text-blue-400 hover:text-blue-300 underline cursor-pointer flex items-center gap-1 text-[11px] font-medium">
-                      <span>Переглянути задачу в STsup</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </span>
-                  </div>
+                  {telegramPreviewTab === "comment" && (
+                    <>
+                      <div className="font-bold text-white text-[13px] flex items-center gap-1.5">
+                        <span>💬 Новий коментар у задачі STsup</span>
+                      </div>
+                      <div className="space-y-1 text-[11px] text-zinc-300">
+                        <div><span className="text-zinc-400">📌 Ключ: </span><span className="font-mono bg-[#101921] px-1.5 py-0.5 rounded text-blue-300 font-semibold">ST-101</span></div>
+                        <div><span className="text-zinc-400">📝 Назва: </span><span className="text-white font-medium">Налаштування модуля сповіщень Telegram</span></div>
+                        <div><span className="text-zinc-400">👤 Автор коментаря: </span><span className="text-white">Олексій Коваленко</span></div>
+                        <div className="pt-1"><span className="text-zinc-400">💬 Текст коментаря:</span></div>
+                        <div className="p-2 rounded bg-[#101921] border border-zinc-700/40 text-[11px] italic text-zinc-300">
+                          «Усі перевірки пройшли успішно, бот стабільно надсилає повідомлення у групу.»
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t border-zinc-700/50">
+                        <span className="text-blue-400 hover:text-blue-300 underline cursor-pointer flex items-center gap-1 text-[11px] font-medium">
+                          <span>Переглянути коментар у STsup</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </span>
+                      </div>
+                    </>
+                  )}
+
+                  {telegramPreviewTab === "assignee" && (
+                    <>
+                      <div className="font-bold text-white text-[13px] flex items-center gap-1.5">
+                        <span>🎯 Призначено виконавця в STsup</span>
+                      </div>
+                      <div className="space-y-1 text-[11px] text-zinc-300">
+                        <div><span className="text-zinc-400">📌 Ключ: </span><span className="font-mono bg-[#101921] px-1.5 py-0.5 rounded text-blue-300 font-semibold">ST-101</span></div>
+                        <div><span className="text-zinc-400">📝 Назва: </span><span className="text-white font-medium">Налаштування модуля сповіщень Telegram</span></div>
+                        <div><span className="text-zinc-400">👤 Новий виконавець: </span><span className="text-emerald-400 font-semibold">Олексій Коваленко</span></div>
+                        <div><span className="text-zinc-400">⚡ Пріоритет: </span><span className="text-amber-300">🟡 Середній</span></div>
+                        <div><span className="text-zinc-400">👤 Призначив(ла): </span><span className="text-white">Євген Щербак</span></div>
+                      </div>
+                      <div className="pt-2 border-t border-zinc-700/50">
+                        <span className="text-blue-400 hover:text-blue-300 underline cursor-pointer flex items-center gap-1 text-[11px] font-medium">
+                          <span>Переглянути задачу в STsup</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

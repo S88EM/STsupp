@@ -137,7 +137,7 @@ function LoginForm() {
               <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="email"
-                placeholder="admin@stsup.local"
+                placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -181,11 +181,6 @@ function LoginForm() {
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </form>
-
-        {/* Quick hint for first launch */}
-        <div className="p-2.5 rounded-lg bg-secondary/30 border border-border/50 text-[11px] text-muted-foreground text-center">
-          💡 Перший адмін: <span className="font-mono text-foreground font-semibold">admin@stsup.local</span> / <span className="font-mono text-foreground font-semibold">admin123</span>
-        </div>
       </div>
 
       {/* Footer */}

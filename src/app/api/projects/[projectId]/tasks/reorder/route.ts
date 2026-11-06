@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hasProjectAccess, canChangeTaskStatus } from "@/lib/auth";
 import { notifyStatusChange } from "@/lib/notifications";
+import { logAuditEvent, AUDIT_ACTIONS } from "@/lib/audit";
 
 export async function POST(
   req: Request,
@@ -70,6 +71,40 @@ export async function POST(
         updatedByUserId: currentUser?.userId,
         origin: req.headers.get("origin") || undefined,
       }).catch((err) => console.error("notifyStatusChange on reorder error:", err));
+
+      Promise.all([
+        prisma.column.findUnique({ where: { id: oldColumnId }, select: { name: true } }),
+        prisma.column.findUnique({ where: { id: destinationColumnId }, select: { name: true } }),
+        prisma.task.findUnique({ where: { id: taskId }, select: { code: true, title: true } }),
+      ]).then(([oldCol, newCol, movedTask]) => {
+        if (oldCol && newCol && movedTask) {
+          logAuditEvent({
+            actor: {
+              userId: currentUser.userId,
+              email: currentUser.email,
+              name: currentUser.name,
+            },
+            action: AUDIT_ACTIONS.TASK_UPDATE,
+            targetType: "TASK",
+            targetId: taskId,
+            details: {
+              projectId,
+              taskCode: movedTask.code,
+              taskTitle: movedTask.title,
+              actorRole: currentUser.role,
+              changes: {
+                status: {
+                  old: oldCol.name,
+                  new: newCol.name,
+                  oldColumnId,
+                  newColumnId: destinationColumnId,
+                },
+              },
+            },
+            ipAddress: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || null,
+          }).catch((err) => console.error("logAuditEvent on reorder error:", err));
+        }
+      }).catch((err) => console.error("Error logging audit event for reorder:", err));
     }
 
     return NextResponse.json({ success: true });

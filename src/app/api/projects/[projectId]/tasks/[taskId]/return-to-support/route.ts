@@ -29,7 +29,7 @@ export async function POST(
       include: {
         column: true,
         assignee: { select: { id: true, name: true, email: true, role: true } },
-        creator: { select: { id: true, name: true, email: true } },
+        creator: { select: { id: true, name: true, email: true, role: true } },
         project: {
           include: {
             columns: { orderBy: { orderIndex: "asc" } },
@@ -203,7 +203,7 @@ export async function POST(
       include: {
         column: true,
         assignee: { select: { id: true, name: true, email: true, role: true, avatarUrl: true } },
-        creator: { select: { id: true, name: true, email: true } },
+        creator: { select: { id: true, name: true, email: true, role: true } },
         subtasks: { orderBy: { orderIndex: "asc" } },
         comments: {
           orderBy: { createdAt: "asc" },

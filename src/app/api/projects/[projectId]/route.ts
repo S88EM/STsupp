@@ -26,8 +26,8 @@ export async function GET(
             tasks: {
               orderBy: { orderIndex: "asc" },
               include: {
-                assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
-                creator: { select: { id: true, name: true, email: true } },
+                assignee: { select: { id: true, name: true, email: true, avatarUrl: true, role: true } },
+                creator: { select: { id: true, name: true, email: true, role: true } },
                 subtasks: { orderBy: { orderIndex: "asc" } },
                 _count: {
                   select: {

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hasProjectAccess } from "@/lib/auth";
 import { notifyTaskAssignment } from "@/lib/notifications";
 import { notifyTelegramTaskCreated } from "@/lib/telegram";
+import { logAuditEvent, AUDIT_ACTIONS } from "@/lib/audit";
 
 export async function POST(
   req: Request,
@@ -122,8 +123,8 @@ export async function POST(
         aiContext: aiContext || undefined,
       },
       include: {
-        assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
-        creator: { select: { id: true, name: true, email: true } },
+        assignee: { select: { id: true, name: true, email: true, avatarUrl: true, role: true } },
+        creator: { select: { id: true, name: true, email: true, role: true } },
         subtasks: true,
         _count: {
           select: { comments: true, attachments: true, subtasks: true },
@@ -160,6 +161,26 @@ export async function POST(
       },
       origin: req.headers.get("origin") || undefined,
     }).catch((err) => console.error("[Telegram] notifyTelegramTaskCreated error on create:", err));
+
+    logAuditEvent({
+      actor: {
+        userId: currentUser?.userId || creatorId,
+        email: currentUser?.email || "system@stsup.local",
+        name: currentUser?.name || "Користувач",
+      },
+      action: AUDIT_ACTIONS.TASK_CREATE,
+      targetType: "TASK",
+      targetId: task.id,
+      details: {
+        projectId,
+        taskCode: task.code,
+        taskTitle: task.title,
+        actorRole: currentUser?.role || "CLIENT",
+        priority: safePriority,
+        columnId: targetColumnId,
+      },
+      ipAddress: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || null,
+    }).catch((err) => console.error("logAuditEvent on task create error:", err));
 
     return NextResponse.json(task, { status: 201 });
   } catch (error: any) {

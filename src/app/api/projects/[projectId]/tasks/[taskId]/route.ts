@@ -92,6 +92,9 @@ export async function PATCH(
         description: true,
         priority: true,
         taskNumber: true,
+        dueDate: true,
+        column: { select: { id: true, name: true } },
+        assignee: { select: { id: true, name: true, role: true, email: true } },
         project: { select: { key: true } },
       },
     });
@@ -318,7 +321,8 @@ export async function PATCH(
     }
 
     // 3. Record Audit Log for task updates
-    const changes: Record<string, { old: any; new: any }> = {};
+    const changes: Record<string, any> = {};
+
     if (title !== undefined && title.trim() !== existingTask.title) {
       changes.title = { old: existingTask.title, new: title.trim() };
     }
@@ -326,13 +330,81 @@ export async function PATCH(
       changes.description = { old: existingTask.description || "", new: description || "" };
     }
     if (safePriority !== undefined && safePriority !== existingTask.priority) {
-      changes.priority = { old: existingTask.priority, new: safePriority };
+      const PRIORITY_LABELS: Record<string, string> = {
+        LOW: "Низький",
+        MEDIUM: "Середній",
+        HIGH: "Високий",
+        URGENT: "Терміновий",
+      };
+      changes.priority = {
+        old: existingTask.priority,
+        new: safePriority,
+        oldLabel: PRIORITY_LABELS[existingTask.priority] || existingTask.priority,
+        newLabel: PRIORITY_LABELS[safePriority] || safePriority,
+      };
     }
     if (columnId !== undefined && columnId !== existingTask.columnId) {
-      changes.columnId = { old: existingTask.columnId, new: columnId };
+      const targetCol = await prisma.column.findUnique({
+        where: { id: columnId },
+        select: { id: true, name: true },
+      });
+      changes.status = {
+        old: existingTask.column?.name || "Початковий",
+        new: targetCol?.name || "Новий",
+        oldColumnId: existingTask.columnId,
+        newColumnId: columnId,
+      };
     }
     if (assigneeId !== undefined && (assigneeId || null) !== existingTask.assigneeId) {
-      changes.assigneeId = { old: existingTask.assigneeId, new: assigneeId || null };
+      let targetUser = null;
+      if (assigneeId) {
+        targetUser = await prisma.user.findUnique({
+          where: { id: assigneeId },
+          select: { id: true, name: true, role: true, email: true },
+        });
+      }
+      changes.assignee = {
+        old: existingTask.assignee?.name || "Не призначено",
+        new: targetUser?.name || "Не призначено",
+        oldRole: existingTask.assignee?.role || null,
+        newRole: targetUser?.role || null,
+        oldAssigneeId: existingTask.assigneeId,
+        newAssigneeId: assigneeId || null,
+      };
+    }
+    if (dueDate !== undefined) {
+      const oldDue = existingTask.dueDate ? existingTask.dueDate.toISOString().split("T")[0] : null;
+      const newDue = dueDate ? new Date(dueDate).toISOString().split("T")[0] : null;
+      if (oldDue !== newDue) {
+        changes.dueDate = { old: oldDue, new: newDue };
+      }
+    }
+    if (aiContext !== undefined) {
+      const oldCtx = (existingTask.aiContext || {}) as Record<string, any>;
+      const newCtx = (aiContext || {}) as Record<string, any>;
+
+      if (newCtx.type !== undefined && newCtx.type !== oldCtx.type) {
+        changes.type = { old: oldCtx.type || "TASK", new: newCtx.type };
+      }
+      if (newCtx.resolution !== undefined && newCtx.resolution !== oldCtx.resolution) {
+        changes.resolution = { old: oldCtx.resolution || null, new: newCtx.resolution };
+      }
+      const oldComps = Array.isArray(oldCtx.components) ? [...oldCtx.components].sort().join(", ") : "";
+      const newComps = Array.isArray(newCtx.components) ? [...newCtx.components].sort().join(", ") : "";
+      if (newCtx.components !== undefined && oldComps !== newComps) {
+        changes.components = {
+          old: Array.isArray(oldCtx.components) ? oldCtx.components : [],
+          new: Array.isArray(newCtx.components) ? newCtx.components : [],
+        };
+      }
+      const oldLabels = Array.isArray(oldCtx.labels) ? [...oldCtx.labels].sort().join(", ") : "";
+      const newLabels = Array.isArray(newCtx.labels) ? [...newCtx.labels].sort().join(", ") : "";
+      if (newCtx.labels !== undefined && oldLabels !== newLabels) {
+        changes.labels = {
+          old: Array.isArray(oldCtx.labels) ? oldCtx.labels : [],
+          new: Array.isArray(newCtx.labels) ? newCtx.labels : [],
+        };
+      }
     }
 
     if (Object.keys(changes).length > 0) {
@@ -355,13 +427,20 @@ export async function PATCH(
           projectId,
           taskCode: `${projectKey}-${existingTask.taskNumber}`,
           taskTitle: updated.title,
+          actorRole: currentUser.role,
           changes,
         },
         ipAddress,
       });
     }
 
-    return NextResponse.json(updated);
+    const latestAuditLogs = await prisma.auditLog.findMany({
+      where: { targetType: "TASK", targetId: taskId },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+
+    return NextResponse.json({ ...updated, auditLogs: latestAuditLogs });
   } catch (error: any) {
     console.error("PATCH task error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

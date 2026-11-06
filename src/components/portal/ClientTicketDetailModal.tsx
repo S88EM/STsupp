@@ -28,6 +28,7 @@ import {
   History,
   ChevronDown,
 } from "lucide-react";
+import { TaskHistoryTimeline } from "@/components/common/TaskHistoryTimeline";
 import { formatTimeAgo } from "@/lib/utils";
 
 interface AttachmentItem {
@@ -198,6 +199,19 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
 
   // All client representatives of the project can edit active tickets of their organization
   const canEdit = Boolean(currentUser && !isTaskClosed);
+
+  const isAssigneeClient = useMemo(() => {
+    if (!task?.assignee) return false;
+    if (task.assignee.role === "CLIENT") return true;
+    if (currentUser?.role === "CLIENT" && (task.assignee.id === currentUser.id || task.assigneeId === currentUser.id)) return true;
+    if (task.creator?.role === "CLIENT" && task.assignee.id === task.creator.id) return true;
+    if (task.creatorId && task.assignee.id === task.creatorId && task.assignee.role !== "ADMIN" && task.assignee.role !== "ENGINEER") return true;
+    return false;
+  }, [task?.assignee, task?.creator, task?.creatorId, task?.assigneeId, currentUser]);
+
+  const isAssigneeMe = Boolean(
+    currentUser && task?.assignee && (task.assignee.id === currentUser.id || task.assigneeId === currentUser.id)
+  );
 
   const isWaitingForResponse = useMemo(() => {
     return isTicketAwaitingResponse(task, currentUser?.id);
@@ -729,9 +743,11 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
                 <div className="flex items-center gap-2.5 truncate">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${
-                      task.assignee?.role === "CLIENT"
+                      isAssigneeClient
                         ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                        : "bg-primary/20 text-primary"
+                        : task.assignee
+                        ? "bg-primary/20 text-primary border border-primary/30"
+                        : "bg-secondary text-muted-foreground border border-border"
                     }`}
                   >
                     {task.assignee ? (
@@ -742,14 +758,14 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
                   </div>
                   <div className="truncate">
                     <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                      {task.assignee?.role === "CLIENT"
+                      {isAssigneeClient
                         ? "Очікує відповіді від"
-                        : "Відповідальний спеціаліст"}
+                        : "Відповідальний інженер"}
                     </div>
                     <div className="font-semibold text-foreground truncate">
                       {task.assignee ? (
-                        task.assignee.role === "CLIENT" && task.assignee.id === currentUser?.id
-                          ? "Ви (Клієнт)"
+                        isAssigneeClient
+                          ? (isAssigneeMe ? "Ви (Клієнт)" : `${task.assignee.name} (Клієнт)`)
                           : task.assignee.name
                       ) : (
                         "Очікує призначення інженера"
@@ -757,15 +773,15 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
                     </div>
                   </div>
                 </div>
-                {task.assignee && (
+                {task.assignee ? (
                   <span
                     className={`px-2 py-0.5 rounded-lg text-[10px] font-medium flex items-center gap-1 flex-shrink-0 ${
-                      task.assignee.role === "CLIENT"
+                      isAssigneeClient
                         ? "bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30"
                         : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                     }`}
                   >
-                    {task.assignee.role === "CLIENT" ? (
+                    {isAssigneeClient ? (
                       <>
                         <AlertCircle className="w-3 h-3" />
                         <span>Клієнт</span>
@@ -776,6 +792,11 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
                         <span>Інженер підтримки</span>
                       </>
                     )}
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-secondary text-muted-foreground border border-border flex items-center gap-1 flex-shrink-0">
+                    <Clock className="w-3 h-3" />
+                    <span>В черзі</span>
                   </span>
                 )}
               </div>
@@ -859,57 +880,37 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
             </div>
 
             {/* Audit / Activity History Section */}
-            {task.auditLogs && task.auditLogs.length > 0 && (
-              <div className="rounded-xl border border-border/70 bg-secondary/15 overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-                  className="w-full flex items-center justify-between p-3 text-left hover:bg-secondary/30 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <History className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-xs font-bold text-foreground">
-                      Історія активності та змін ({task.auditLogs.length})
-                    </span>
-                  </div>
-                  <ChevronDown
-                    className={`w-4 h-4 text-muted-foreground transition-transform ${
-                      isHistoryOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
+            <div className="rounded-xl border border-border/70 bg-secondary/15 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+                className="w-full flex items-center justify-between p-3 text-left hover:bg-secondary/30 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <History className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-xs font-bold text-foreground">
+                    Історія активності та змін ({task.auditLogs?.length || 0})
+                  </span>
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 text-muted-foreground transition-transform ${
+                    isHistoryOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
 
-                {isHistoryOpen && (
-                  <div className="p-3 pt-0 space-y-2 border-t border-border/50 divide-y divide-border/40 max-h-60 overflow-y-auto">
-                    {task.auditLogs.map((log: AuditLogItem) => {
-                      const msg = renderAuditLogMessage(log);
-                      const isActorMe = currentUser && log.actorId === currentUser.id;
-                      return (
-                        <div key={log.id} className="pt-2 text-[11px] flex items-start justify-between gap-2">
-                          <div className="space-y-0.5 flex-1 pr-2">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-semibold text-foreground">
-                                {isActorMe ? "Ви" : log.actorName || log.actorEmail}
-                              </span>
-                              <span className="text-muted-foreground/60">•</span>
-                              <span className="text-primary font-medium">{msg.title}</span>
-                            </div>
-                            {msg.subtitle && (
-                              <div className="text-muted-foreground text-[10px]">
-                                {msg.subtitle}
-                              </div>
-                            )}
-                          </div>
-                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                            {formatTimeAgo(log.createdAt)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
+              {isHistoryOpen && (
+                <div className="p-3 pt-2 border-t border-border/50">
+                  <TaskHistoryTimeline
+                    auditLogs={task.auditLogs || []}
+                    taskCreatedAt={task.createdAt}
+                    taskCreator={task.creator}
+                    currentUser={currentUser}
+                    compact
+                  />
+                </div>
+              )}
+            </div>
 
             {/* Conversation Timeline (Comments) */}
             <div className="space-y-3 pt-2 border-t border-border/80">

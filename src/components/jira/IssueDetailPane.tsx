@@ -40,6 +40,7 @@ import {
 import { ColumnItem } from "@/components/board/ColumnCard";
 import { formatTimeAgo } from "@/lib/utils";
 import { JIRA_TASK_TYPES, getTaskTypeInfo, getPriorityIcon } from "./IssueListPane";
+import { TaskHistoryTimeline } from "@/components/common/TaskHistoryTimeline";
 
 interface IssueDetailPaneProps {
   taskId: string | null;
@@ -1330,7 +1331,7 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Історія
+                  Історія ({task?.auditLogs?.length || 0})
                 </button>
               </div>
 
@@ -1442,19 +1443,13 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
 
             {/* Tab: History */}
             {activeActivityTab === "history" && (
-              <div className="space-y-2 text-xs text-muted-foreground py-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span>
-                    Задачу створено {new Date(task.createdAt).toLocaleString("uk-UA")}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-500" />
-                  <span>
-                    Останнє оновлення: {new Date(task.updatedAt).toLocaleString("uk-UA")}
-                  </span>
-                </div>
+              <div className="pt-2">
+                <TaskHistoryTimeline
+                  auditLogs={task.auditLogs || []}
+                  taskCreatedAt={task.createdAt}
+                  taskCreator={task.creator}
+                  currentUser={currentUser}
+                />
               </div>
             )}
           </div>

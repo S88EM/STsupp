@@ -127,12 +127,19 @@ function isTaskInProgress(t: TicketItem): boolean {
 
 function isAwaitingClientResponse(t: TicketItem, currentUserId?: string): boolean {
   if (isTaskResolved(t)) return false;
+  // If explicitly flagged in aiContext
+  if (t.aiContext?.awaitingClient === true) return true;
   // If the task is assigned to the current client user
   if (currentUserId && (t.assigneeId === currentUserId || t.assignee?.id === currentUserId)) {
     return true;
   }
   // Or if the assignee has the CLIENT role
   if (t.assignee && t.assignee.role === "CLIENT") {
+    return true;
+  }
+  // Or if column name indicates awaiting response
+  const colName = (t.column?.name || "").toLowerCase();
+  if (colName.includes("очікує відповіді") || colName.includes("очікує клієнт") || colName.includes("waiting")) {
     return true;
   }
   return false;

@@ -22,6 +22,12 @@ export async function POST(
     const body = await req.json();
     const { title, description, columnId, priority = "MEDIUM", dueDate, assigneeId, aiContext } = body;
 
+    let safePriority = priority;
+    if (safePriority === "CRITICAL") safePriority = "URGENT";
+    if (!["LOW", "MEDIUM", "HIGH", "URGENT"].includes(safePriority)) {
+      safePriority = "MEDIUM";
+    }
+
     if (!title?.trim()) {
       return NextResponse.json({ error: "Назва задачі обов'язкова" }, { status: 400 });
     }
@@ -108,7 +114,7 @@ export async function POST(
         code,
         title: title.trim(),
         description: description?.trim() || null,
-        priority,
+        priority: safePriority,
         orderIndex: nextOrder,
         dueDate: dueDate ? new Date(dueDate) : null,
         creatorId,

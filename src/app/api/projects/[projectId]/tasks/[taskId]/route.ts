@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hasProjectAccess, canDeleteTasks, canChangeTaskStatus } from "@/lib/auth";
 import { notifyStatusChange, notifyTaskAssignment } from "@/lib/notifications";
+import { logAuditEvent, AUDIT_ACTIONS } from "@/lib/audit";
 
 export async function GET(
   req: Request,
@@ -55,11 +56,13 @@ export async function PATCH(
     const { projectId, taskId } = params;
     const currentUser = await getCurrentUser();
 
-    if (currentUser) {
-      const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
-      if (!hasAccess) {
-        return NextResponse.json({ error: "У вас немає доступу до цієї задачі" }, { status: 403 });
-      }
+    if (!currentUser) {
+      return NextResponse.json({ error: "Необхідно авторизуватися для редагування задачі" }, { status: 401 });
+    }
+
+    const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "У вас немає доступу до цієї задачі" }, { status: 403 });
     }
 
     const body = await req.json();
@@ -67,11 +70,76 @@ export async function PATCH(
 
     const existingTask = await prisma.task.findUnique({
       where: { id: taskId, projectId },
-      select: { columnId: true, assigneeId: true, aiContext: true },
+      select: {
+        id: true,
+        creatorId: true,
+        columnId: true,
+        assigneeId: true,
+        aiContext: true,
+        title: true,
+        description: true,
+        priority: true,
+        taskNumber: true,
+        project: { select: { key: true } },
+      },
     });
 
     if (!existingTask) {
       return NextResponse.json({ error: "Задачу не знайдено" }, { status: 404 });
+    }
+
+    // Role-based restrictions for CLIENT:
+    // Clients can ONLY edit their own tasks (created under their account) and only title, description, priority.
+    if (currentUser.role === "CLIENT") {
+      if (existingTask.creatorId !== currentUser.userId) {
+        return NextResponse.json(
+          { error: "Клієнти мають право редагувати виключно власні звернення (створені під своїм обліковим записом)." },
+          { status: 403 }
+        );
+      }
+      if (columnId !== undefined && columnId !== existingTask.columnId) {
+        return NextResponse.json(
+          { error: "Клієнти не мають права змінювати статус задачі." },
+          { status: 403 }
+        );
+      }
+      if (assigneeId !== undefined && assigneeId !== existingTask.assigneeId) {
+        return NextResponse.json(
+          { error: "Клієнти не мають права змінювати виконавця задачі." },
+          { status: 403 }
+        );
+      }
+      if (dueDate !== undefined) {
+        return NextResponse.json(
+          { error: "Клієнти не мають права змінювати термін виконання задачі." },
+          { status: 403 }
+        );
+      }
+      if (aiContext !== undefined) {
+        return NextResponse.json(
+          { error: "Клієнти не мають права змінювати параметри ШІ для задачі." },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Validate Title
+    if (title !== undefined && !title.trim()) {
+      return NextResponse.json(
+        { error: "Назва задачі не може бути порожньою." },
+        { status: 400 }
+      );
+    }
+
+    // Validate and normalize Priority strictly against allowed enum
+    let safePriority = priority;
+    if (safePriority === "CRITICAL") safePriority = "URGENT";
+    const ALLOWED_PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"];
+    if (safePriority !== undefined && !ALLOWED_PRIORITIES.includes(safePriority)) {
+      return NextResponse.json(
+        { error: "Неприпустимий рівень критичності. Доступні: LOW, MEDIUM, HIGH, URGENT (CRITICAL)." },
+        { status: 400 }
+      );
     }
 
     // Protection for permanently closed tasks
@@ -121,6 +189,22 @@ export async function PATCH(
           { status: 403 }
         );
       }
+
+      const targetCol = await prisma.column.findUnique({ where: { id: columnId }, select: { name: true } });
+      const targetColName = (targetCol?.name || "").toLowerCase();
+      if (targetColName.includes("очікує") || targetColName.includes("waiting")) {
+        const staffId =
+          existingTask.assigneeId ||
+          (currentUser.role === "ADMIN" || currentUser.role === "ENGINEER" ? currentUser.userId : null);
+        if (staffId) {
+          mergedAiContext = {
+            ...existingAiContext,
+            ...(mergedAiContext || {}),
+            lastStaffAssigneeId: staffId,
+            awaitingClient: true,
+          };
+        }
+      }
     }
 
     // Only ADMIN and ENGINEER can change assigneeId. CLIENT is forbidden.
@@ -154,6 +238,23 @@ export async function PATCH(
               { status: 400 }
             );
           }
+
+          // Remember previous staff assignee so client can return task back to them
+          const staffId =
+            existingTask.assigneeId && existingTask.assigneeId !== targetUser.id
+              ? existingTask.assigneeId
+              : currentUser.role === "ADMIN" || currentUser.role === "ENGINEER"
+              ? currentUser.userId
+              : null;
+
+          if (staffId) {
+            mergedAiContext = {
+              ...existingAiContext,
+              ...(mergedAiContext || {}),
+              lastStaffAssigneeId: staffId,
+              awaitingClient: true,
+            };
+          }
         }
       }
     }
@@ -163,7 +264,7 @@ export async function PATCH(
       data: {
         title: title !== undefined ? title.trim() : undefined,
         description: description !== undefined ? description : undefined,
-        priority: priority !== undefined ? priority : undefined,
+        priority: safePriority !== undefined ? safePriority : undefined,
         columnId: columnId !== undefined ? columnId : undefined,
         dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : undefined,
         assigneeId: assigneeId !== undefined ? (assigneeId || null) : undefined,
@@ -171,7 +272,8 @@ export async function PATCH(
       },
       include: {
         column: true,
-        assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        assignee: { select: { id: true, name: true, email: true, role: true, avatarUrl: true } },
+        creator: { select: { id: true, name: true, email: true } },
         subtasks: { orderBy: { orderIndex: "asc" } },
         _count: {
           select: { comments: true, attachments: true, subtasks: true },
@@ -200,6 +302,50 @@ export async function PATCH(
         assignedByUserId: currentUser?.userId,
         origin: req.headers.get("origin") || undefined,
       }).catch((err) => console.error("notifyTaskAssignment error:", err));
+    }
+
+    // 3. Record Audit Log for task updates
+    const changes: Record<string, { old: any; new: any }> = {};
+    if (title !== undefined && title.trim() !== existingTask.title) {
+      changes.title = { old: existingTask.title, new: title.trim() };
+    }
+    if (description !== undefined && (description || "") !== (existingTask.description || "")) {
+      changes.description = { old: existingTask.description || "", new: description || "" };
+    }
+    if (safePriority !== undefined && safePriority !== existingTask.priority) {
+      changes.priority = { old: existingTask.priority, new: safePriority };
+    }
+    if (columnId !== undefined && columnId !== existingTask.columnId) {
+      changes.columnId = { old: existingTask.columnId, new: columnId };
+    }
+    if (assigneeId !== undefined && (assigneeId || null) !== existingTask.assigneeId) {
+      changes.assigneeId = { old: existingTask.assigneeId, new: assigneeId || null };
+    }
+
+    if (Object.keys(changes).length > 0) {
+      const ipAddress =
+        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        req.headers.get("x-real-ip") ||
+        null;
+
+      const projectKey = existingTask.project?.key || "ST";
+      await logAuditEvent({
+        actor: {
+          userId: currentUser.userId,
+          email: currentUser.email,
+          name: currentUser.name,
+        },
+        action: AUDIT_ACTIONS.TASK_UPDATE,
+        targetType: "TASK",
+        targetId: taskId,
+        details: {
+          projectId,
+          taskCode: `${projectKey}-${existingTask.taskNumber}`,
+          taskTitle: updated.title,
+          changes,
+        },
+        ipAddress,
+      });
     }
 
     return NextResponse.json(updated);

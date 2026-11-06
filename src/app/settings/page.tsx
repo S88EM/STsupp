@@ -99,6 +99,11 @@ function getAuditBadge(action: string) {
         label: "Оновлення довідників",
         color: "bg-teal-500/10 text-teal-400 border-teal-500/30",
       };
+    case "TASK_UPDATE":
+      return {
+        label: "Редагування задачі",
+        color: "bg-amber-500/10 text-amber-400 border-amber-500/30",
+      };
     default:
       return {
         label: action,
@@ -172,6 +177,39 @@ function renderAuditDetails(log: any) {
       <span className="text-muted-foreground">
         Оновлено довідники компонентів та міток ({d.labelsCount || 0} міток)
       </span>
+    );
+  }
+  if (log.action === "TASK_UPDATE") {
+    const changes = d.changes || {};
+    const changedFields = Object.keys(changes);
+    const fieldLabels: Record<string, string> = {
+      title: "Назва",
+      description: "Опис",
+      priority: "Критичність",
+      columnId: "Статус",
+      assigneeId: "Виконавець",
+    };
+    return (
+      <div className="space-y-1">
+        <div className="text-muted-foreground">
+          Задача: <strong className="text-foreground">{d.taskCode || log.targetId}</strong>
+          {d.taskTitle && <span className="ml-1.5 text-zinc-400 font-normal">«{d.taskTitle}»</span>}
+        </div>
+        <div className="text-[11px] text-muted-foreground flex flex-wrap gap-1.5 pt-0.5">
+          {changedFields.map((field) => {
+            const ch = changes[field];
+            const label = fieldLabels[field] || field;
+            return (
+              <span key={field} className="px-1.5 py-0.5 rounded bg-secondary/80 border border-border inline-flex items-center gap-1">
+                <span className="font-semibold text-foreground/80">{label}:</span>
+                <span className="line-through text-zinc-400">{String(ch.old || "—")}</span>
+                <span>➔</span>
+                <span className="text-primary font-semibold">{String(ch.new || "—")}</span>
+              </span>
+            );
+          })}
+        </div>
+      </div>
     );
   }
   return <span className="font-mono text-[10px] text-muted-foreground">{JSON.stringify(d)}</span>;

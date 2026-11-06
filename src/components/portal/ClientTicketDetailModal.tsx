@@ -23,6 +23,8 @@ import {
   ArrowDown,
   Minus,
   Sparkles,
+  Pencil,
+  ArrowRightLeft,
 } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
 
@@ -58,6 +60,45 @@ interface ClientTicketDetailModalProps {
   currentUser?: any;
 }
 
+function isTicketAwaitingResponse(task: any, currentUserId?: string): boolean {
+  if (!task) return false;
+  if (task.column?.isDoneColumn) return false;
+  const colName = (task.column?.name || "").toLowerCase();
+  if (
+    colName.includes("готова") ||
+    colName.includes("done") ||
+    colName.includes("resolved") ||
+    colName.includes("вирішено") ||
+    colName.includes("закрито") ||
+    colName.includes("closed")
+  ) {
+    return false;
+  }
+  if (task.aiContext?.isClosed) return false;
+
+  // 1. Explicit flag in aiContext
+  if (task.aiContext?.awaitingClient === true) return true;
+
+  // 2. Assigned to current client or someone with role CLIENT
+  if (currentUserId && (task.assigneeId === currentUserId || task.assignee?.id === currentUserId)) {
+    return true;
+  }
+  if (task.assignee && task.assignee.role === "CLIENT") {
+    return true;
+  }
+
+  // 3. Column name indicates awaiting client
+  if (
+    colName.includes("очікує відповіді") ||
+    colName.includes("очікує клієнт") ||
+    colName.includes("waiting")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = ({
   taskId,
   projectId,
@@ -70,12 +111,28 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
   const [loading, setLoading] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
+  const [returningToSupport, setReturningToSupport] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Edit ticket state (for ticket author)
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editPriority, setEditPriority] = useState<"LOW" | "MEDIUM" | "HIGH" | "URGENT">("MEDIUM");
+  const [savingEdit, setSavingEdit] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
+
+  const isAuthor = Boolean(
+    currentUser && (task?.creatorId === currentUser.id || task?.creator?.id === currentUser.id)
+  );
+
+  const isWaitingForResponse = useMemo(() => {
+    return isTicketAwaitingResponse(task, currentUser?.id);
+  }, [task, currentUser?.id]);
 
   const sortedComments = useMemo(() => {
     if (!task?.comments || !Array.isArray(task.comments)) return [];
@@ -92,6 +149,9 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
       if (res.ok) {
         const data = await res.json();
         setTask(data);
+        setEditTitle(data.title || "");
+        setEditDescription(data.description || "");
+        setEditPriority(data.priority === "CRITICAL" ? "URGENT" : (data.priority || "MEDIUM"));
         setTimeout(() => {
           commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 150);
@@ -108,10 +168,92 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
       loadTask();
       setReplyText("");
       setError(null);
+      setIsEditing(false);
     } else {
       setTask(null);
+      setIsEditing(false);
     }
   }, [isOpen, taskId, projectId]);
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!task || !projectId || !editTitle.trim() || savingEdit) return;
+
+    setSavingEdit(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/projects/${projectId}/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: editTitle.trim(),
+          description: editDescription,
+          priority: editPriority,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Не вдалося зберегти зміни звернення");
+      }
+
+      const updated = await res.json();
+      setTask((prev: any) => ({
+        ...prev,
+        title: updated.title,
+        description: updated.description,
+        priority: updated.priority,
+      }));
+      setIsEditing(false);
+      onTicketUpdated?.();
+    } catch (err: any) {
+      console.error("Save edit error:", err);
+      setError(err.message || "Помилка при збереженні змін");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleReturnToSupport = async (includeReply = false) => {
+    if (!task || !projectId || returningToSupport) return;
+
+    setReturningToSupport(true);
+    setError(null);
+
+    try {
+      const commentText = includeReply ? replyText.trim() : "";
+      const res = await fetch(`/api/projects/${projectId}/tasks/${task.id}/return-to-support`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment: commentText || undefined }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Не вдалося повернути звернення до служби підтримки");
+      }
+
+      const result = await res.json();
+      if (result.task) {
+        setTask(result.task);
+      } else {
+        await loadTask();
+      }
+
+      setReplyText("");
+      onTicketUpdated?.();
+
+      setTimeout(() => {
+        commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 150);
+    } catch (err: any) {
+      console.error("Return to support error:", err);
+      setError(err.message || "Помилка при поверненні звернення до служби підтримки");
+    } finally {
+      setReturningToSupport(false);
+    }
+  };
 
   // Support paste event (Ctrl+V) for replying with screenshots
   useEffect(() => {
@@ -310,13 +452,179 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
               </div>
             )}
 
-            {/* Title & Description */}
-            <div className="space-y-2">
-              <h1 className="text-lg font-bold text-foreground leading-snug">{task.title}</h1>
-              <div className="text-xs text-foreground/90 whitespace-pre-line leading-relaxed p-3.5 rounded-xl bg-secondary/30 border border-border/80">
-                {task.description || "Без додаткового опису"}
+            {/* Awaiting response banner with Return to Support action */}
+            {isWaitingForResponse && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs animate-in fade-in duration-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center flex-shrink-0 font-bold">
+                    <ArrowRightLeft className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-foreground">
+                      Служба підтримки очікує вашої відповіді
+                    </div>
+                    <div className="text-muted-foreground text-[11px] leading-relaxed">
+                      Надайте коментар з уточненнями нижче або натисніть кнопку, щоб повернути звернення в роботу
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleReturnToSupport(false)}
+                  disabled={returningToSupport || sendingReply}
+                  className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all flex-shrink-0 disabled:opacity-50"
+                  title="Повернути задачу в роботу інженеру підтримки"
+                >
+                  {returningToSupport ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Повернення...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRightLeft className="w-3.5 h-3.5" />
+                      <span>Повернути в підтримку</span>
+                    </>
+                  )}
+                </button>
               </div>
-            </div>
+            )}
+
+            {/* Title & Description */}
+            {isEditing ? (
+              <form onSubmit={handleSaveEdit} className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-4">
+                <div className="flex items-center justify-between border-b border-primary/20 pb-2.5">
+                  <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                    <Pencil className="w-4 h-4 text-primary" />
+                    <span>Редагування звернення</span>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground">
+                    Власник звернення може змінити назву, критичність та опис
+                  </span>
+                </div>
+
+                {/* Title Input */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                    <span>Тема / Назва звернення</span>
+                    <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Коротко вкажіть суть проблеми..."
+                    className="w-full text-sm font-medium px-3 py-2 rounded-lg bg-card border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                    required
+                  />
+                </div>
+
+                {/* Priority Selection */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">
+                    Критичність (Пріоритет)
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { id: "LOW", label: "🟢 Низька", desc: "Дрібне питання" },
+                      { id: "MEDIUM", label: "🔵 Звичайна", desc: "Стандартна задача" },
+                      { id: "HIGH", label: "🟠 Висока", desc: "Впливає на роботу" },
+                      { id: "URGENT", label: "🔴 Критична", desc: "Повна зупинка" },
+                    ].map((p) => {
+                      const isSelected = editPriority === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setEditPriority(p.id as any)}
+                          className={`p-2.5 rounded-xl border text-left transition-all ${
+                            isSelected
+                              ? "bg-primary/15 border-primary text-foreground font-semibold ring-1 ring-primary shadow-xs"
+                              : "bg-card/70 border-border/80 text-muted-foreground hover:bg-secondary/40 hover:text-foreground"
+                          }`}
+                        >
+                          <div className="text-xs font-bold">{p.label}</div>
+                          <div className="text-[10px] opacity-75">{p.desc}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Description Textarea */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">
+                    Детальний опис
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    placeholder="Детально опишіть проблему, деталі або запитання..."
+                    className="w-full text-xs p-3 rounded-lg bg-card border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground resize-y leading-relaxed"
+                  />
+                </div>
+
+                {/* Actions: Save & Cancel */}
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-primary/20">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditTitle(task.title);
+                      setEditDescription(task.description || "");
+                      setEditPriority(task.priority === "CRITICAL" ? "URGENT" : (task.priority || "MEDIUM"));
+                    }}
+                    disabled={savingEdit}
+                    className="px-3 py-1.5 rounded-lg border border-border hover:bg-secondary text-xs font-medium text-foreground transition-colors"
+                  >
+                    Скасувати
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingEdit || !editTitle.trim()}
+                    className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50"
+                  >
+                    {savingEdit ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Збереження...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Зберегти зміни</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <h1 className="text-lg font-bold text-foreground leading-snug flex-1">{task.title}</h1>
+                  {isAuthor && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditTitle(task.title);
+                        setEditDescription(task.description || "");
+                        setEditPriority(task.priority === "CRITICAL" ? "URGENT" : (task.priority || "MEDIUM"));
+                        setIsEditing(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-secondary/80 hover:bg-secondary text-foreground border border-border/80 transition-colors shadow-xs flex-shrink-0"
+                      title="Редагувати назву, опис та критичність"
+                    >
+                      <Pencil className="w-3.5 h-3.5 text-primary" />
+                      <span>Редагувати</span>
+                    </button>
+                  )}
+                </div>
+                <div className="text-xs text-foreground/90 whitespace-pre-line leading-relaxed p-3.5 rounded-xl bg-secondary/30 border border-border/80">
+                  {task.description || "Без додаткового опису"}
+                </div>
+              </div>
+            )}
 
             {/* Assigned Engineer Card */}
             <div className="p-3 rounded-xl bg-secondary/20 border border-border/60 flex items-center justify-between gap-3 text-xs">
@@ -506,27 +814,68 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
                   className="w-full text-xs p-3 rounded-xl bg-secondary/40 border border-border text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary font-normal leading-relaxed resize-y"
                   disabled={sendingReply}
                 />
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <span className="text-[10px] text-muted-foreground">
                     Натисніть <kbd className="px-1 py-0.5 rounded bg-secondary font-mono text-[9px]">Ctrl+V</kbd> щоб вставити скріншот
                   </span>
-                  <button
-                    type="submit"
-                    disabled={sendingReply || !replyText.trim()}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {sendingReply ? (
+                  <div className="flex items-center justify-end gap-2 flex-wrap">
+                    {isWaitingForResponse ? (
                       <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Відправка...</span>
+                        <button
+                          type="button"
+                          onClick={() => handleReturnToSupport(Boolean(replyText.trim()))}
+                          disabled={returningToSupport || sendingReply}
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-all disabled:opacity-50"
+                          title="Надіслати відповідь та повернути звернення до служби підтримки"
+                        >
+                          {returningToSupport ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Повернення...</span>
+                            </>
+                          ) : (
+                            <>
+                              <ArrowRightLeft className="w-3.5 h-3.5" />
+                              <span>
+                                {replyText.trim()
+                                  ? "Відповісти та повернути в підтримку"
+                                  : "Повернути до підтримки"}
+                              </span>
+                            </>
+                          )}
+                        </button>
+                        {replyText.trim() && (
+                          <button
+                            type="submit"
+                            disabled={sendingReply || returningToSupport}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-secondary hover:bg-secondary/80 border border-border text-foreground transition-all disabled:opacity-50"
+                            title="Надіслати тільки коментар без зміни статусу"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>Тільки коментар</span>
+                          </button>
+                        )}
                       </>
                     ) : (
-                      <>
-                        <Send className="w-3.5 h-3.5" />
-                        <span>Надіслати відповідь</span>
-                      </>
+                      <button
+                        type="submit"
+                        disabled={sendingReply || !replyText.trim()}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {sendingReply ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Відправка...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-3.5 h-3.5" />
+                            <span>Надіслати відповідь</span>
+                          </>
+                        )}
+                      </button>
                     )}
-                  </button>
+                  </div>
                 </div>
               </form>
             </div>

@@ -208,7 +208,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </div>
                     <div>
                       <div className="font-semibold">Налаштування</div>
-                      <span className="text-[10px] text-muted-foreground">Поштовий сервіс (SMTP)</span>
                     </div>
                   </Link>
                 </>

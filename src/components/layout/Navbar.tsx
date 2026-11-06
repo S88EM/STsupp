@@ -18,9 +18,11 @@ import {
   CheckSquare,
   Sparkles,
   FolderGit2,
+  Palette,
 } from "lucide-react";
 import { CreateProjectModal } from "@/components/project/CreateProjectModal";
 import { ProjectSettingsModal } from "@/components/project/ProjectSettingsModal";
+import { ThemeSwitcherButton, THEMES, applyTheme } from "@/components/theme/ThemeSwitcher";
 
 interface NavbarProps {
   currentProject?: {
@@ -408,6 +410,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           />
         </div>
 
+        {/* Theme / Background Switcher */}
+        <ThemeSwitcherButton />
+
         {/* Notifications */}
         <button
           className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors relative"
@@ -462,6 +467,28 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span className="text-[10px] font-semibold text-primary mt-1 inline-block">
                     {getRoleLabel(user.role)}
                   </span>
+                </div>
+
+                {/* Quick Theme Picker */}
+                <div className="px-3 py-2 border-b border-border/60 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <Palette className="w-3 h-3 text-primary" />
+                      <span>Тема фону</span>
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 pt-1">
+                    {THEMES.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => applyTheme(t.id, true)}
+                        className={`w-6 h-6 rounded-md border transition-transform hover:scale-110 cursor-pointer ${t.borderAccent}`}
+                        style={{ background: t.gradient }}
+                        title={t.name}
+                      />
+                    ))}
+                  </div>
                 </div>
 
                 <div className="py-1">

@@ -80,3 +80,76 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(150, 150, 150, 0.4);
 }
+
+/* ==========================================================================
+   Custom Background Themes (STsup Theme Switcher)
+   ========================================================================== */
+
+/* 1. Midnight Blue */
+html[data-bg="midnight"] {
+  --background: 222 47% 7%;
+  --card: 222 38% 10%;
+  --border: 222 32% 18%;
+  --secondary: 222 28% 14%;
+}
+html[data-bg="midnight"] body {
+  background: radial-gradient(circle at 50% -10%, #172a4d 0%, #070d18 100%) fixed !important;
+}
+
+/* 2. OLED Pure Black */
+html[data-bg="oled"] {
+  --background: 0 0% 0%;
+  --card: 0 0% 6%;
+  --border: 0 0% 14%;
+  --secondary: 0 0% 10%;
+}
+html[data-bg="oled"] body {
+  background: #000000 fixed !important;
+}
+
+/* 3. Aurora Borealis Glow */
+html[data-bg="aurora"] {
+  --background: 222 45% 6%;
+  --card: 222 35% 9%;
+  --border: 222 30% 17%;
+  --secondary: 222 25% 13%;
+}
+html[data-bg="aurora"] body {
+  background: radial-gradient(ellipse at 15% 0%, rgba(37, 99, 235, 0.28) 0%, transparent 60%),
+              radial-gradient(ellipse at 85% 10%, rgba(16, 185, 129, 0.22) 0%, transparent 55%),
+              radial-gradient(ellipse at 50% 100%, rgba(139, 92, 246, 0.15) 0%, transparent 60%),
+              #060b14 fixed !important;
+}
+
+/* 4. Emerald Forest Night */
+html[data-bg="emerald"] {
+  --background: 162 48% 5%;
+  --card: 162 38% 8%;
+  --border: 162 30% 16%;
+  --secondary: 162 25% 12%;
+}
+html[data-bg="emerald"] body {
+  background: radial-gradient(circle at 50% -10%, #0f3327 0%, #030d0a 100%) fixed !important;
+}
+
+/* 5. Cosmic Nebula Purple */
+html[data-bg="nebula"] {
+  --background: 265 48% 6%;
+  --card: 265 35% 9%;
+  --border: 265 30% 17%;
+  --secondary: 265 25% 13%;
+}
+html[data-bg="nebula"] body {
+  background: radial-gradient(circle at 40% -10%, #29144d 0%, #090514 100%) fixed !important;
+}
+
+/* 6. Warm Charcoal / Amber Wood */
+html[data-bg="charcoal"] {
+  --background: 22 28% 6%;
+  --card: 22 24% 9%;
+  --border: 22 20% 16%;
+  --secondary: 22 18% 12%;
+}
+html[data-bg="charcoal"] body {
+  background: radial-gradient(circle at 50% -10%, #2c1f19 0%, #0c0907 100%) fixed !important;
+}

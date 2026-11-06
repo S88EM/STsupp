@@ -34,6 +34,7 @@ model User {
   passwordHash      String?
   avatarUrl         String?
   city              String?
+  theme             String?         @default("default")
   role              Role            @default(CLIENT)
   resetToken        String?
   resetTokenExpires DateTime?

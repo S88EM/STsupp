@@ -26,8 +26,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // If user is already authenticated and visits login/register, redirect to dashboard
-  if (token && isAuthPage) {
+  // If user is already authenticated and visits login/register, redirect to dashboard.
+  // Note: /reset-password and /verify-email must NOT redirect to dashboard, even if a session cookie exists!
+  const isAuthEntryPage = pathname.startsWith("/login") || pathname.startsWith("/register");
+  if (token && isAuthEntryPage) {
     const res = NextResponse.redirect(new URL("/", request.url));
     res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     return res;

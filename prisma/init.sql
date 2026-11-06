@@ -229,3 +229,22 @@ EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN
     ALTER TABLE "TaskWatcher" ADD CONSTRAINT "TaskWatcher_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- AuditLog Table for security tracking
+CREATE TABLE IF NOT EXISTS "AuditLog" (
+    "id" TEXT NOT NULL,
+    "actorId" TEXT,
+    "actorEmail" TEXT NOT NULL,
+    "actorName" TEXT NOT NULL,
+    "action" TEXT NOT NULL,
+    "targetType" TEXT NOT NULL,
+    "targetId" TEXT,
+    "details" JSONB,
+    "ipAddress" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "AuditLog_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "AuditLog_createdAt_idx" ON "AuditLog"("createdAt");
+CREATE INDEX IF NOT EXISTS "AuditLog_actorEmail_idx" ON "AuditLog"("actorEmail");
+CREATE INDEX IF NOT EXISTS "AuditLog_targetId_idx" ON "AuditLog"("targetId");

@@ -5,10 +5,10 @@ import { getCurrentUser, canManageProjects, isPrimaryAdmin } from "@/lib/auth";
 export async function GET() {
   try {
     const currentUser = await getCurrentUser();
-    const isSuperAdmin = currentUser?.role === "ADMIN" && isPrimaryAdmin(currentUser.email);
+    const isSuperAdmin = currentUser?.role === "ADMIN";
 
-    // ONLY the Primary Admin sees all projects unconditionally.
-    // Created Admins, Engineers, and Clients see ONLY assigned projects (or projects they own).
+    // All Administrators see all projects unconditionally.
+    // Engineers, Clients, and Members see assigned projects (or projects they own).
     const whereClause = isSuperAdmin || !currentUser
       ? {}
       : {
@@ -55,7 +55,6 @@ export async function POST(req: Request) {
         { status: 403 }
       );
     }
-    const isSuperAdmin = currentUser.role === "ADMIN" && isPrimaryAdmin(currentUser.email);
 
     const body = await req.json();
     const { name, key, description, memberIds } = body;
@@ -85,10 +84,6 @@ export async function POST(req: Request) {
       });
 
       for (const u of selectedUsers) {
-        // Only Primary Admin can assign another Admin to a project
-        if (u.role === "ADMIN" && !isSuperAdmin) {
-          continue;
-        }
         membersToCreate.push({
           userId: u.id,
           role: u.role,

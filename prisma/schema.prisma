@@ -201,3 +201,20 @@ model TaskWatcher {
   @@index([userId])
 }
 
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actorEmail String
+  actorName  String
+  action     String   // e.g. "USER_EMAIL_UPDATE", "USER_PASSWORD_RESET", "USER_ROLE_CHANGE", "USER_CREATE", "USER_DELETE", "SETTINGS_UPDATE"
+  targetType String   // e.g. "USER", "PROJECT", "SETTINGS"
+  targetId   String?  // e.g. userId or setting key
+  details    Json?    // Detailed changes: { previous, current, reason, ... }
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorEmail])
+  @@index([targetId])
+}
+

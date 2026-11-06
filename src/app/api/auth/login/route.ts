@@ -59,8 +59,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Невірний email або пароль" }, { status: 401 });
     }
 
-    // Check email verification (primary admin is always exempt)
-    const isSuperAdmin = user.role === "ADMIN" && isPrimaryAdmin(user.email);
+    // Check email verification (all administrators are exempt)
+    const isSuperAdmin = user.role === "ADMIN";
     if (!user.isEmailVerified && !isSuperAdmin) {
       return NextResponse.json(
         {

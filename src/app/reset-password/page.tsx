@@ -26,7 +26,6 @@ function ResetPasswordForm() {
   const [validatingToken, setValidatingToken] = useState(Boolean(token));
   const [tokenError, setTokenError] = useState<string | null>(!token ? "Токен відновлення пароля відсутній у посиланні." : null);
   const [userName, setUserName] = useState<string>("");
-  const [isPrimaryAdminUser, setIsPrimaryAdminUser] = useState(false);
 
   // Form state
   const [email, setEmail] = useState("");
@@ -56,7 +55,6 @@ function ResetPasswordForm() {
         if (res.ok && data.valid) {
           setEmail(data.email || "");
           setUserName(data.name || "");
-          setIsPrimaryAdminUser(Boolean(data.isPrimaryAdmin));
         } else {
           setTokenError(data.error || "Посилання для зміни пароля недійсне або термін його дії закінчився.");
         }
@@ -238,19 +236,12 @@ function ResetPasswordForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  disabled={isPrimaryAdminUser}
-                  className="w-full text-xs pl-9 pr-3 py-2.5 rounded-lg bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-60 disabled:cursor-not-allowed font-mono"
+                  className="w-full text-xs pl-9 pr-3 py-2.5 rounded-lg bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground font-mono"
                 />
               </div>
-              {isPrimaryAdminUser ? (
-                <span className="text-[10px] text-amber-400 mt-1 block">
-                  ⚠️ Email Головного адміністратора задається у Home Assistant
-                </span>
-              ) : (
-                <span className="text-[10px] text-muted-foreground mt-1 block">
-                  Використовується як логін для входу в систему
-                </span>
-              )}
+              <span className="text-[10px] text-muted-foreground mt-1 block">
+                Використовується як логін для входу в систему
+              </span>
             </div>
 
             {/* New Password */}

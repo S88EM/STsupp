@@ -57,17 +57,18 @@ export function getPrimaryAdminEmail(): string {
   return (process.env.ADMIN_EMAIL || haOptions.admin_email || "admin@stsup.local").toLowerCase().trim();
 }
 
+/**
+ * Legacy helper maintained for backward compatibility.
+ * In STsup, all users with role ADMIN are equal, full-privileged Administrators.
+ */
 export function isPrimaryAdmin(email?: string | null): boolean {
-  if (!email) return false;
-  const clean = email.toLowerCase().trim();
-  const primary = getPrimaryAdminEmail();
-  return clean === primary || clean === "admin@stsup.local";
+  return true;
 }
 
 /**
  * Check if the user has access to a specific project.
- * ONLY the Primary Administrator (admin@stsup.local) has automatic global access to all projects.
- * Created Administrators, Engineers, and Clients must be explicitly assigned as members or own the project.
+ * All Administrators (role: ADMIN) have automatic global access to ALL projects.
+ * Engineers, Clients, and Members must be assigned as members or own the project.
  */
 export async function hasProjectAccess(
   userId: string,
@@ -75,26 +76,24 @@ export async function hasProjectAccess(
   role?: string,
   email?: string
 ): Promise<boolean> {
-  let userEmail = email;
   let userRole = role;
 
-  if (!userEmail || !userRole) {
+  if (!userRole) {
     const u = await prisma.user.findUnique({
       where: { id: userId },
-      select: { email: true, role: true },
+      select: { role: true },
     });
     if (u) {
-      userEmail = u.email;
       userRole = u.role;
     }
   }
 
-  // Primary Admin has automatic global access to all projects
-  if (userRole === "ADMIN" && isPrimaryAdmin(userEmail)) {
+  // Any Administrator has automatic global access to all projects without restrictions
+  if (userRole === "ADMIN") {
     return true;
   }
 
-  // All others (Created Admins, Engineers, Clients) must be assigned to the project or be the owner
+  // All other roles must be assigned to the project or be the owner
   const project = await prisma.project.findFirst({
     where: {
       id: projectId,

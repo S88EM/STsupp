@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getTaskDictionaries, saveTaskDictionaries, DEFAULT_TASK_DICTIONARIES } from "@/lib/dictionaries";
+import { logAuditEvent, AUDIT_ACTIONS } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +85,18 @@ export async function POST(req: Request) {
         }
       }
     }
+
+    await logAuditEvent({
+      actor: currentUser,
+      action: AUDIT_ACTIONS.SETTINGS_DICTIONARY_UPDATE,
+      targetType: "SETTINGS",
+      targetId: "DICTIONARIES",
+      details: {
+        isReset,
+        labelsCount: Array.isArray(saved.labels) ? saved.labels.length : 0,
+        renamesCount: Array.isArray(body.renames) ? body.renames.length : 0,
+      },
+    });
 
     return NextResponse.json({
       success: true,

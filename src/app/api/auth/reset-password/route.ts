@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, createToken, AUTH_COOKIE_NAME, isPrimaryAdmin } from "@/lib/auth";
+import { hashPassword, createToken, AUTH_COOKIE_NAME } from "@/lib/auth";
+import { logAuditEvent, AUDIT_ACTIONS } from "@/lib/audit";
 
 export async function GET(req: Request) {
   try {
@@ -44,7 +45,7 @@ export async function GET(req: Request) {
       valid: true,
       email: user.email,
       name: user.name,
-      isPrimaryAdmin: isPrimaryAdmin(user.email),
+      isPrimaryAdmin: false,
     });
   } catch (error: any) {
     console.error("GET /api/auth/reset-password error:", error);
@@ -102,13 +103,6 @@ export async function POST(req: Request) {
       }
 
       if (cleanEmail !== user.email.toLowerCase().trim()) {
-        if (isPrimaryAdmin(user.email)) {
-          return NextResponse.json(
-            { error: "Email Головного адміністратора задається у конфігурації Home Assistant або змінних середовища" },
-            { status: 400 }
-          );
-        }
-
         const existing = await prisma.user.findFirst({
           where: {
             email: cleanEmail,
@@ -145,6 +139,19 @@ export async function POST(req: Request) {
       email: updatedUser.email,
       name: updatedUser.name,
       role: updatedUser.role,
+    });
+
+    // Record audit event
+    await logAuditEvent({
+      actor: { userId: updatedUser.id, email: updatedUser.email, name: updatedUser.name },
+      action: AUDIT_ACTIONS.USER_PASSWORD_RESET,
+      targetType: "USER",
+      targetId: updatedUser.id,
+      details: {
+        resetViaToken: true,
+        emailChanged: Boolean(cleanEmail && cleanEmail !== user.email),
+        previousEmail: cleanEmail && cleanEmail !== user.email ? user.email : undefined,
+      },
     });
 
     const response = NextResponse.json({

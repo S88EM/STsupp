@@ -18,8 +18,8 @@ export async function GET(req: Request) {
     const component = searchParams.get("component")?.trim() || "";
     const label = searchParams.get("label")?.trim() || "";
 
-    // 1. Determine projects permitted to the user
-    const isSuperAdmin = currentUser.role === "ADMIN" && isPrimaryAdmin(currentUser.email);
+    // 1. Determine projects permitted to the user (All Admins see all projects)
+    const isSuperAdmin = currentUser.role === "ADMIN";
     const projectWhere = isSuperAdmin
       ? {}
       : {

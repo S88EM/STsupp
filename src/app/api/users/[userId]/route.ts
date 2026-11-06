@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, hashPassword, canManageUsers, isPrimaryAdmin, createToken, AUTH_COOKIE_NAME } from "@/lib/auth";
+import { getCurrentUser, hashPassword, canManageUsers, createToken, AUTH_COOKIE_NAME } from "@/lib/auth";
+import { logAuditEvent, AUDIT_ACTIONS } from "@/lib/audit";
 
 export async function PATCH(
   req: Request,
@@ -24,21 +25,16 @@ export async function PATCH(
       return NextResponse.json({ error: "Користувача не знайдено" }, { status: 404 });
     }
 
-    const isCurrentUserSuperAdmin = isPrimaryAdmin(currentUser.email);
-
-    // 1. Check role change permissions
+    // 1. Check role change safety (prevent removing admin from sole remaining admin)
     if (role && role !== targetUser.role) {
-      if (isPrimaryAdmin(targetUser.email)) {
-        return NextResponse.json(
-          { error: "Неможливо змінити роль Головного адміністратора" },
-          { status: 400 }
-        );
-      }
-      if ((targetUser.role === "ADMIN" || role === "ADMIN") && !isCurrentUserSuperAdmin) {
-        return NextResponse.json(
-          { error: "Тільки Головний адміністратор може призначати або змінювати роль адміністратора" },
-          { status: 403 }
-        );
+      if (currentUser.userId === userId && role !== "ADMIN") {
+        const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+        if (adminCount <= 1) {
+          return NextResponse.json(
+            { error: "Неможливо зняти права адміністратора з єдиного адміна системи" },
+            { status: 400 }
+          );
+        }
       }
     }
 
@@ -54,21 +50,6 @@ export async function PATCH(
       cleanEmail = email.trim().toLowerCase();
 
       if (cleanEmail !== targetUser.email.toLowerCase().trim()) {
-        if (isPrimaryAdmin(targetUser.email)) {
-          return NextResponse.json(
-            { error: "Email Головного адміністратора задається у конфігурації Home Assistant або змінних середовища" },
-            { status: 400 }
-          );
-        }
-
-        // Only Primary Admin can change another Admin's email
-        if (targetUser.role === "ADMIN" && !isCurrentUserSuperAdmin && targetUser.id !== currentUser.userId) {
-          return NextResponse.json(
-            { error: "Тільки Головний адміністратор може змінювати email інших адміністраторів" },
-            { status: 403 }
-          );
-        }
-
         const existing = await prisma.user.findFirst({
           where: {
             email: cleanEmail,
@@ -85,25 +66,7 @@ export async function PATCH(
       }
     }
 
-    // 3. Check project assignment permissions
-    if (Array.isArray(projectIds)) {
-      const isTargetAdmin = targetUser.role === "ADMIN" || role === "ADMIN";
-      if (isTargetAdmin && !isCurrentUserSuperAdmin) {
-        return NextResponse.json(
-          { error: "Тільки Головний адміністратор може конфігурувати проекти для створених адміністраторів" },
-          { status: 403 }
-        );
-      }
-    }
-
-    // Safety: prevent demoting the currently logged in admin if it would leave no admins
-    if (currentUser.userId === userId && role && role !== "ADMIN") {
-      const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
-      if (adminCount <= 1) {
-        return NextResponse.json({ error: "Неможливо зняти права адміністратора з єдиного адміна" }, { status: 400 });
-      }
-    }
-
+    // 3. Password update & validation
     let passwordHash: string | undefined = undefined;
     if (password !== undefined) {
       if (!password || password.trim().length < 6) {
@@ -115,6 +78,7 @@ export async function PATCH(
       passwordHash = await hashPassword(password.trim());
     }
 
+    // Perform database transaction
     await prisma.$transaction(async (tx) => {
       // 1. Update user fields
       await tx.user.update({
@@ -131,12 +95,10 @@ export async function PATCH(
 
       // 2. If projectIds array is provided, sync project memberships
       if (Array.isArray(projectIds)) {
-        // Delete old memberships
         await tx.projectMember.deleteMany({
           where: { userId },
         });
 
-        // Insert new memberships
         if (projectIds.length > 0) {
           const effectiveRole = role || targetUser.role;
           await tx.projectMember.createMany({
@@ -151,10 +113,98 @@ export async function PATCH(
       }
     });
 
+    // --- Record granular Audit Logs ---
+    if (passwordHash) {
+      await logAuditEvent({
+        actor: currentUser,
+        action: AUDIT_ACTIONS.USER_PASSWORD_RESET,
+        targetType: "USER",
+        targetId: targetUser.id,
+        details: {
+          targetUserEmail: targetUser.email,
+          targetUserName: targetUser.name,
+          resetBySelf: currentUser.userId === targetUser.id,
+        },
+      });
+    }
+
+    if (cleanEmail && cleanEmail !== targetUser.email.toLowerCase().trim()) {
+      await logAuditEvent({
+        actor: currentUser,
+        action: AUDIT_ACTIONS.USER_EMAIL_UPDATE,
+        targetType: "USER",
+        targetId: targetUser.id,
+        details: {
+          previousEmail: targetUser.email,
+          newEmail: cleanEmail,
+          targetUserName: targetUser.name,
+        },
+      });
+    }
+
+    if (role && role !== targetUser.role) {
+      await logAuditEvent({
+        actor: currentUser,
+        action: AUDIT_ACTIONS.USER_ROLE_CHANGE,
+        targetType: "USER",
+        targetId: targetUser.id,
+        details: {
+          targetUserEmail: cleanEmail || targetUser.email,
+          targetUserName: targetUser.name,
+          previousRole: targetUser.role,
+          newRole: role,
+        },
+      });
+    }
+
+    if ((name && name.trim() !== targetUser.name) || (city !== undefined && city !== targetUser.city)) {
+      await logAuditEvent({
+        actor: currentUser,
+        action: AUDIT_ACTIONS.USER_PROFILE_UPDATE,
+        targetType: "USER",
+        targetId: targetUser.id,
+        details: {
+          targetUserEmail: cleanEmail || targetUser.email,
+          updatedFields: {
+            name: name?.trim() !== targetUser.name ? name?.trim() : undefined,
+            city: city !== targetUser.city ? city : undefined,
+          },
+        },
+      });
+    }
+
+    if (typeof isEmailVerified === "boolean" && isEmailVerified !== targetUser.isEmailVerified) {
+      await logAuditEvent({
+        actor: currentUser,
+        action: AUDIT_ACTIONS.USER_STATUS_CHANGE,
+        targetType: "USER",
+        targetId: targetUser.id,
+        details: {
+          targetUserEmail: cleanEmail || targetUser.email,
+          previousVerified: targetUser.isEmailVerified,
+          newVerified: isEmailVerified,
+        },
+      });
+    }
+
+    if (Array.isArray(projectIds)) {
+      await logAuditEvent({
+        actor: currentUser,
+        action: AUDIT_ACTIONS.USER_PROJECTS_ASSIGN,
+        targetType: "USER",
+        targetId: targetUser.id,
+        details: {
+          targetUserEmail: cleanEmail || targetUser.email,
+          assignedProjectCount: projectIds.length,
+          projectIds,
+        },
+      });
+    }
+
     const response = NextResponse.json({ success: true, email: cleanEmail || targetUser.email });
 
-    // If current logged-in admin updated their own email or name, refresh session cookie
-    if (currentUser.userId === userId && (cleanEmail || name)) {
+    // If current logged-in admin updated their own email or name or role, refresh session cookie
+    if (currentUser.userId === userId && (cleanEmail || name || role)) {
       const token = createToken({
         userId: currentUser.userId,
         email: cleanEmail || currentUser.email,
@@ -198,31 +248,40 @@ export async function DELETE(
 
     const targetUser = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, role: true },
+      select: { id: true, email: true, name: true, role: true },
     });
 
     if (!targetUser) {
       return NextResponse.json({ error: "Користувача не знайдено" }, { status: 404 });
     }
 
-    // Safety: cannot delete the primary system administrator
-    if (isPrimaryAdmin(targetUser.email)) {
-      return NextResponse.json(
-        { error: "Неможливо видалити Головного адміністратора системи" },
-        { status: 400 }
-      );
-    }
-
-    // Safety: created admins cannot delete another admin
-    if (targetUser.role === "ADMIN" && !isPrimaryAdmin(currentUser.email)) {
-      return NextResponse.json(
-        { error: "Тільки Головний адміністратор може видаляти інших адміністраторів" },
-        { status: 403 }
-      );
+    // Safety: cannot delete the sole remaining administrator
+    if (targetUser.role === "ADMIN") {
+      const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+      if (adminCount <= 1) {
+        return NextResponse.json(
+          { error: "Неможливо видалити єдиного адміністратора системи" },
+          { status: 400 }
+        );
+      }
     }
 
     await prisma.user.delete({
       where: { id: userId },
+    });
+
+    // Record audit event
+    await logAuditEvent({
+      actor: currentUser,
+      action: AUDIT_ACTIONS.USER_DELETE,
+      targetType: "USER",
+      targetId: targetUser.id,
+      details: {
+        deletedUserId: targetUser.id,
+        deletedUserEmail: targetUser.email,
+        deletedUserName: targetUser.name,
+        role: targetUser.role,
+      },
     });
 
     return NextResponse.json({ success: true });

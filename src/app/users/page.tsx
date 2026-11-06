@@ -221,12 +221,6 @@ export default function UsersManagementPage() {
   };
 
   const openProjectsModal = (user: UserItem) => {
-    const isTargetAdmin = user.role === "ADMIN";
-    const isCurrentPrimary = !!(currentUser?.isPrimaryAdmin || currentUser?.email === "admin@stsup.local");
-    if (isTargetAdmin && !isCurrentPrimary) {
-      alert("Тільки Головний адміністратор має право призначати проєкти створеним адміністраторам.");
-      return;
-    }
     setEditProjectsUser(user);
     setSelectedProjectIds(user.projectMembers.map((m) => m.project.id));
     setProjectSearch("");
@@ -388,20 +382,13 @@ export default function UsersManagementPage() {
     setTimeout(() => setSuccessMessage(null), 3000);
   };
 
-  const getRoleBadge = (role: string, isPrimary = false) => {
+  const getRoleBadge = (role: string) => {
     switch (role) {
       case "ADMIN":
-        if (isPrimary) {
-          return {
-            label: "Головний адмін",
-            icon: <Shield className="w-3.5 h-3.5 text-blue-400" />,
-            classes: "bg-blue-500/10 text-blue-400 border-blue-500/30",
-          };
-        }
         return {
           label: "Адміністратор",
-          icon: <Shield className="w-3.5 h-3.5 text-amber-400" />,
-          classes: "bg-amber-500/10 text-amber-400 border-amber-500/30",
+          icon: <Shield className="w-3.5 h-3.5 text-blue-400" />,
+          classes: "bg-blue-500/10 text-blue-400 border-blue-500/30",
         };
       case "ENGINEER":
         return {
@@ -439,17 +426,27 @@ export default function UsersManagementPage() {
               <span>Керування користувачами та правами</span>
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Призначайте ролі та надавайте права доступу до окремих проектів
+              Повний пул адміністративних прав: редагування даних, зміна паролів, ролей та аудит
             </p>
           </div>
 
-          <button
-            onClick={() => setIsCreateOpen(true)}
-            className="flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-all shadow-primary/20"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Створити користувача</span>
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              href="/settings?tab=audit"
+              className="flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg bg-secondary hover:bg-secondary/80 border border-border text-foreground text-xs font-semibold shadow-xs transition-all cursor-pointer"
+            >
+              <Shield className="w-4 h-4 text-primary" />
+              <span>Журнал аудиту</span>
+            </Link>
+
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-all shadow-primary/20 cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Створити користувача</span>
+            </button>
+          </div>
         </div>
 
         {/* Success Alert */}
@@ -468,7 +465,7 @@ export default function UsersManagementPage() {
               <span>Роль: Адміністратор</span>
             </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Головний адміністратор має повний доступ до всіх проєктів. Створені адміністратори (виділені жовтим) мають доступ лише до призначених їм проєктів.
+              Повний доступ до всіх проєктів, задач, конфігурацій, інтеграцій та керування користувачами (включаючи зміну логінів, паролів, статусів та ролей).
             </p>
           </div>
 
@@ -521,10 +518,7 @@ export default function UsersManagementPage() {
                 <tbody className="divide-y divide-border/60">
                   {users.map((u) => {
                     const isSelf = currentUser?.userId === u.id;
-                    const isTargetPrimaryAdmin = !!(u.isPrimaryAdmin || u.email === "admin@stsup.local");
-                    const isCurrentPrimaryAdmin = !!(currentUser?.isPrimaryAdmin || currentUser?.email === "admin@stsup.local");
-                    const badge = getRoleBadge(u.role, isTargetPrimaryAdmin);
-                    const canConfigureProjects = !isTargetPrimaryAdmin && (u.role === "ADMIN" ? isCurrentPrimaryAdmin : true);
+                    const badge = getRoleBadge(u.role);
 
                     return (
                       <tr key={u.id} className="hover:bg-secondary/20 transition-colors">
@@ -597,36 +591,27 @@ export default function UsersManagementPage() {
 
                         {/* Role selector */}
                         <td className="py-3 px-4">
-                          {isTargetPrimaryAdmin ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border bg-blue-500/10 text-blue-400 border-blue-500/30 text-xs font-semibold">
-                              <Shield className="w-3.5 h-3.5 text-blue-400" />
-                              <span>Головний адмін</span>
-                            </span>
-                          ) : (
-                            <select
-                              value={u.role}
-                              onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                              disabled={isSelf || (!isCurrentPrimaryAdmin && u.role === "ADMIN")}
-                              className={`text-xs font-medium py-1 px-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-colors ${badge.classes} disabled:opacity-60 disabled:cursor-not-allowed`}
-                            >
-                              {isCurrentPrimaryAdmin && (
-                                <option value="ADMIN" className="bg-card text-foreground">
-                                  Адміністратор
-                                </option>
-                              )}
-                              <option value="ENGINEER" className="bg-card text-foreground">
-                                Інженер
-                              </option>
-                              <option value="CLIENT" className="bg-card text-foreground">
-                                Клієнт
-                              </option>
-                            </select>
-                          )}
+                          <select
+                            value={u.role}
+                            onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                            disabled={isSelf}
+                            className={`text-xs font-medium py-1 px-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-colors ${badge.classes} disabled:opacity-60 disabled:cursor-not-allowed`}
+                          >
+                            <option value="ADMIN" className="bg-card text-foreground">
+                              Адміністратор
+                            </option>
+                            <option value="ENGINEER" className="bg-card text-foreground">
+                              Інженер
+                            </option>
+                            <option value="CLIENT" className="bg-card text-foreground">
+                              Клієнт
+                            </option>
+                          </select>
                         </td>
 
                         {/* Assigned Projects */}
                         <td className="py-3 px-4">
-                          {isTargetPrimaryAdmin ? (
+                          {u.role === "ADMIN" ? (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[11px] font-medium shadow-sm">
                               <Shield className="w-3.5 h-3.5 text-blue-400" />
                               <span>Всі проекти (Адмін)</span>
@@ -656,21 +641,12 @@ export default function UsersManagementPage() {
                                 </span>
                               )}
 
-                              {canConfigureProjects ? (
-                                <button
-                                  onClick={() => openProjectsModal(u)}
-                                  className="text-[11px] text-primary hover:underline font-semibold ml-1.5 transition-colors"
-                                >
-                                  {u.projectMembers.length > 0 ? "Налаштувати" : "+ Надати доступ"}
-                                </button>
-                              ) : u.role === "ADMIN" ? (
-                                <span
-                                  className="text-[10px] text-muted-foreground ml-1.5 italic"
-                                  title="Тільки Головний адміністратор може призначати проекти створеним адміністраторам"
-                                >
-                                  (тільки Головний адмін)
-                                </span>
-                              ) : null}
+                              <button
+                                onClick={() => openProjectsModal(u)}
+                                className="text-[11px] text-primary hover:underline font-semibold ml-1.5 transition-colors cursor-pointer"
+                              >
+                                {u.projectMembers.length > 0 ? "Налаштувати" : "+ Надати доступ"}
+                              </button>
                             </div>
                           )}
                         </td>
@@ -693,23 +669,15 @@ export default function UsersManagementPage() {
                             <button
                               onClick={() => openPasswordModal(u)}
                               title={`Змінити пароль для ${u.name}`}
-                              className="p-1.5 text-muted-foreground hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
+                              className="p-1.5 text-muted-foreground hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors cursor-pointer"
                             >
                               <Key className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteUser(u.id, u.name)}
-                              disabled={isSelf || isTargetPrimaryAdmin || (!isCurrentPrimaryAdmin && u.role === "ADMIN")}
-                              title={
-                                isTargetPrimaryAdmin
-                                  ? "Неможливо видалити Головного адміністратора"
-                                  : isSelf
-                                  ? "Неможливо видалити себе"
-                                  : !isCurrentPrimaryAdmin && u.role === "ADMIN"
-                                  ? "Тільки Головний адміністратор може видаляти інших адміністраторів"
-                                  : "Видалити користувача"
-                              }
-                              className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              disabled={isSelf}
+                              title={isSelf ? "Неможливо видалити себе" : "Видалити користувача"}
+                              className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -818,13 +786,11 @@ export default function UsersManagementPage() {
                 >
                   <option value="CLIENT">Клієнт (створення задач, додавання матеріалів)</option>
                   <option value="ENGINEER">Інженер (виконання задач, зміна статусів, коментарі)</option>
-                  {(currentUser?.isPrimaryAdmin || currentUser?.email === "admin@stsup.local") && (
-                    <option value="ADMIN">Адміністратор (керування користувачами та призначеними проєктами)</option>
-                  )}
+                  <option value="ADMIN">Адміністратор (повний доступ до всіх модулів, проєктів та налаштувань)</option>
                 </select>
               </div>
 
-              {/* Projects Assignment for all roles */}
+              {/* Projects Assignment for roles */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-foreground block">
@@ -837,7 +803,7 @@ export default function UsersManagementPage() {
 
                 <p className="text-[11px] text-muted-foreground">
                   {createRole === "ADMIN"
-                    ? "Створений адміністратор матиме доступ до задач та налаштувань лише обраних проєктів."
+                    ? "⚡ Адміністратор автоматично отримує повний глобальний доступ до всіх проєктів системи."
                     : createRole === "ENGINEER"
                     ? "Інженер зможе переглядати дошку, брати задачі в роботу та додавати коментарі в обраних проєктах."
                     : "Клієнт зможе створювати задачі та відстежувати їх виконання в обраних проєктах."}
@@ -1190,19 +1156,12 @@ export default function UsersManagementPage() {
                     value={editUserEmail}
                     onChange={(e) => setEditUserEmail(e.target.value)}
                     required
-                    disabled={!!(editUser.isPrimaryAdmin || editUser.email === "admin@stsup.local")}
-                    className="w-full text-xs font-mono pl-9 pr-3 py-2 rounded-lg bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full text-xs font-mono pl-9 pr-3 py-2 rounded-lg bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
                   />
                 </div>
-                {editUser.isPrimaryAdmin || editUser.email === "admin@stsup.local" ? (
-                  <p className="text-[10px] text-amber-400 mt-1">
-                    ⚠️ Email Головного адміністратора задається у конфігурації Home Assistant або змінних середовища.
-                  </p>
-                ) : (
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Зміна email оновить логін користувача для входу в систему STsup.
-                  </p>
-                )}
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Зміна email оновить логін користувача для входу в систему STsup.
+                </p>
               </div>
 
               <div>

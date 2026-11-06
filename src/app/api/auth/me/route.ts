@@ -30,7 +30,7 @@ export async function GET() {
     user: {
       ...user,
       ...(dbUser || {}),
-      isPrimaryAdmin: user.role === "ADMIN" && isPrimaryAdmin(user.email),
+      isPrimaryAdmin: user.role === "ADMIN",
     },
   });
 }

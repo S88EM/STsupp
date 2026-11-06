@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getTelegramConfig, saveTelegramConfig, maskBotToken } from "@/lib/telegram";
+import { logAuditEvent, AUDIT_ACTIONS } from "@/lib/audit";
 
 export async function GET() {
   try {
@@ -45,6 +46,19 @@ export async function POST(req: Request) {
       chatId: typeof chatId === "string" ? chatId : undefined,
       isEnabled: typeof isEnabled === "boolean" ? isEnabled : undefined,
       events: typeof events === "object" ? events : undefined,
+    });
+
+    await logAuditEvent({
+      actor: currentUser,
+      action: AUDIT_ACTIONS.SETTINGS_TELEGRAM_UPDATE,
+      targetType: "SETTINGS",
+      targetId: "TELEGRAM",
+      details: {
+        isEnabled: updated.isEnabled,
+        chatId: updated.chatId,
+        events: updated.events,
+        tokenUpdated: typeof botToken === "string" && botToken.trim().length > 0,
+      },
     });
 
     return NextResponse.json({

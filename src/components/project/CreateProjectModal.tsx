@@ -54,15 +54,10 @@ export function CreateProjectModal({
       ])
         .then(([meData, data]) => {
           if (Array.isArray(data)) {
-            const isSuper = !!(meData?.user?.isPrimaryAdmin || meData?.user?.email === "admin@stsup.local");
-            // Exclude Primary Admin (always has global access to all projects)
-            // If current user is not Primary Admin, also exclude other admins from assignment
+            const currentUserId = meData?.user?.id || meData?.user?.userId;
+            // Exclude current creator (already automatically owner/admin)
             setAvailableUsers(
-              data.filter((u: any) => {
-                if (u.isPrimaryAdmin || u.email === "admin@stsup.local") return false;
-                if (u.role === "ADMIN" && !isSuper) return false;
-                return true;
-              })
+              data.filter((u: any) => u.id !== currentUserId)
             );
           }
         })

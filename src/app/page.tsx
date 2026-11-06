@@ -11,7 +11,7 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  const isSuperAdmin = currentUser.role === "ADMIN" && isPrimaryAdmin(currentUser.email);
+  const isSuperAdmin = currentUser.role === "ADMIN";
   const whereClause = isSuperAdmin
     ? {}
     : {

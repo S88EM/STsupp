@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getMailConfig, saveMailConfig, isMailConfigured } from "@/lib/email";
+import { logAuditEvent, AUDIT_ACTIONS } from "@/lib/audit";
 
 export async function GET() {
   try {
@@ -45,6 +46,21 @@ export async function POST(req: Request) {
       pass: pass !== undefined && pass !== "" ? String(pass) : undefined,
       from: from !== undefined ? String(from).trim() : undefined,
       appUrl: appUrl !== undefined ? String(appUrl).trim() : undefined,
+    });
+
+    await logAuditEvent({
+      actor: currentUser,
+      action: AUDIT_ACTIONS.SETTINGS_SMTP_UPDATE,
+      targetType: "SETTINGS",
+      targetId: "SMTP",
+      details: {
+        host: saved.host,
+        port: saved.port,
+        secure: saved.secure,
+        user: saved.user,
+        from: saved.from,
+        appUrl: saved.appUrl,
+      },
     });
 
     return NextResponse.json({

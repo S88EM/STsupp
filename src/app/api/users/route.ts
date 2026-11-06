@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, hashPassword, canManageUsers, isPrimaryAdmin } from "@/lib/auth";
+import { getCurrentUser, hashPassword, canManageUsers } from "@/lib/auth";
+import { logAuditEvent, AUDIT_ACTIONS } from "@/lib/audit";
 
 export async function GET() {
   try {
@@ -44,7 +45,7 @@ export async function GET() {
 
     const result = users.map((u) => ({
       ...u,
-      isPrimaryAdmin: u.role === "ADMIN" && isPrimaryAdmin(u.email),
+      isPrimaryAdmin: false, // Legacy field: all administrators are unified and equal
     }));
 
     return NextResponse.json(result);
@@ -63,14 +64,6 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const { name, email, password, role = "CLIENT", projectIds = [], city } = body;
-
-    // Only Primary Admin can create another user with ADMIN role
-    if (role === "ADMIN" && !isPrimaryAdmin(currentUser.email)) {
-      return NextResponse.json(
-        { error: "Тільки Головний адміністратор може створювати нових адміністраторів" },
-        { status: 403 }
-      );
-    }
 
     if (!name?.trim() || !email?.trim() || !password) {
       return NextResponse.json({ error: "Ім'я, email та пароль обов'язкові" }, { status: 400 });
@@ -116,6 +109,21 @@ export async function POST(req: Request) {
       }
 
       return user;
+    });
+
+    // Record audit event
+    await logAuditEvent({
+      actor: currentUser,
+      action: AUDIT_ACTIONS.USER_CREATE,
+      targetType: "USER",
+      targetId: newUser.id,
+      details: {
+        createdUserId: newUser.id,
+        createdEmail: cleanEmail,
+        createdName: name.trim(),
+        role: newUser.role,
+        assignedProjectsCount: Array.isArray(projectIds) ? projectIds.length : 0,
+      },
     });
 
     return NextResponse.json({

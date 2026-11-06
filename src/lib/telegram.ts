@@ -42,6 +42,22 @@ export function maskBotToken(token: string): string {
   return `${trimmed.substring(0, 4)}••••••••${trimmed.slice(-4)}`;
 }
 
+export function normalizeChatId(rawChatId: string | number): string | number {
+  if (rawChatId === undefined || rawChatId === null) return rawChatId;
+  const str = String(rawChatId)
+    .trim()
+    .replace(/[\u2010-\u2015\u2212]/g, "-") // replace all unicode dashes/minuses with standard ascii '-'
+    .replace(/\s+/g, ""); // remove any spaces
+
+  if (/^-?\d+$/.test(str)) {
+    const num = Number(str);
+    if (!isNaN(num) && Number.isSafeInteger(num)) {
+      return num;
+    }
+  }
+  return str;
+}
+
 export function escapeHtml(text: string): string {
   return String(text || "")
     .replace(/&/g, "&amp;")
@@ -136,7 +152,7 @@ export function saveTelegramConfig(newCfg: {
 
   const updated: TelegramConfig = {
     botToken: updatedToken,
-    chatId: newCfg.chatId !== undefined ? newCfg.chatId.trim() : current.chatId,
+    chatId: newCfg.chatId !== undefined ? String(normalizeChatId(newCfg.chatId)) : current.chatId,
     isEnabled: newCfg.isEnabled !== undefined ? Boolean(newCfg.isEnabled) : current.isEnabled,
     events: {
       taskCreated:
@@ -173,7 +189,7 @@ export async function sendTelegramMessage({
 }): Promise<{ ok: boolean; messageId?: number; description?: string }> {
   const cfg = getTelegramConfig();
   const token = (botToken || cfg.botToken).trim();
-  const targetChatId = (chatId || cfg.chatId).trim();
+  const targetChatId = normalizeChatId(chatId || cfg.chatId);
 
   if (!token) {
     return { ok: false, description: "Токен Telegram-бота не налаштовано" };
@@ -232,7 +248,7 @@ export async function testTelegramConnection({
 }): Promise<{ ok: boolean; description?: string }> {
   const cfg = getTelegramConfig();
   const token = (botToken || cfg.botToken).trim();
-  const targetChatId = (chatId || cfg.chatId).trim();
+  const targetChatId = normalizeChatId(chatId || cfg.chatId);
 
   if (!token) {
     return { ok: false, description: "Вкажіть токен бота (Bot Token) для тестування" };
@@ -241,20 +257,51 @@ export async function testTelegramConnection({
     return { ok: false, description: "Вкажіть Chat ID / Group ID для перевірки з'єднання" };
   }
 
+  // 1. First, check bot identity via getMe
+  let botUsername = "";
+  let botFirstName = "";
+  try {
+    const meRes = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+    const meData = await meRes.json();
+    if (meRes.ok && meData.ok) {
+      botUsername = meData.result?.username || "";
+      botFirstName = meData.result?.first_name || "";
+    } else {
+      return {
+        ok: false,
+        description: `Помилка токена: ${meData.description || "Telegram API не авторизував цей токен"}`,
+      };
+    }
+  } catch (e: any) {
+    return { ok: false, description: `Помилка зв'язку з Telegram API: ${e.message}` };
+  }
+
   const testMessage = [
     `🔔 <b>Тестове сповіщення STsup</b>`,
     ``,
     `✅ З'єднання з Telegram Bot API успішно встановлено!`,
-    `Бот має права на публікацію повідомлень у цій групі.`,
+    `Бот <b>@${escapeHtml(botUsername)}</b> (${escapeHtml(botFirstName)}) готовий до відправки сповіщень у цю групу.`,
     ``,
     `⏱ <i>Час: ${new Date().toLocaleString("uk-UA")}</i>`,
   ].join("\n");
 
-  return await sendTelegramMessage({
+  const sendResult = await sendTelegramMessage({
     botToken: token,
-    chatId: targetChatId,
+    chatId: String(targetChatId),
     text: testMessage,
   });
+
+  if (!sendResult.ok) {
+    if (sendResult.description?.toLowerCase().includes("chat not found")) {
+      return {
+        ok: false,
+        description: `Чат ${targetChatId} не знайдено для бота @${botUsername} (${botFirstName}). Переконайтеся, що саме @${botUsername} доданий у групу як адмін, або напишіть у чат /test@${botUsername}`,
+      };
+    }
+    return sendResult;
+  }
+
+  return sendResult;
 }
 
 export async function notifyTelegramTaskCreated({

@@ -19,6 +19,7 @@ import {
   Sparkles,
   FolderGit2,
   Palette,
+  LifeBuoy,
 } from "lucide-react";
 import { CreateProjectModal } from "@/components/project/CreateProjectModal";
 import { ProjectSettingsModal } from "@/components/project/ProjectSettingsModal";
@@ -184,6 +185,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span className="text-[10px] text-muted-foreground">Трекер задач та проєктів</span>
                 </div>
               </Link>
+
+              <Link
+                href="/portal"
+                onClick={() => setOpenDropdown(null)}
+                className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-secondary text-xs font-medium text-foreground transition-colors"
+              >
+                <div className="w-6 h-6 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
+                  <LifeBuoy className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <div className="font-semibold">Портал підтримки</div>
+                  <span className="text-[10px] text-muted-foreground">Клієнтський сервіс та тікети</span>
+                </div>
+              </Link>
               {user?.role === "ADMIN" && (
                 <>
                   <Link
@@ -220,7 +235,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Logo / Brand */}
         <Link
-          href={currentProject ? `/projects/${currentProject.id}` : "/"}
+          href={user?.role === "CLIENT" ? "/portal" : (currentProject ? `/projects/${currentProject.id}` : "/")}
           className="flex items-center gap-2 mr-2 group"
         >
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-sm shadow-blue-500/20 group-hover:scale-105 transition-transform">
@@ -231,14 +246,24 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
         </Link>
 
-        {/* Menu: Робочий стіл */}
+        {/* Menu: Робочий стіл / Портал */}
         <div className="relative hidden md:block">
-          <Link
-            href={currentProject ? `/projects/${currentProject.id}` : "/"}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
-          >
-            <span>Робочий стіл</span>
-          </Link>
+          {user?.role === "CLIENT" ? (
+            <Link
+              href="/portal"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold text-primary hover:bg-secondary/60 transition-colors"
+            >
+              <LifeBuoy className="w-3.5 h-3.5" />
+              <span>Портал підтримки</span>
+            </Link>
+          ) : (
+            <Link
+              href={currentProject ? `/projects/${currentProject.id}` : "/"}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+            >
+              <span>Робочий стіл</span>
+            </Link>
+          )}
         </div>
 
         {/* Menu: Проєкти (Dropdown) */}

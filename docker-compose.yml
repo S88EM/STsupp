@@ -14,7 +14,7 @@ services:
       NEXTAUTH_SECRET: "stsup_local_secret_key"
       NEXTAUTH_URL: "http://localhost:3000"
       ADMIN_EMAIL: "admin@stsup.local"
-      ADMIN_PASSWORD: "admin"
+      ADMIN_PASSWORD: "Gorik555"
       ADMIN_NAME: "Євген"
 
 volumes:

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, isPrimaryAdmin } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { CreateFirstProjectForm } from "@/components/project/CreateFirstProjectForm";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +9,11 @@ export default async function HomePage() {
   const currentUser = await getCurrentUser();
   if (!currentUser) {
     redirect("/login");
+  }
+
+  // If user has CLIENT role, navigate directly to Client Portal
+  if (currentUser.role === "CLIENT") {
+    redirect("/portal");
   }
 
   const isSuperAdmin = currentUser.role === "ADMIN";

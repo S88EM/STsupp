@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, isPrimaryAdmin } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,11 +12,13 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const filter = searchParams.get("filter") || "all"; // "all" | "my" | "open"
+    const filter = searchParams.get("filter") || "all"; // "all" | "my" | "open" | "resolved"
     const search = searchParams.get("search")?.trim() || "";
     const projectId = searchParams.get("projectId")?.trim() || "";
     const component = searchParams.get("component")?.trim() || "";
     const label = searchParams.get("label")?.trim() || "";
+    const scope = searchParams.get("scope")?.trim() || ""; // "my" | "all"
+    const priority = searchParams.get("priority")?.trim() || ""; // "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
 
     // 1. Determine projects permitted to the user (All Admins see all projects)
     const isSuperAdmin = currentUser.role === "ADMIN";
@@ -57,17 +59,34 @@ export async function GET(req: Request) {
 
     // Filter modes:
     // - "all": Всі задачі в рамках проектів, які дозволені користувачу правами
-    // - "my": Всі задачі призначені на поточного користувача з усіх доступних проектів
-    // - "open": Всі задачі по всім дозволеним проектам не в статусі готово
-    if (filter === "my") {
-      taskWhere.assigneeId = currentUser.userId;
+    // - "my": Задачі призначені на поточного користувача або створені ним (для клієнта - створені ним)
+    // - "open": Всі задачі не в статусі завершено
+    // - "resolved": Завершені або вирішені задачі
+    if (filter === "my" || scope === "my") {
+      if (currentUser.role === "CLIENT") {
+        taskWhere.creatorId = currentUser.userId;
+      } else {
+        taskWhere.OR = [
+          { assigneeId: currentUser.userId },
+          { creatorId: currentUser.userId },
+        ];
+      }
     } else if (filter === "open") {
       taskWhere.column = {
         isDoneColumn: false,
         NOT: {
-          name: { in: ["Готово", "Done", "Resolved", "Вирішено"], mode: "insensitive" },
+          name: { in: ["Готово", "Done", "Resolved", "Вирішено", "Закрито"], mode: "insensitive" },
         },
       };
+    } else if (filter === "resolved" || filter === "closed") {
+      taskWhere.OR = [
+        { column: { isDoneColumn: true } },
+        { column: { name: { in: ["Готово", "Done", "Resolved", "Вирішено", "Закрито"], mode: "insensitive" } } },
+      ];
+    }
+
+    if (priority && ["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(priority)) {
+      taskWhere.priority = priority;
     }
 
     if (search) {
@@ -98,6 +117,9 @@ export async function GET(req: Request) {
         assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
         creator: { select: { id: true, name: true, email: true } },
         subtasks: { orderBy: { orderIndex: "asc" } },
+        attachments: {
+          orderBy: { createdAt: "desc" },
+        },
         _count: {
           select: { comments: true, attachments: true, subtasks: true },
         },

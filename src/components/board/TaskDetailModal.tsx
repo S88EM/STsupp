@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   X,
   Trash2,
@@ -48,6 +48,14 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   const [uploadingFile, setUploadingFile] = useState(false);
   const [newSubtask, setNewSubtask] = useState("");
   const [newComment, setNewComment] = useState("");
+  const commentsEndRef = useRef<HTMLDivElement>(null);
+
+  const sortedComments = useMemo(() => {
+    if (!task?.comments || !Array.isArray(task.comments)) return [];
+    return [...task.comments].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }, [task?.comments]);
   const [aiLoading, setAiLoading] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState("");
@@ -157,6 +165,9 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
         setTask(data);
         setTitle(data.title);
         setDescription(data.description || "");
+        setTimeout(() => {
+          commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 150);
       }
     } catch (err) {
       console.error("Failed to load task:", err);
@@ -284,10 +295,13 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
         const comment = await res.json();
         setTask((prev: any) => ({
           ...prev,
-          comments: [comment, ...(prev.comments || [])],
+          comments: [...(prev.comments || []), comment],
         }));
         setNewComment("");
         onTaskUpdated();
+        setTimeout(() => {
+          commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
       }
     } catch (err) {
       console.error(err);
@@ -654,11 +668,53 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
               <div className="space-y-3 pt-2">
                 <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   <MessageSquare className="w-4 h-4 text-primary" />
-                  <span>Коментарі та обговорення</span>
+                  <span>Коментарі та обговорення ({sortedComments.length})</span>
+                </div>
+
+                {/* Comment List */}
+                <div className="space-y-2 pt-1">
+                  {sortedComments.length > 0 ? (
+                    sortedComments.map((comment: any) => (
+                      <div
+                        key={comment.id}
+                        className={`p-3 rounded-xl border text-xs space-y-1.5 ${
+                          comment.authorType === "AI_ASSISTANT"
+                            ? "bg-indigo-950/20 border-indigo-500/30"
+                            : "bg-secondary/20 border-border/60"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-[11px]">
+                          <div className="flex items-center gap-1.5 font-semibold text-foreground">
+                            {comment.authorType === "AI_ASSISTANT" ? (
+                              <>
+                                <Bot className="w-3.5 h-3.5 text-indigo-400" />
+                                <span className="text-indigo-400">
+                                  {comment.authorName || "Confluence AI"}
+                                </span>
+                              </>
+                            ) : (
+                              <span>{comment.author?.name || "Користувач"}</span>
+                            )}
+                          </div>
+                          <span className="text-muted-foreground">
+                            {formatTimeAgo(comment.createdAt)}
+                          </span>
+                        </div>
+                        <div className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                          {comment.content}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-4 text-center text-xs text-muted-foreground/80 italic rounded-lg bg-secondary/10 border border-border/40">
+                      Коментарів поки немає. Залиште перший коментар нижче.
+                    </div>
+                  )}
+                  <div ref={commentsEndRef} />
                 </div>
 
                 {/* Comment Input */}
-                <form onSubmit={handleAddComment} className="flex gap-2">
+                <form onSubmit={handleAddComment} className="flex gap-2 pt-1">
                   <input
                     type="text"
                     placeholder="Написати коментар..."
@@ -675,41 +731,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                     <span>Надіслати</span>
                   </button>
                 </form>
-
-                {/* Comment List */}
-                <div className="space-y-2 pt-2">
-                  {task?.comments?.map((comment: any) => (
-                    <div
-                      key={comment.id}
-                      className={`p-3 rounded-xl border text-xs space-y-1.5 ${
-                        comment.authorType === "AI_ASSISTANT"
-                          ? "bg-indigo-950/20 border-indigo-500/30"
-                          : "bg-secondary/20 border-border/60"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between text-[11px]">
-                        <div className="flex items-center gap-1.5 font-semibold text-foreground">
-                          {comment.authorType === "AI_ASSISTANT" ? (
-                            <>
-                              <Bot className="w-3.5 h-3.5 text-indigo-400" />
-                              <span className="text-indigo-400">
-                                {comment.authorName || "Confluence AI"}
-                              </span>
-                            </>
-                          ) : (
-                            <span>{comment.author?.name || "Користувач"}</span>
-                          )}
-                        </div>
-                        <span className="text-muted-foreground">
-                          {formatTimeAgo(comment.createdAt)}
-                        </span>
-                      </div>
-                      <div className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                        {comment.content}
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
 

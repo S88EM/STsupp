@@ -26,7 +26,7 @@ export async function GET(
         creator: { select: { id: true, name: true, email: true } },
         subtasks: { orderBy: { orderIndex: "asc" } },
         comments: {
-          orderBy: { createdAt: "desc" },
+          orderBy: { createdAt: "asc" },
           include: {
             author: { select: { id: true, name: true, email: true, avatarUrl: true } },
           },

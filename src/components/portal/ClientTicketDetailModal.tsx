@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
@@ -77,6 +77,13 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
   const fileInputRef = useRef<HTMLInputElement>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
 
+  const sortedComments = useMemo(() => {
+    if (!task?.comments || !Array.isArray(task.comments)) return [];
+    return [...task.comments].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }, [task?.comments]);
+
   const loadTask = async () => {
     if (!taskId || !projectId) return;
     setLoading(true);
@@ -85,6 +92,9 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
       if (res.ok) {
         const data = await res.json();
         setTask(data);
+        setTimeout(() => {
+          commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 150);
       }
     } catch (err) {
       console.error("Error loading ticket:", err);
@@ -417,12 +427,12 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
             <div className="space-y-3 pt-2 border-t border-border/80">
               <span className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <MessageSquare className="w-3.5 h-3.5 text-primary" />
-                <span>Діалог з підтримкою ({task.comments?.length || 0})</span>
+                <span>Діалог з підтримкою ({sortedComments.length})</span>
               </span>
 
               <div className="space-y-3">
-                {task.comments && task.comments.length > 0 ? (
-                  task.comments.map((comment: CommentItem) => {
+                {sortedComments.length > 0 ? (
+                  sortedComments.map((comment: CommentItem) => {
                     const isStaff = comment.authorType === "USER" && comment.author?.id !== currentUser?.id;
                     const isClientMe = comment.author?.id === currentUser?.id;
                     const isAi = comment.authorType === "AI_ASSISTANT";

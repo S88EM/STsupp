@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Sparkles,
   Paperclip,
@@ -77,6 +77,22 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
   const [newComment, setNewComment] = useState("");
   const [postingComment, setPostingComment] = useState(false);
   const [activeActivityTab, setActiveActivityTab] = useState<"comments" | "ai" | "history">("comments");
+  const commentsEndRef = useRef<HTMLDivElement>(null);
+
+  const sortedComments = useMemo(() => {
+    if (!task?.comments || !Array.isArray(task.comments)) return [];
+    return [...task.comments].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }, [task?.comments]);
+
+  useEffect(() => {
+    if (activeActivityTab === "comments" && sortedComments.length > 0) {
+      setTimeout(() => {
+        commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 150);
+    }
+  }, [activeActivityTab, taskId, sortedComments.length]);
 
   // Drag & drop file upload
   const [isDragging, setIsDragging] = useState(false);
@@ -408,10 +424,13 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
         const comment = await res.json();
         setTask((prev: any) => ({
           ...prev,
-          comments: [comment, ...(prev.comments || [])],
+          comments: [...(prev.comments || []), comment],
         }));
         setNewComment("");
         onTaskUpdated();
+        setTimeout(() => {
+          commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
       }
     } catch (err) {
       console.error(err);
@@ -1290,7 +1309,7 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Коментарі ({task.comments?.length || 0})
+                  Коментарі ({sortedComments.length})
                 </button>
                 <button
                   onClick={() => setActiveActivityTab("ai")}
@@ -1330,32 +1349,10 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
             {/* Tab: Comments */}
             {activeActivityTab === "comments" && (
               <div className="space-y-4">
-                {/* New Comment Box */}
-                <form onSubmit={handleAddComment} className="space-y-2">
-                  <textarea
-                    ref={commentInputRef}
-                    rows={3}
-                    placeholder="Напишіть коментар або питання команді..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    className="w-full text-xs p-3 rounded-lg bg-secondary/30 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground resize-none"
-                  />
-                  <div className="flex items-center justify-end gap-2">
-                    <button
-                      type="submit"
-                      disabled={!newComment.trim() || postingComment}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>{postingComment ? "Надсилання..." : "Коментувати"}</span>
-                    </button>
-                  </div>
-                </form>
-
                 {/* Comments List */}
-                <div className="space-y-3 pt-2 divide-y divide-border/50">
-                  {task.comments && task.comments.length > 0 ? (
-                    task.comments.map((c: any) => (
+                <div className="space-y-3 pt-1 divide-y divide-border/50">
+                  {sortedComments.length > 0 ? (
+                    sortedComments.map((c: any) => (
                       <div key={c.id} className="pt-3 first:pt-0 space-y-1.5">
                         <div className="flex items-center justify-between text-xs">
                           <div className="flex items-center gap-2">
@@ -1391,7 +1388,30 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
                       Коментарів поки немає. Будьте першим, хто залишить коментар!
                     </div>
                   )}
+                  <div ref={commentsEndRef} />
                 </div>
+
+                {/* New Comment Box */}
+                <form onSubmit={handleAddComment} className="space-y-2 pt-2 border-t border-border/40">
+                  <textarea
+                    ref={commentInputRef}
+                    rows={3}
+                    placeholder="Напишіть коментар або питання команді..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    className="w-full text-xs p-3 rounded-lg bg-secondary/30 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground resize-none"
+                  />
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="submit"
+                      disabled={!newComment.trim() || postingComment}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>{postingComment ? "Надсилання..." : "Коментувати"}</span>
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
 

@@ -112,10 +112,10 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({
                   <select
                     value={columnId}
                     onChange={(e) => setColumnId(e.target.value)}
-                    className="w-full text-xs bg-secondary/50 border border-border rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-primary text-foreground cursor-pointer [color-scheme:dark]"
+                    className="w-full text-xs bg-secondary/50 border border-border rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-primary text-foreground cursor-pointer"
                   >
                     {columns.map((c) => (
-                      <option key={c.id} value={c.id} className="bg-[#111726] text-foreground">
+                      <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
                     ))}
@@ -135,12 +135,12 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as any)}
-                  className="w-full text-xs bg-secondary/50 border border-border rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-primary text-foreground cursor-pointer [color-scheme:dark]"
+                  className="w-full text-xs bg-secondary/50 border border-border rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-primary text-foreground cursor-pointer"
                 >
-                  <option value="LOW" className="bg-[#111726] text-foreground">Низький</option>
-                  <option value="MEDIUM" className="bg-[#111726] text-foreground">Середній</option>
-                  <option value="HIGH" className="bg-[#111726] text-foreground">Високий</option>
-                  <option value="URGENT" className="bg-[#111726] text-foreground">Терміновий ⚡</option>
+                  <option value="LOW">Низький</option>
+                  <option value="MEDIUM">Середній</option>
+                  <option value="HIGH">Високий</option>
+                  <option value="URGENT">Терміновий ⚡</option>
                 </select>
               </div>
             </div>

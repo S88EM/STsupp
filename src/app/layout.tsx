@@ -17,9 +17,10 @@ export default function RootLayout({
 }>) {
   const cookieStore = cookies();
   const initialTheme = cookieStore.get("stsup_theme")?.value || "default";
+  const isLight = initialTheme.startsWith("light-");
 
   return (
-    <html lang="uk" className="dark" data-bg={initialTheme}>
+    <html lang="uk" className={isLight ? "light" : "dark"} data-bg={initialTheme}>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -28,6 +29,13 @@ export default function RootLayout({
                 var saved = localStorage.getItem('stsup_theme');
                 if (saved) {
                   document.documentElement.setAttribute('data-bg', saved);
+                  if (saved.indexOf('light-') === 0) {
+                    document.documentElement.classList.remove('dark');
+                    document.documentElement.classList.add('light');
+                  } else {
+                    document.documentElement.classList.remove('light');
+                    document.documentElement.classList.add('dark');
+                  }
                 }
               } catch(e) {}
             `,

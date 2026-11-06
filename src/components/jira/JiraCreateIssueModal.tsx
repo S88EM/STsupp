@@ -651,7 +651,7 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
                 <label className="text-xs font-semibold text-foreground mb-1 block">
                   Статус
                 </label>
-                <div className="w-full bg-[#181a20] border border-border/80 rounded-lg py-2 px-3 text-xs text-foreground flex items-center justify-between">
+                <div className="w-full bg-secondary/40 border border-border/80 rounded-lg py-2 px-3 text-xs text-foreground flex items-center justify-between">
                   <span>{columns.find((c) => c.id === (columnId || columns[0]?.id))?.name || columns[0]?.name || "Беклог"}</span>
                   <span className="text-[10px] text-muted-foreground">(За замовчуванням)</span>
                 </div>

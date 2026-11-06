@@ -273,7 +273,7 @@ function GlobalBoardsPageContent() {
           <select
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="text-xs py-1.5 px-2.5 rounded-lg bg-secondary/60 border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer [color-scheme:dark]"
+            className="text-xs py-1.5 px-2.5 rounded-lg bg-secondary/60 border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
           >
             <option value="">Усі проєкти ({projects.length})</option>
             {projects.map((p) => (

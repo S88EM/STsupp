@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    color-scheme: dark;
-    --background: 220 20% 98%;
-    --foreground: 224 71% 4%;
+    color-scheme: light;
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
-    --primary: 220 90% 56%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 220 14% 94%;
-    --secondary-foreground: 220 20% 16%;
-    --muted: 220 14% 94%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 220 14% 92%;
-    --accent-foreground: 220 20% 16%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 220 13% 90%;
-    --input: 220 13% 90%;
-    --ring: 220 90% 56%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 32% 88%;
+    --input: 214 32% 88%;
+    --ring: 221 83% 53%;
     --radius: 0.5rem;
   }
 
@@ -50,13 +50,23 @@
     --ring: 217 91% 60%;
   }
 
-  select {
+  /* Form control color schemes */
+  html.dark select {
     color-scheme: dark;
   }
-
-  option {
+  html.dark option {
     background-color: hsl(224 25% 11%) !important;
     color: hsl(210 20% 98%) !important;
+  }
+
+  html:not(.dark) select,
+  html[data-bg^="light-"] select {
+    color-scheme: light;
+  }
+  html:not(.dark) option,
+  html[data-bg^="light-"] option {
+    background-color: #ffffff !important;
+    color: hsl(222 47% 11%) !important;
   }
 }
 
@@ -81,9 +91,28 @@ body {
   background: rgba(150, 150, 150, 0.4);
 }
 
+/* Scrollbars in light mode */
+html:not(.dark) ::-webkit-scrollbar-thumb,
+html[data-bg^="light-"] ::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+}
+html:not(.dark) ::-webkit-scrollbar-thumb:hover,
+html[data-bg^="light-"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
 /* ==========================================================================
    Custom Background Themes (STsup Theme Switcher)
    ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   DARK THEMES
+   -------------------------------------------------------------------------- */
+
+/* 0. Default Dark Slate */
+html.dark[data-bg="default"] body {
+  background: radial-gradient(circle at 50% -10%, #1e293b 0%, #0e131f 100%) fixed !important;
+}
 
 /* 1. Midnight Blue */
 html[data-bg="midnight"] {
@@ -152,4 +181,92 @@ html[data-bg="charcoal"] {
 }
 html[data-bg="charcoal"] body {
   background: radial-gradient(circle at 50% -10%, #2c1f19 0%, #0c0907 100%) fixed !important;
+}
+
+/* --------------------------------------------------------------------------
+   LIGHT THEMES (White & Clean Canvas)
+   -------------------------------------------------------------------------- */
+
+html[data-bg^="light-"] {
+  color-scheme: light;
+  --foreground: 222 47% 11%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 221 83% 53%;
+  --primary-foreground: 210 40% 98%;
+  --secondary-foreground: 222 47% 11%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 210 40% 96%;
+  --accent-foreground: 222 47% 11%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+  --ring: 221 83% 53%;
+}
+
+/* 7. Classic Pure White (Jira White) */
+html[data-bg="light-clean"] {
+  --background: 210 40% 98%;
+  --card: 0 0% 100%;
+  --border: 214 32% 89%;
+  --secondary: 210 40% 95%;
+  --muted: 210 40% 96%;
+  --input: 214 32% 88%;
+}
+html[data-bg="light-clean"] body {
+  background: #f8fafc fixed !important;
+}
+
+/* 8. Cool Slate */
+html[data-bg="light-slate"] {
+  --background: 215 28% 95%;
+  --card: 0 0% 100%;
+  --border: 215 25% 86%;
+  --secondary: 215 25% 91%;
+  --muted: 215 25% 92%;
+  --input: 215 25% 85%;
+}
+html[data-bg="light-slate"] body {
+  background: radial-gradient(circle at 50% -10%, #e2e8f0 0%, #f1f5f9 100%) fixed !important;
+}
+
+/* 9. Warm Paper (Warm Canvas) */
+html[data-bg="light-paper"] {
+  --background: 36 33% 97%;
+  --card: 0 0% 100%;
+  --border: 36 20% 86%;
+  --secondary: 36 25% 92%;
+  --muted: 36 25% 93%;
+  --muted-foreground: 30 10% 45%;
+  --input: 36 20% 85%;
+}
+html[data-bg="light-paper"] body {
+  background: radial-gradient(circle at 50% -10%, #f3ede2 0%, #faf8f5 100%) fixed !important;
+}
+
+/* 10. Desert Sand */
+html[data-bg="light-sand"] {
+  --background: 43 36% 95%;
+  --card: 0 0% 100%;
+  --border: 43 25% 84%;
+  --secondary: 43 25% 89%;
+  --muted: 43 25% 91%;
+  --muted-foreground: 35 15% 42%;
+  --input: 43 25% 83%;
+}
+html[data-bg="light-sand"] body {
+  background: radial-gradient(circle at 50% -10%, #ede6d6 0%, #f6f3eb 100%) fixed !important;
+}
+
+/* 11. Azure Breeze */
+html[data-bg="light-azure"] {
+  --background: 214 100% 97%;
+  --card: 0 0% 100%;
+  --border: 214 55% 88%;
+  --secondary: 214 65% 93%;
+  --muted: 214 60% 94%;
+  --input: 214 50% 86%;
+}
+html[data-bg="light-azure"] body {
+  background: radial-gradient(ellipse at 50% -10%, #dbeafe 0%, #f0f7ff 100%) fixed !important;
 }

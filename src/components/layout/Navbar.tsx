@@ -470,24 +470,50 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
 
                 {/* Quick Theme Picker */}
-                <div className="px-3 py-2 border-b border-border/60 space-y-1.5">
+                <div className="px-3 py-2 border-b border-border/60 space-y-2">
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium">
                     <span className="flex items-center gap-1.5">
                       <Palette className="w-3 h-3 text-primary" />
-                      <span>Тема фону</span>
+                      <span>Тема оформлення</span>
                     </span>
                   </div>
-                  <div className="grid grid-cols-7 gap-1 pt-1">
-                    {THEMES.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => applyTheme(t.id, true)}
-                        className={`w-6 h-6 rounded-md border transition-transform hover:scale-110 cursor-pointer ${t.borderAccent}`}
-                        style={{ background: t.gradient }}
-                        title={t.name}
-                      />
-                    ))}
+
+                  {/* Dark themes row */}
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                      Темні ({THEMES.filter((t) => t.mode === "dark").length})
+                    </span>
+                    <div className="grid grid-cols-7 gap-1">
+                      {THEMES.filter((t) => t.mode === "dark").map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => applyTheme(t.id, true)}
+                          className={`w-6 h-6 rounded-md border transition-transform hover:scale-110 cursor-pointer shadow-xs ${t.borderAccent}`}
+                          style={{ background: t.gradient }}
+                          title={t.name}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Light themes row */}
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                      Світлі ({THEMES.filter((t) => t.mode === "light").length})
+                    </span>
+                    <div className="grid grid-cols-5 gap-1">
+                      {THEMES.filter((t) => t.mode === "light").map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => applyTheme(t.id, true)}
+                          className={`w-6 h-6 rounded-md border transition-transform hover:scale-110 cursor-pointer shadow-xs ${t.borderAccent}`}
+                          style={{ background: t.gradient }}
+                          title={t.name}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
 

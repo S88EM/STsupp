@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const VALID_THEMES = [
+  // Dark themes
   "default",
   "midnight",
   "oled",
@@ -10,6 +11,12 @@ const VALID_THEMES = [
   "emerald",
   "nebula",
   "charcoal",
+  // Light themes
+  "light-clean",
+  "light-slate",
+  "light-paper",
+  "light-sand",
+  "light-azure",
 ];
 
 export async function POST(req: Request) {

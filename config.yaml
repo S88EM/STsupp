@@ -1,6 +1,6 @@
 name: "STsup"
 slug: "stsup"
-version: "0.2.4"
+version: "0.2.5"
 description: "Швидкий Kanban-трекер задач у стилі Linear із гнучкими статусами, авторизацією та підтримкою AI Confluence"
 url: "https://github.com/S88EM/STsupp"
 arch:
@@ -28,6 +28,9 @@ options:
   smtp_user: ""
   smtp_password: ""
   smtp_from: "STsup <no-reply@stsup.local>"
+  telegram_bot_token: ""
+  telegram_chat_id: ""
+  telegram_enabled: false
 schema:
   timezone: str
   app_url: str?
@@ -39,3 +42,6 @@ schema:
   smtp_user: str?
   smtp_password: password?
   smtp_from: str?
+  telegram_bot_token: password?
+  telegram_chat_id: str?
+  telegram_enabled: bool?

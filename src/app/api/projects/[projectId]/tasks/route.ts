@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hasProjectAccess } from "@/lib/auth";
 import { notifyTaskAssignment } from "@/lib/notifications";
+import { notifyTelegramTaskCreated } from "@/lib/telegram";
 
 export async function POST(
   req: Request,
@@ -133,6 +134,26 @@ export async function POST(
         origin: req.headers.get("origin") || undefined,
       }).catch((err) => console.error("notifyTaskAssignment error on create:", err));
     }
+
+    // Trigger Telegram notification asynchronously
+    notifyTelegramTaskCreated({
+      task: {
+        id: task.id,
+        code: task.code,
+        title: task.title,
+        priority: task.priority,
+        aiContext: task.aiContext,
+      },
+      project: {
+        id: project.id,
+        name: project.name,
+        key: project.key,
+      },
+      creator: {
+        name: task.creator?.name || currentUser?.email || "Користувач",
+      },
+      origin: req.headers.get("origin") || undefined,
+    }).catch((err) => console.error("[Telegram] notifyTelegramTaskCreated error on create:", err));
 
     return NextResponse.json(task, { status: 201 });
   } catch (error: any) {

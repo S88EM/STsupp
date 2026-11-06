@@ -24,6 +24,7 @@ import {
   ChevronDown,
   Layers,
   Sparkles,
+  Inbox,
 } from "lucide-react";
 import { ClientCreateTicketModal } from "@/components/portal/ClientCreateTicketModal";
 import { ClientTicketDetailModal } from "@/components/portal/ClientTicketDetailModal";
@@ -34,7 +35,7 @@ interface ProjectItem {
   id: string;
   name: string;
   key: string;
-  columns?: Array<{ id: string; name: string; color?: string; isDoneColumn?: boolean }>;
+  columns?: Array<{ id: string; name: string; color?: string; isDoneColumn?: boolean; orderIndex?: number }>;
 }
 
 interface TicketItem {
@@ -48,12 +49,78 @@ interface TicketItem {
   projectId: string;
   columnId: string;
   creatorId?: string | null;
+  aiContext?: any;
   assignee?: { id: string; name: string; email: string; avatarUrl?: string | null } | null;
   creator?: { id: string; name: string; email: string } | null;
-  column?: { id: string; name: string; color?: string; isDoneColumn?: boolean } | null;
-  project?: { id: string; name: string; key: string } | null;
+  column?: { id: string; name: string; color?: string; isDoneColumn?: boolean; orderIndex?: number } | null;
+  project?: {
+    id: string;
+    name: string;
+    key: string;
+    columns?: Array<{ id: string; name: string; color?: string; isDoneColumn?: boolean; orderIndex?: number }>;
+  } | null;
   attachments?: any[];
   _count?: { comments: number; attachments: number; subtasks: number };
+}
+
+type PortalStatusFilter = "all" | "in_progress" | "backlog" | "resolved" | "comments";
+
+function isTaskResolved(t: TicketItem): boolean {
+  if (t.column?.isDoneColumn) return true;
+  const colName = (t.column?.name || "").trim().toLowerCase();
+  if (["готово", "done", "resolved", "вирішено", "закрито", "closed"].includes(colName)) {
+    return true;
+  }
+  const aiCtx = (t.aiContext || {}) as Record<string, any>;
+  if (aiCtx.isClosed === true) return true;
+  if (
+    aiCtx.resolution &&
+    ["вирішено", "resolved", "done", "закрито", "closed"].includes(String(aiCtx.resolution).toLowerCase())
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function isTaskBacklog(t: TicketItem): boolean {
+  if (isTaskResolved(t)) return false;
+  const colName = (t.column?.name || "").trim().toLowerCase();
+  if (
+    [
+      "беклог",
+      "backlog",
+      "новий",
+      "нові",
+      "new",
+      "to do",
+      "todo",
+      "відкрито",
+      "в черзі",
+      "черга",
+      "backlog (новий)",
+    ].includes(colName)
+  ) {
+    return true;
+  }
+  if (t.column && t.project?.columns && t.project.columns.length > 0) {
+    const firstCol = t.project.columns[0];
+    if (
+      firstCol &&
+      t.column.id === firstCol.id &&
+      !colName.includes("робот") &&
+      !colName.includes("progress") &&
+      !colName.includes("тест")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isTaskInProgress(t: TicketItem): boolean {
+  if (isTaskResolved(t)) return false;
+  if (isTaskBacklog(t)) return false;
+  return true;
 }
 
 export default function ClientPortalPage() {
@@ -62,12 +129,12 @@ export default function ClientPortalPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
-  const [tickets, setTickets] = useState<TicketItem[]>([]);
+  const [allTickets, setAllTickets] = useState<TicketItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   // Filters
-  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "resolved">("all");
+  const [statusFilter, setStatusFilter] = useState<PortalStatusFilter>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [scopeFilter, setScopeFilter] = useState<"my" | "all">("my");
   const [searchQuery, setSearchQuery] = useState("");
@@ -110,7 +177,6 @@ export default function ClientPortalPage() {
         const data = await res.json();
         setProjects(data);
         if (data.length > 0 && !selectedProjectId) {
-          // Keep empty string as "Всі проєкти" or default to first if single
           if (data.length === 1) {
             setSelectedProjectId(data[0].id);
           }
@@ -121,7 +187,7 @@ export default function ClientPortalPage() {
     }
   }, [selectedProjectId]);
 
-  // Load tickets
+  // Load tickets for current project and scope
   const loadTickets = useCallback(
     async (showLoadingSpinner = false) => {
       if (showLoadingSpinner) setLoading(true);
@@ -129,16 +195,13 @@ export default function ClientPortalPage() {
 
       try {
         const queryParams = new URLSearchParams();
-        if (statusFilter !== "all") queryParams.set("filter", statusFilter);
-        if (priorityFilter !== "all") queryParams.set("priority", priorityFilter);
         if (selectedProjectId) queryParams.set("projectId", selectedProjectId);
-        if (searchQuery.trim()) queryParams.set("search", searchQuery.trim());
         if (scopeFilter === "my") queryParams.set("scope", "my");
 
         const res = await fetch(`/api/tasks?${queryParams.toString()}`);
         if (res.ok) {
           const data = await res.json();
-          setTickets(data.tasks || []);
+          setAllTickets(data.tasks || []);
         }
       } catch (err) {
         console.error("Error loading tickets:", err);
@@ -147,7 +210,7 @@ export default function ClientPortalPage() {
         setRefreshing(false);
       }
     },
-    [statusFilter, priorityFilter, selectedProjectId, searchQuery, scopeFilter]
+    [selectedProjectId, scopeFilter]
   );
 
   useEffect(() => {
@@ -194,24 +257,20 @@ export default function ClientPortalPage() {
     return email ? email.slice(0, 2).toUpperCase() : "U";
   };
 
-  // Metrics computation
+  // Metrics computation across all tickets in current scope/project
   const metrics = useMemo(() => {
-    const total = tickets.length;
     let inProgress = 0;
     let resolved = 0;
+    let backlog = 0;
     let withComments = 0;
 
-    for (const t of tickets) {
-      const isDone =
-        t.column?.isDoneColumn ||
-        ["Готово", "Done", "Resolved", "Вирішено", "Закрито"].some(
-          (name) => t.column?.name?.toLowerCase() === name.toLowerCase()
-        );
-
-      if (isDone) {
+    for (const t of allTickets) {
+      if (isTaskResolved(t)) {
         resolved++;
-      } else {
+      } else if (isTaskInProgress(t)) {
         inProgress++;
+      } else if (isTaskBacklog(t)) {
+        backlog++;
       }
 
       if ((t._count?.comments || 0) > 0) {
@@ -219,8 +278,48 @@ export default function ClientPortalPage() {
       }
     }
 
-    return { total, inProgress, resolved, withComments };
-  }, [tickets]);
+    return {
+      total: allTickets.length,
+      inProgress,
+      resolved,
+      backlog,
+      withComments,
+    };
+  }, [allTickets]);
+
+  // Displayed tickets filtered strictly according to active status, priority, and search query
+  const displayedTickets = useMemo(() => {
+    let list = allTickets;
+
+    // 1. Status Filter
+    if (statusFilter === "in_progress") {
+      list = list.filter(isTaskInProgress);
+    } else if (statusFilter === "resolved") {
+      list = list.filter(isTaskResolved);
+    } else if (statusFilter === "backlog") {
+      list = list.filter(isTaskBacklog);
+    } else if (statusFilter === "comments") {
+      list = list.filter((t) => (t._count?.comments || 0) > 0);
+    }
+
+    // 2. Priority Filter
+    if (priorityFilter !== "all") {
+      list = list.filter((t) => t.priority === priorityFilter);
+    }
+
+    // 3. Search Query
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      list = list.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          t.code.toLowerCase().includes(q) ||
+          (t.description && t.description.toLowerCase().includes(q))
+      );
+    }
+
+    return list;
+  }, [allTickets, statusFilter, priorityFilter, searchQuery]);
 
   const getPriorityBadge = (p: string) => {
     switch (p) {
@@ -406,11 +505,12 @@ export default function ClientPortalPage() {
 
         {/* Metric / KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* Card: Всі звернення */}
           <button
             onClick={() => setStatusFilter("all")}
-            className={`p-4 rounded-2xl border text-left transition-all ${
+            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
               statusFilter === "all"
-                ? "bg-primary/10 border-primary/40 shadow-sm"
+                ? "bg-primary/10 border-primary/50 shadow-sm ring-1 ring-primary/40"
                 : "bg-card/70 border-border hover:bg-card"
             }`}
           >
@@ -422,11 +522,12 @@ export default function ClientPortalPage() {
             <span className="text-[11px] text-muted-foreground mt-1 block">У доступних проєктах</span>
           </button>
 
+          {/* Card: В роботі */}
           <button
-            onClick={() => setStatusFilter("open")}
-            className={`p-4 rounded-2xl border text-left transition-all ${
-              statusFilter === "open"
-                ? "bg-blue-500/15 border-blue-500/40 shadow-sm"
+            onClick={() => setStatusFilter("in_progress")}
+            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+              statusFilter === "in_progress"
+                ? "bg-blue-500/15 border-blue-500/50 shadow-sm ring-1 ring-blue-500/40"
                 : "bg-card/70 border-border hover:bg-card"
             }`}
           >
@@ -438,11 +539,12 @@ export default function ClientPortalPage() {
             <span className="text-[11px] text-muted-foreground mt-1 block">Активні задачі інженерів</span>
           </button>
 
+          {/* Card: Вирішено */}
           <button
             onClick={() => setStatusFilter("resolved")}
-            className={`p-4 rounded-2xl border text-left transition-all ${
+            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
               statusFilter === "resolved"
-                ? "bg-emerald-500/15 border-emerald-500/40 shadow-sm"
+                ? "bg-emerald-500/15 border-emerald-500/50 shadow-sm ring-1 ring-emerald-500/40"
                 : "bg-card/70 border-border hover:bg-card"
             }`}
           >
@@ -454,14 +556,22 @@ export default function ClientPortalPage() {
             <span className="text-[11px] text-muted-foreground mt-1 block">Успішно закриті тікети</span>
           </button>
 
-          <div className="p-4 rounded-2xl border bg-card/70 border-border text-left">
+          {/* Card: З діалогом */}
+          <button
+            onClick={() => setStatusFilter("comments")}
+            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+              statusFilter === "comments"
+                ? "bg-purple-500/15 border-purple-500/50 shadow-sm ring-1 ring-purple-500/40"
+                : "bg-card/70 border-border hover:bg-card"
+            }`}
+          >
             <div className="flex items-center justify-between text-muted-foreground mb-2">
               <span className="text-xs font-semibold uppercase tracking-wider">З діалогом</span>
               <MessageSquare className="w-4 h-4 text-purple-400" />
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-purple-400">{metrics.withComments}</div>
             <span className="text-[11px] text-muted-foreground mt-1 block">Тікети з коментарями</span>
-          </div>
+          </button>
         </div>
 
         {/* Toolbar: Search & Filters */}
@@ -480,36 +590,46 @@ export default function ClientPortalPage() {
             </div>
 
             {/* Status Segmented Tabs */}
-            <div className="flex items-center p-1 rounded-xl bg-secondary/50 border border-border text-xs font-medium">
+            <div className="flex items-center p-1 rounded-xl bg-secondary/50 border border-border text-xs font-medium overflow-x-auto">
               <button
                 onClick={() => setStatusFilter("all")}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
+                className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
                   statusFilter === "all"
                     ? "bg-card text-foreground font-semibold shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Всі
+                Всі ({metrics.total})
               </button>
               <button
-                onClick={() => setStatusFilter("open")}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  statusFilter === "open"
-                    ? "bg-card text-foreground font-semibold shadow-xs"
+                onClick={() => setStatusFilter("in_progress")}
+                className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                  statusFilter === "in_progress"
+                    ? "bg-card text-blue-400 font-semibold shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                В роботі
+                В роботі ({metrics.inProgress})
+              </button>
+              <button
+                onClick={() => setStatusFilter("backlog")}
+                className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                  statusFilter === "backlog"
+                    ? "bg-card text-amber-400 font-semibold shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                У черзі ({metrics.backlog})
               </button>
               <button
                 onClick={() => setStatusFilter("resolved")}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
+                className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
                   statusFilter === "resolved"
-                    ? "bg-card text-foreground font-semibold shadow-xs"
+                    ? "bg-card text-emerald-400 font-semibold shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Вирішені
+                Вирішені ({metrics.resolved})
               </button>
             </div>
           </div>
@@ -548,7 +668,7 @@ export default function ClientPortalPage() {
             </div>
 
             <div className="text-muted-foreground text-[11px]">
-              Знайдено: <strong className="text-foreground">{tickets.length}</strong> звернень
+              Знайдено: <strong className="text-foreground">{displayedTickets.length}</strong> звернень
             </div>
           </div>
         </div>
@@ -560,30 +680,56 @@ export default function ClientPortalPage() {
               <RefreshCw className="w-6 h-6 animate-spin text-primary" />
               <span className="text-xs">Завантаження списку звернень...</span>
             </div>
-          ) : tickets.length === 0 ? (
+          ) : displayedTickets.length === 0 ? (
             <div className="p-16 text-center rounded-2xl border border-border bg-card flex flex-col items-center justify-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-secondary/60 text-muted-foreground flex items-center justify-center">
-                <LifeBuoy className="w-6 h-6" />
+                {statusFilter === "resolved" ? (
+                  <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                ) : statusFilter === "in_progress" ? (
+                  <Clock className="w-6 h-6 text-blue-400" />
+                ) : statusFilter === "backlog" ? (
+                  <Inbox className="w-6 h-6 text-amber-400" />
+                ) : (
+                  <LifeBuoy className="w-6 h-6" />
+                )}
               </div>
               <div className="space-y-1">
-                <h3 className="text-sm font-bold text-foreground">Звернень не знайдено</h3>
+                <h3 className="text-sm font-bold text-foreground">
+                  {statusFilter === "resolved"
+                    ? "Немає вирішених звернень"
+                    : statusFilter === "in_progress"
+                    ? "Немає звернень у роботі"
+                    : statusFilter === "backlog"
+                    ? "Немає звернень у черзі"
+                    : searchQuery
+                    ? "Звернень за запитом не знайдено"
+                    : "Звернень не знайдено"}
+                </h3>
                 <p className="text-xs text-muted-foreground max-w-sm">
-                  {searchQuery || priorityFilter !== "all" || statusFilter !== "all"
-                    ? "Немає звернень за обраними критеріями фільтрації. Спробуйте скинути фільтри."
-                    : "У вас ще немає створених звернень. Створіть перше звернення, і наша служба підтримки обов'язково допоможе вам!"}
+                  {statusFilter === "resolved"
+                    ? "Тут відображатимуться закриті тікети після завершення робіт нашими інженерами."
+                    : statusFilter === "in_progress"
+                    ? "Наразі жодне звернення не перебуває в активній розробці. Тікети очікують у черзі або вже вирішені."
+                    : statusFilter === "backlog"
+                    ? "Усі ваші звернення вже взяті інженерами в активну роботу або вирішені."
+                    : searchQuery
+                    ? `За запитом «${searchQuery}» результатів не виявлено. Спробуйте змінити критерії пошуку.`
+                    : "У вас ще немає створених звернень. Створіть перше звернення, і наша служба підтримки допоможе вам!"}
                 </p>
               </div>
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/20 transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Створити перше звернення</span>
-              </button>
+              {statusFilter === "all" && !searchQuery && (
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/20 transition-all cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Створити перше звернення</span>
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
-              {tickets.map((ticket) => (
+              {displayedTickets.map((ticket) => (
                 <div
                   key={ticket.id}
                   onClick={() => {

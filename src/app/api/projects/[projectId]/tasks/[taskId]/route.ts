@@ -12,11 +12,13 @@ export async function GET(
     const { projectId, taskId } = params;
     const currentUser = await getCurrentUser();
 
-    if (currentUser) {
-      const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
-      if (!hasAccess) {
-        return NextResponse.json({ error: "У вас немає доступу до цієї задачі" }, { status: 403 });
-      }
+    if (!currentUser) {
+      return NextResponse.json({ error: "Необхідно авторизуватися" }, { status: 401 });
+    }
+
+    const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "У вас немає доступу до цієї задачі" }, { status: 403 });
     }
 
     const task = await prisma.task.findUnique({
@@ -55,9 +57,33 @@ export async function GET(
       take: 50,
     });
 
+    let safeAiContext = task.aiContext as Record<string, any> | null;
+    let safeAuditLogs = auditLogs;
+
+    // Data sanitization: Prevent leakage of internal time estimates to CLIENTs
+    if (currentUser.role === "CLIENT") {
+      if (safeAiContext && typeof safeAiContext === "object") {
+        const { originalEstimate, timeSpent, ...restContext } = safeAiContext;
+        safeAiContext = restContext;
+      }
+
+      safeAuditLogs = auditLogs.map((log) => {
+        if (log.details && typeof log.details === "object") {
+          const details = { ...(log.details as Record<string, any>) };
+          if (details.changes && typeof details.changes === "object") {
+            const { originalEstimate, timeSpent, ...safeChanges } = details.changes;
+            details.changes = safeChanges;
+          }
+          return { ...log, details };
+        }
+        return log;
+      });
+    }
+
     return NextResponse.json({
       ...task,
-      auditLogs,
+      aiContext: safeAiContext,
+      auditLogs: safeAuditLogs,
     });
   } catch (error: any) {
     console.error("GET /api/projects/[id]/tasks/[taskId] error:", error);

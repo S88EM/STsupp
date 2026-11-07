@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser, canManageProjects } from "@/lib/auth";
 
 export async function PATCH(
   req: Request,
@@ -7,6 +8,14 @@ export async function PATCH(
 ) {
   try {
     const { projectId, columnId } = params;
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser || !canManageProjects(currentUser.role)) {
+      return NextResponse.json(
+        { error: "Тільки адміністратори можуть редагувати колонки" },
+        { status: 403 }
+      );
+    }
     const body = await req.json();
     const { name, color, isDoneColumn } = body;
 
@@ -32,6 +41,14 @@ export async function DELETE(
 ) {
   try {
     const { projectId, columnId } = params;
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser || !canManageProjects(currentUser.role)) {
+      return NextResponse.json(
+        { error: "Тільки адміністратори можуть видаляти колонки" },
+        { status: 403 }
+      );
+    }
 
     // Check if column has tasks
     const taskCount = await prisma.task.count({

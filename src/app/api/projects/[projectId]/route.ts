@@ -10,7 +10,11 @@ export async function GET(
     const { projectId } = params;
     const currentUser = await getCurrentUser();
 
-    if (currentUser) {
+    if (!currentUser) {
+      return NextResponse.json({ error: "Необхідно авторизуватися" }, { status: 401 });
+    }
+
+    if (projectId !== "all") {
       const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
       if (!hasAccess) {
         return NextResponse.json({ error: "У вас немає доступу до цього проекту" }, { status: 403 });

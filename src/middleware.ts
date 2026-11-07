@@ -35,8 +35,17 @@ export function middleware(request: NextRequest) {
     return res;
   }
 
-  // If user is NOT authenticated and tries to access protected pages, redirect to /login
+  // If user is NOT authenticated and tries to access protected pages or API routes
   if (!token && !isAuthPage) {
+    if (pathname.startsWith("/api/")) {
+      const res = NextResponse.json(
+        { error: "Необхідно авторизуватися для доступу до API" },
+        { status: 401 }
+      );
+      res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      return res;
+    }
+
     const loginUrl = new URL("/login", request.url);
     if (pathname !== "/") {
       loginUrl.searchParams.set("redirect", pathname);

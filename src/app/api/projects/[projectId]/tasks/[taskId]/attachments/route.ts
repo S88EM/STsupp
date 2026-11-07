@@ -12,11 +12,13 @@ export async function GET(
     const { projectId, taskId } = params;
     const currentUser = await getCurrentUser();
 
-    if (currentUser) {
-      const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
-      if (!hasAccess) {
-        return NextResponse.json({ error: "Доступ заборонено" }, { status: 403 });
-      }
+    if (!currentUser) {
+      return NextResponse.json({ error: "Необхідно авторизуватися" }, { status: 401 });
+    }
+
+    const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Доступ заборонено" }, { status: 403 });
     }
 
     const attachments = await prisma.attachment.findMany({
@@ -39,11 +41,13 @@ export async function POST(
     const { projectId, taskId } = params;
     const currentUser = await getCurrentUser();
 
-    if (currentUser) {
-      const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
-      if (!hasAccess) {
-        return NextResponse.json({ error: "Доступ заборонено" }, { status: 403 });
-      }
+    if (!currentUser) {
+      return NextResponse.json({ error: "Необхідно авторизуватися" }, { status: 401 });
+    }
+
+    const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Доступ заборонено" }, { status: 403 });
     }
 
     const formData = await req.formData();
@@ -95,11 +99,13 @@ export async function DELETE(
     const { projectId, taskId } = params;
     const currentUser = await getCurrentUser();
 
-    if (currentUser) {
-      const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
-      if (!hasAccess) {
-        return NextResponse.json({ error: "Доступ заборонено" }, { status: 403 });
-      }
+    if (!currentUser) {
+      return NextResponse.json({ error: "Необхідно авторизуватися" }, { status: 401 });
+    }
+
+    const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Доступ заборонено" }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);

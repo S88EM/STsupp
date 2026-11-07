@@ -13,11 +13,13 @@ export async function POST(
     const { projectId } = params;
     const currentUser = await getCurrentUser();
 
-    if (currentUser) {
-      const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
-      if (!hasAccess) {
-        return NextResponse.json({ error: "У вас немає доступу до створення задач у цьому проекті" }, { status: 403 });
-      }
+    if (!currentUser) {
+      return NextResponse.json({ error: "Необхідно авторизуватися для створення задачі" }, { status: 401 });
+    }
+
+    const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "У вас немає доступу до створення задач у цьому проекті" }, { status: 403 });
     }
 
     const body = await req.json();
@@ -96,15 +98,14 @@ export async function POST(
     });
     const nextOrder = lastInColumn ? lastInColumn.orderIndex + 1 : 0;
 
-    // Use current authenticated user or fallback to first user
-    let creatorId = currentUser?.userId;
-    if (!creatorId) {
-      const fallbackUser = await prisma.user.findFirst();
-      creatorId = fallbackUser?.id;
-    }
+    // Use current authenticated user as creator
+    const creatorId = currentUser.userId;
 
-    if (!creatorId) {
-      return NextResponse.json({ error: "Користувача не знайдено" }, { status: 400 });
+    // Sanitize aiContext: clients cannot set internal estimates
+    let safeAiContext = aiContext || undefined;
+    if (currentUser.role === "CLIENT" && safeAiContext && typeof safeAiContext === "object") {
+      const { originalEstimate, timeSpent, ...cleanCtx } = safeAiContext;
+      safeAiContext = cleanCtx;
     }
 
     const task = await prisma.task.create({
@@ -120,7 +121,7 @@ export async function POST(
         dueDate: dueDate ? new Date(dueDate) : null,
         creatorId,
         assigneeId: assigneeId || null,
-        aiContext: aiContext || undefined,
+        aiContext: safeAiContext,
       },
       include: {
         assignee: { select: { id: true, name: true, email: true, avatarUrl: true, role: true } },

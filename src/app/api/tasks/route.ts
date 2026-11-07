@@ -185,6 +185,17 @@ export async function GET(req: Request) {
       });
     }
 
+    // Sanitize aiContext: Strip internal estimates from CLIENT role
+    if (currentUser.role === "CLIENT") {
+      resultTasks = resultTasks.map((t: any) => {
+        if (t.aiContext && typeof t.aiContext === "object") {
+          const { originalEstimate, timeSpent, ...cleanCtx } = t.aiContext;
+          return { ...t, aiContext: cleanCtx };
+        }
+        return t;
+      });
+    }
+
     return NextResponse.json({
       tasks: resultTasks,
       projects: accessibleProjects,

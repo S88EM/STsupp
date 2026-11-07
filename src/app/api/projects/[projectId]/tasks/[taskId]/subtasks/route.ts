@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser, hasProjectAccess } from "@/lib/auth";
 
 export async function POST(
   req: Request,
@@ -7,6 +8,25 @@ export async function POST(
 ) {
   try {
     const { taskId } = params;
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json({ error: "Необхідно авторизуватися" }, { status: 401 });
+    }
+
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { projectId: true },
+    });
+    if (!task) {
+      return NextResponse.json({ error: "Задачу не знайдено" }, { status: 404 });
+    }
+
+    const hasAccess = await hasProjectAccess(currentUser.userId, task.projectId, currentUser.role);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Доступ заборонено" }, { status: 403 });
+    }
+
     const body = await req.json();
     const { title } = body;
 
@@ -40,6 +60,11 @@ export async function PATCH(
   { params }: { params: { taskId: string } }
 ) {
   try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json({ error: "Необхідно авторизуватися" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const body = await req.json().catch(() => ({}));
     const subtaskId = body.subtaskId || searchParams.get("subtaskId");
@@ -66,6 +91,11 @@ export async function PATCH(
 
 export async function DELETE(req: Request) {
   try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json({ error: "Необхідно авторизуватися" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     let subtaskId = searchParams.get("subtaskId");
     if (!subtaskId) {

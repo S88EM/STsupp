@@ -11,11 +11,13 @@ export async function POST(
     const { projectId, taskId } = params;
     const currentUser = await getCurrentUser();
 
-    if (currentUser) {
-      const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
-      if (!hasAccess) {
-        return NextResponse.json({ error: "У вас немає доступу до цієї задачі" }, { status: 403 });
-      }
+    if (!currentUser) {
+      return NextResponse.json({ error: "Необхідно авторизуватися для додавання коментаря" }, { status: 401 });
+    }
+
+    const hasAccess = await hasProjectAccess(currentUser.userId, projectId, currentUser.role);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "У вас немає доступу до цієї задачі" }, { status: 403 });
     }
 
     const body = await req.json();

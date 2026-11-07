@@ -5,6 +5,9 @@ import fs from "fs";
 import { prisma } from "@/lib/prisma";
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "stsup_secret_jwt_key_super_safe_2026";
+if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET && !process.env.NEXTAUTH_SECRET) {
+  console.warn("⚠️ [SECURITY WARNING] JWT_SECRET is not set in production! Please define JWT_SECRET in .env.");
+}
 export const AUTH_COOKIE_NAME = "stsup_session";
 
 export interface SessionPayload {

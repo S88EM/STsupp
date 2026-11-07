@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser, canManageProjects } from "@/lib/auth";
 
 export async function POST(
   req: Request,
@@ -7,6 +8,14 @@ export async function POST(
 ) {
   try {
     const { projectId } = params;
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser || !canManageProjects(currentUser.role)) {
+      return NextResponse.json(
+        { error: "Тільки адміністратори можуть створювати колонки" },
+        { status: 403 }
+      );
+    }
     const body = await req.json();
     const { name, color = "#64748b", isDoneColumn = false } = body;
 
@@ -44,6 +53,14 @@ export async function PUT(
 ) {
   try {
     const { projectId } = params;
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser || !canManageProjects(currentUser.role)) {
+      return NextResponse.json(
+        { error: "Тільки адміністратори можуть змінювати порядок колонок" },
+        { status: 403 }
+      );
+    }
     const body = await req.json();
     const { columns } = body as { columns: { id: string; orderIndex: number }[] };
 

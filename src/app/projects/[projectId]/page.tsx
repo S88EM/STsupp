@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { KanbanBoard } from "@/components/board/KanbanBoard";
@@ -13,6 +13,7 @@ import { JiraCreateIssueModal } from "@/components/jira/JiraCreateIssueModal";
 import { AgileViews } from "@/components/jira/AgileViews";
 import { ProjectSettingsModal } from "@/components/project/ProjectSettingsModal";
 import { TaskDetailModal } from "@/components/board/TaskDetailModal";
+import { getStatusSemantic } from "@/components/jira/issue-detail/types";
 
 function ProjectPageContent() {
   const params = useParams();
@@ -124,9 +125,26 @@ function ProjectPageContent() {
   }
 
   // All tasks flattened with column metadata for Issue List
-  const allTasks = columns.flatMap((c) =>
-    c.tasks.map((t) => ({ ...t, columnName: c.name, columnColor: c.color }))
-  );
+  const allTasks = useMemo(() => {
+    return columns.flatMap((c) =>
+      c.tasks.map((t) => ({
+        ...t,
+        columnName: c.name,
+        columnColor: c.color,
+        isDoneColumn: Boolean(c.isDoneColumn),
+      }))
+    );
+  }, [columns]);
+
+  // Backlog-only tasks: strictly tasks awaiting pickup (not in progress, testing, done or closed)
+  const backlogTasks = useMemo(() => {
+    return allTasks.filter((t) => {
+      const isClosed = Boolean(t.aiContext?.isClosed);
+      if (isClosed || t.isDoneColumn) return false;
+      const semantic = getStatusSemantic(t.columnName, t.isDoneColumn, isClosed);
+      return semantic.key === "backlog";
+    });
+  }, [allTasks]);
 
   // If selected task is deleted or invalid, fall back to first task
   const activeTask = allTasks.find((t) => t.id === selectedTaskId) || allTasks[0] || null;
@@ -200,7 +218,12 @@ function ProjectPageContent() {
           <div className="flex-1 overflow-y-auto p-6 max-w-6xl mx-auto w-full space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-foreground">Беклог проєкту</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-foreground">Беклог проєкту</h2>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground font-semibold">
+                    {backlogTasks.length}
+                  </span>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Загальний реєстр усіх задач, які очікують на взяття в роботу
                 </p>
@@ -223,12 +246,12 @@ function ProjectPageContent() {
               </div>
 
               <div className="divide-y divide-border/60">
-                {allTasks.length === 0 ? (
+                {backlogTasks.length === 0 ? (
                   <div className="py-12 text-center text-xs text-muted-foreground">
-                    У цьому проєкті ще немає задач. Натисніть кнопку «+ Створити»!
+                    У беклозі цього проєкту немає задач, які очікують на взяття в роботу.
                   </div>
                 ) : (
-                  allTasks.map((t) => (
+                  backlogTasks.map((t) => (
                     <div
                       key={t.id}
                       onClick={() => {

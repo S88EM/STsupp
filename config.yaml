@@ -1,6 +1,6 @@
 name: "STsup"
 slug: "stsup"
-version: "0.3.8"
+version: "0.4.0"
 description: "Швидкий Kanban-трекер задач у стилі Linear із гнучкими статусами, авторизацією та підтримкою AI Confluence"
 url: "https://github.com/S88EM/STsupp"
 arch:

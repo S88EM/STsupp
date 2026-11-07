@@ -248,3 +248,10 @@ CREATE TABLE IF NOT EXISTS "AuditLog" (
 CREATE INDEX IF NOT EXISTS "AuditLog_createdAt_idx" ON "AuditLog"("createdAt");
 CREATE INDEX IF NOT EXISTS "AuditLog_actorEmail_idx" ON "AuditLog"("actorEmail");
 CREATE INDEX IF NOT EXISTS "AuditLog_targetId_idx" ON "AuditLog"("targetId");
+
+-- Optimized query indexes
+CREATE INDEX IF NOT EXISTS "Task_assigneeId_idx" ON "Task"("assigneeId");
+CREATE INDEX IF NOT EXISTS "Task_creatorId_idx" ON "Task"("creatorId");
+CREATE INDEX IF NOT EXISTS "Task_updatedAt_idx" ON "Task"("updatedAt");
+CREATE INDEX IF NOT EXISTS "Task_priority_idx" ON "Task"("priority");
+CREATE INDEX IF NOT EXISTS "ProjectMember_userId_idx" ON "ProjectMember"("userId");

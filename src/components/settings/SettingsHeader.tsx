@@ -12,6 +12,7 @@ import {
   Tag,
   Send,
   ShieldCheck,
+  Database,
 } from "lucide-react";
 import { SettingsTab, TelegramStatus } from "./types";
 
@@ -151,6 +152,18 @@ export function SettingsHeader({
         >
           <ShieldCheck className="w-4 h-4 text-primary" />
           <span>Аудит-лог (Безпека)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onTabChange("backup")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === "backup"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Database className="w-4 h-4 text-emerald-400" />
+          <span>Резервне копіювання (Backup & Restore)</span>
         </button>
       </div>
     </div>

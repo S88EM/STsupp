@@ -10,6 +10,7 @@ import {
   DictionariesSettingsTab,
   TelegramSettingsTab,
   AuditLogSettingsTab,
+  BackupSettingsTab,
   SettingsTab,
   TelegramStatus,
 } from "@/components/settings";
@@ -29,7 +30,7 @@ export default function SettingsPage() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get("tab");
-      if (tab === "audit" || tab === "smtp" || tab === "dictionaries" || tab === "telegram") {
+      if (tab === "audit" || tab === "smtp" || tab === "dictionaries" || tab === "telegram" || tab === "backup") {
         setActiveTab(tab as SettingsTab);
       }
     }
@@ -134,6 +135,10 @@ export default function SettingsPage() {
 
         <div className={activeTab === "audit" ? "block" : "hidden"}>
           <AuditLogSettingsTab isActive={activeTab === "audit"} />
+        </div>
+
+        <div className={activeTab === "backup" ? "block" : "hidden"}>
+          <BackupSettingsTab />
         </div>
       </main>
     </div>

@@ -60,6 +60,16 @@ function getAuditBadge(action: string) {
         label: "Оновлення довідників",
         color: "bg-teal-500/10 text-teal-400 border-teal-500/30",
       };
+    case "BACKUP_EXPORT":
+      return {
+        label: "Експорт бекапу",
+        color: "bg-blue-500/10 text-blue-400 border-blue-500/30",
+      };
+    case "BACKUP_RESTORE":
+      return {
+        label: "Відновлення з бекапу",
+        color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+      };
     case "TASK_UPDATE":
       return {
         label: "Редагування задачі",
@@ -137,6 +147,21 @@ function renderAuditDetails(log: any) {
     return (
       <span className="text-muted-foreground">
         Оновлено довідники компонентів та міток ({d.labelsCount || 0} міток)
+      </span>
+    );
+  }
+  if (log.action === "BACKUP_EXPORT") {
+    return (
+      <span className="text-muted-foreground">
+        Створено та вивантажено резервну копію системи: файл <code className="font-mono text-foreground font-semibold">{d.filename || "stsup-backup.stsup"}</code> (Користувачів: <strong className="text-foreground">{d.usersCount || 0}</strong>, Проєктів: <strong className="text-foreground">{d.projectsCount || 0}</strong>, Задач: <strong className="text-foreground">{d.tasksCount || 0}</strong>, Файлів: <strong className="text-foreground">{d.filesCount || 0}</strong>)
+      </span>
+    );
+  }
+  if (log.action === "BACKUP_RESTORE") {
+    const s = d.summary || {};
+    return (
+      <span className="text-muted-foreground">
+        Повне відновлення системи з бекапу: Користувачів: <strong className="text-foreground">{s.usersCount || 0}</strong>, Проєктів: <strong className="text-foreground">{s.projectsCount || 0}</strong>, Задач: <strong className="text-foreground">{s.tasksCount || 0}</strong>, Файлів: <strong className="text-foreground">{s.filesCount || 0}</strong>
       </span>
     );
   }

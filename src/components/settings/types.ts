@@ -1,4 +1,32 @@
-export type SettingsTab = "smtp" | "dictionaries" | "telegram" | "audit";
+export type SettingsTab = "smtp" | "dictionaries" | "telegram" | "audit" | "backup";
+
+export interface BackupSummaryData {
+  usersCount: number;
+  projectsCount: number;
+  tasksCount: number;
+  subtasksCount: number;
+  commentsCount: number;
+  attachmentsCount: number;
+  auditLogsCount: number;
+  filesCount: number;
+  totalFileSizeBytes: number;
+  hasSmtpConfig: boolean;
+  hasTelegramConfig: boolean;
+  hasDictionaries: boolean;
+}
+
+export interface BackupValidationData {
+  isValid: boolean;
+  error?: string;
+  version?: string;
+  createdAt?: string;
+  exportedBy?: {
+    userId?: string | null;
+    email: string;
+    name?: string | null;
+  };
+  summary?: BackupSummaryData;
+}
 
 export interface TelegramStatus {
   enabled: boolean;

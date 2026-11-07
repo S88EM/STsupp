@@ -14,6 +14,8 @@ export const AUDIT_ACTIONS = {
   SETTINGS_DICTIONARY_UPDATE: "SETTINGS_DICTIONARY_UPDATE",
   TASK_CREATE: "TASK_CREATE",
   TASK_UPDATE: "TASK_UPDATE",
+  BACKUP_EXPORT: "BACKUP_EXPORT",
+  BACKUP_RESTORE: "BACKUP_RESTORE",
 } as const;
 
 export interface LogAuditOptions {
@@ -23,7 +25,7 @@ export interface LogAuditOptions {
     name?: string | null;
   };
   action: string;
-  targetType: "USER" | "PROJECT" | "SETTINGS" | "TASK";
+  targetType: "USER" | "PROJECT" | "SETTINGS" | "TASK" | "SYSTEM";
   targetId?: string | null;
   details?: Record<string, any> | null;
   ipAddress?: string | null;

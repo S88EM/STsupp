@@ -7,3 +7,4 @@ export * from "./IssueAttachmentsCard";
 export * from "./IssueSubtasksCard";
 export * from "./IssueActivityTabs";
 export * from "./IssueSidebar";
+export * from "./IssueDetailContent";

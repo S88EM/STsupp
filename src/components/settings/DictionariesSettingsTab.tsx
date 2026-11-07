@@ -21,6 +21,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { ProjectDictOption } from "./types";
+import { invalidateDictionariesCache } from "@/hooks/useTaskDetail";
 
 const TASK_TYPE_TABS = [
   { id: "TASK", label: "Задача", icon: CheckSquare, color: "text-blue-400" },
@@ -213,6 +214,7 @@ export function DictionariesSettingsTab() {
       if (!res.ok) {
         setDictError(data.error || "Не вдалося зберегти довідники");
       } else {
+        invalidateDictionariesCache();
         setRenames([]);
         setDictSuccess(data.message || "Довідники компонентів та міток успішно збережено!");
         setTimeout(() => setDictSuccess(null), 4000);
@@ -247,6 +249,7 @@ export function DictionariesSettingsTab() {
         setComponentsByType(data.dictionaries?.componentsByType || {});
         setComponentsByProject(data.dictionaries?.componentsByProject || {});
         setLabels(data.dictionaries?.labels || []);
+        invalidateDictionariesCache();
         setRenames([]);
         setDictSuccess("Довідники успішно скинуто до початкових стандартних значень!");
         setTimeout(() => setDictSuccess(null), 4000);

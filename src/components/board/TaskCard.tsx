@@ -32,7 +32,7 @@ interface TaskCardProps {
   isDragDisabled?: boolean;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick, isDragDisabled = false }) => {
+export const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, index, onClick, isDragDisabled = false }) => {
   const completedSubtasks = task.subtasks?.filter((s) => s.isCompleted).length || 0;
   const totalSubtasks = task.subtasks?.length || 0;
 
@@ -121,4 +121,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick, isDrag
       )}
     </Draggable>
   );
-};
+});
+
+TaskCard.displayName = "TaskCard";

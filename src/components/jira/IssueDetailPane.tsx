@@ -2,17 +2,10 @@
 
 import React from "react";
 import { CheckSquare, AlertCircle } from "lucide-react";
-import { getTaskTypeInfo } from "./IssueListPane";
 import {
   IssueDetailPaneProps,
   IssueDetailHeader,
-  IssueTitle,
-  IssueDetailsCard,
-  IssueDescriptionCard,
-  IssueAttachmentsCard,
-  IssueSubtasksCard,
-  IssueActivityTabs,
-  IssueSidebar,
+  IssueDetailContent,
 } from "./issue-detail";
 import { useTaskDetail } from "@/hooks/useTaskDetail";
 
@@ -28,45 +21,37 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
   onTaskDeleted,
   currentUser: initialCurrentUser,
 }) => {
-  const {
-    task,
-    loading,
-    error,
-    currentUser,
-    dictionaries,
-    isEditingTitle,
-    setIsEditingTitle,
-    uploadingFile,
-    aiLoading,
-    aiRecommendation,
-    commentInputRef,
-    canChangeAssignee,
-    canChangeStatus,
-    handleUpdateField,
-    handleReturnToClient,
-    handleClosePermanently,
-    handleSaveTitle,
-    handleSaveDescription,
-    handleChangeStatus,
-    handleChangeType,
-    handleChangePriority,
-    handleToggleComponent,
-    handleToggleLabel,
-    handleAddSubtask,
-    handleToggleSubtask,
-    handleDeleteSubtask,
-    handleAddComment,
-    handleUploadFile,
-    handleDeleteTask,
-    handleGetAiRecommendation,
-  } = useTaskDetail({
+  const taskDetail = useTaskDetail({
     taskId,
     projectId,
+    columns,
     isOpen: true,
     onTaskUpdated,
     onTaskDeleted,
     currentUser: initialCurrentUser,
   });
+
+  const {
+    task,
+    loading,
+    error,
+    typeInfo,
+    effectiveColumns,
+    currentColumn,
+    currentUser,
+    isClosed,
+    isDone,
+    canChangeAssignee,
+    canChangeStatus,
+    commentInputRef,
+    setIsEditingTitle,
+    handleUpdateField,
+    handleReturnToClient,
+    handleClosePermanently,
+    handleChangeStatus,
+    handleGetAiRecommendation,
+    handleDeleteTask,
+  } = taskDetail;
 
   if (!taskId) {
     return (
@@ -88,7 +73,7 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
     );
   }
 
-  if (error || !task) {
+  if (error || !task || !typeInfo) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-2">
         <AlertCircle className="w-6 h-6 text-destructive" />
@@ -96,28 +81,6 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
       </div>
     );
   }
-
-  const typeInfo = getTaskTypeInfo(task.aiContext, task.title);
-  const effectiveColumns =
-    task.project?.columns && task.project.columns.length > 0
-      ? task.project.columns
-      : columns && columns.length > 0
-      ? columns
-      : task.column
-      ? [task.column]
-      : [];
-  const currentColumn = effectiveColumns.find((c: any) => c.id === task.columnId) || task.column;
-  const subtasks = task.subtasks || [];
-
-  // Metadata from aiContext & workflow
-  const isClosed = Boolean(task.aiContext?.isClosed);
-  const isDone = Boolean(
-    currentColumn?.isDoneColumn ||
-    ["готово", "done", "вирішено", "resolved"].includes(currentColumn?.name?.toLowerCase().trim())
-  );
-  const resolution: string = isClosed
-    ? "Вирішено"
-    : task.aiContext?.resolution || "Не вирішено";
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto bg-background/50">
@@ -150,85 +113,11 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
       />
 
       {/* Main 2-Column Split Area */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-border">
-        {/* Left Side: Content & Details (8 cols) */}
-        <div className="lg:col-span-8 p-6 space-y-6">
-          {/* Title block */}
-          <IssueTitle
-            title={task.title}
-            isEditing={isEditingTitle}
-            onStartEdit={() => setIsEditingTitle(true)}
-            onCancelEdit={() => setIsEditingTitle(false)}
-            onSaveTitle={handleSaveTitle}
-          />
-
-          {/* Details block with interactive status dropdown badge */}
-          <IssueDetailsCard
-            task={task}
-            typeInfo={typeInfo}
-            currentColumn={currentColumn}
-            columns={effectiveColumns}
-            canChangeStatus={canChangeStatus}
-            onChangeStatus={handleChangeStatus}
-            projectId={projectId}
-            projectKey={projectKey}
-            dictionaries={dictionaries}
-            isClosed={isClosed}
-            isDone={isDone}
-            resolution={resolution}
-            onChangeType={handleChangeType}
-            onChangePriority={handleChangePriority}
-            onToggleComponent={handleToggleComponent}
-            onToggleLabel={handleToggleLabel}
-            onClosePermanently={handleClosePermanently}
-          />
-
-          {/* Description Block */}
-          <IssueDescriptionCard
-            description={task.description}
-            onSaveDescription={handleSaveDescription}
-          />
-
-          {/* Attachments */}
-          <IssueAttachmentsCard
-            attachments={task.attachments}
-            uploadingFile={uploadingFile}
-            onUploadFile={handleUploadFile}
-          />
-
-          {/* Subtasks block */}
-          <IssueSubtasksCard
-            subtasks={subtasks}
-            onToggleSubtask={handleToggleSubtask}
-            onDeleteSubtask={handleDeleteSubtask}
-            onAddSubtask={handleAddSubtask}
-          />
-
-          {/* Activity / Comments Block */}
-          <IssueActivityTabs
-            comments={task.comments}
-            auditLogs={task.auditLogs}
-            taskCreatedAt={task.createdAt}
-            taskCreator={task.creator}
-            currentUser={currentUser}
-            aiRecommendation={aiRecommendation}
-            aiLoading={aiLoading}
-            commentInputRef={commentInputRef}
-            onAddComment={handleAddComment}
-            onGetAiRecommendation={handleGetAiRecommendation}
-          />
-        </div>
-
-        {/* Right Side: Metadata / Jira Sidebar (4 cols) with internal time tracking */}
-        <IssueSidebar
-          task={task}
-          projectId={projectId}
-          canChangeAssignee={canChangeAssignee}
-          currentUser={currentUser}
-          onUpdateField={handleUpdateField}
-          onReturnToClient={handleReturnToClient}
-        />
-      </div>
+      <IssueDetailContent
+        taskDetail={taskDetail}
+        projectId={projectId}
+        projectKey={projectKey}
+      />
     </div>
   );
 };

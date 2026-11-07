@@ -24,7 +24,7 @@ interface ColumnCardProps {
   canManageColumns?: boolean;
 }
 
-export const ColumnCard: React.FC<ColumnCardProps> = ({
+export const ColumnCard: React.FC<ColumnCardProps> = React.memo(({
   column,
   onTaskClick,
   onAddTaskToColumn,
@@ -183,4 +183,6 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
       </button>
     </div>
   );
-};
+});
+
+ColumnCard.displayName = "ColumnCard";

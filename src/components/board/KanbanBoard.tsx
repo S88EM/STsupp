@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { ColumnCard, ColumnItem } from "./ColumnCard";
 import { TaskItem } from "./TaskCard";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { NewTaskModal } from "./NewTaskModal";
 import { NewColumnModal } from "./NewColumnModal";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 
 interface KanbanBoardProps {
   projectId: string;
@@ -58,7 +58,16 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     setColumns(initialColumns);
   }, [initialColumns]);
 
-  const handleDragEnd = async (result: DropResult) => {
+  const handleTaskClick = useCallback((task: TaskItem) => {
+    setSelectedTask(task);
+  }, []);
+
+  const handleAddTaskToColumn = useCallback((colId: string) => {
+    setActiveColumnForNewTask(colId);
+    setIsNewTaskOpen(true);
+  }, []);
+
+  const handleDragEnd = useCallback(async (result: DropResult) => {
     if (!canChangeStatus) return;
     const { source, destination, draggableId } = result;
     if (!destination) return;
@@ -166,9 +175,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       console.error("Failed to sync cross-column move:", err);
       onRefresh();
     }
-  };
+  }, [canChangeStatus, columns, projectId, onRefresh]);
 
-  const handleCreateTask = async (taskData: any) => {
+  const handleCreateTask = useCallback(async (taskData: any) => {
     const res = await fetch(`/api/projects/${projectId}/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -177,9 +186,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     if (res.ok) {
       await onRefresh();
     }
-  };
+  }, [projectId, onRefresh]);
 
-  const handleCreateColumn = async (columnData: any) => {
+  const handleCreateColumn = useCallback(async (columnData: any) => {
     const res = await fetch(`/api/projects/${projectId}/columns`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -188,9 +197,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     if (res.ok) {
       await onRefresh();
     }
-  };
+  }, [projectId, onRefresh]);
 
-  const handleUpdateColumn = async (columnId: string, updates: any) => {
+  const handleUpdateColumn = useCallback(async (columnId: string, updates: any) => {
     const res = await fetch(`/api/projects/${projectId}/columns/${columnId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -199,30 +208,33 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     if (res.ok) {
       await onRefresh();
     }
-  };
+  }, [projectId, onRefresh]);
 
-  const handleDeleteColumn = async (columnId: string) => {
+  const handleDeleteColumn = useCallback(async (columnId: string) => {
     const res = await fetch(`/api/projects/${projectId}/columns/${columnId}`, {
       method: "DELETE",
     });
     if (res.ok) {
       await onRefresh();
     }
-  };
+  }, [projectId, onRefresh]);
 
-  // Filter tasks by search query
-  const filteredColumns = columns.map((col) => ({
-    ...col,
-    tasks: col.tasks.filter((t) => {
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
-      return (
-        t.title.toLowerCase().includes(q) ||
-        t.code.toLowerCase().includes(q) ||
-        (t.description && t.description.toLowerCase().includes(q))
-      );
-    }),
-  }));
+  // Filter tasks by search query with memoization
+  const filteredColumns = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return columns;
+
+    return columns.map((col) => ({
+      ...col,
+      tasks: col.tasks.filter((t) => {
+        return (
+          t.title.toLowerCase().includes(q) ||
+          t.code.toLowerCase().includes(q) ||
+          (t.description && t.description.toLowerCase().includes(q))
+        );
+      }),
+    }));
+  }, [columns, searchQuery]);
 
   return (
     <div className="flex-1 flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden">
@@ -260,11 +272,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
               <ColumnCard
                 key={col.id}
                 column={col}
-                onTaskClick={(task) => setSelectedTask(task)}
-                onAddTaskToColumn={(colId) => {
-                  setActiveColumnForNewTask(colId);
-                  setIsNewTaskOpen(true);
-                }}
+                onTaskClick={handleTaskClick}
+                onAddTaskToColumn={handleAddTaskToColumn}
                 onUpdateColumn={handleUpdateColumn}
                 onDeleteColumn={handleDeleteColumn}
                 isDragDisabled={!canChangeStatus}

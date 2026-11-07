@@ -1,20 +1,23 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { X, CheckSquare, AlertCircle } from "lucide-react";
-import { TaskDetailModalProps } from "./task-detail/types";
-import { getTaskTypeInfo } from "@/lib/constants/task";
+import { X, AlertCircle } from "lucide-react";
+import { ColumnItem } from "./ColumnCard";
 import {
   IssueDetailHeader,
-  IssueTitle,
-  IssueDetailsCard,
-  IssueDescriptionCard,
-  IssueAttachmentsCard,
-  IssueSubtasksCard,
-  IssueActivityTabs,
-  IssueSidebar,
+  IssueDetailContent,
 } from "@/components/jira/issue-detail";
 import { useTaskDetail } from "@/hooks/useTaskDetail";
+
+export interface TaskDetailModalProps {
+  taskId: string | null;
+  projectId: string;
+  columns: ColumnItem[];
+  isOpen: boolean;
+  onClose: () => void;
+  onTaskUpdated: () => void;
+  onTaskDeleted: (taskId: string) => void;
+}
 
 export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   taskId,
@@ -25,40 +28,10 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   onTaskUpdated,
   onTaskDeleted,
 }) => {
-  const {
-    task,
-    loading,
-    error,
-    currentUser,
-    dictionaries,
-    isEditingTitle,
-    setIsEditingTitle,
-    uploadingFile,
-    aiLoading,
-    aiRecommendation,
-    commentInputRef,
-    canChangeAssignee,
-    canChangeStatus,
-    handleUpdateField,
-    handleReturnToClient,
-    handleClosePermanently,
-    handleSaveTitle,
-    handleSaveDescription,
-    handleChangeStatus,
-    handleChangeType,
-    handleChangePriority,
-    handleToggleComponent,
-    handleToggleLabel,
-    handleAddSubtask,
-    handleToggleSubtask,
-    handleDeleteSubtask,
-    handleAddComment,
-    handleUploadFile,
-    handleDeleteTask,
-    handleGetAiRecommendation,
-  } = useTaskDetail({
+  const taskDetail = useTaskDetail({
     taskId,
     projectId,
+    columns,
     isOpen,
     onTaskUpdated,
     onTaskDeleted: (deletedId) => {
@@ -66,6 +39,28 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
       onClose();
     },
   });
+
+  const {
+    task,
+    loading,
+    error,
+    typeInfo,
+    effectiveColumns,
+    currentColumn,
+    currentUser,
+    isClosed,
+    isDone,
+    canChangeAssignee,
+    canChangeStatus,
+    commentInputRef,
+    setIsEditingTitle,
+    handleUpdateField,
+    handleReturnToClient,
+    handleClosePermanently,
+    handleChangeStatus,
+    handleGetAiRecommendation,
+    handleDeleteTask,
+  } = taskDetail;
 
   // Close on Escape key press
   useEffect(() => {
@@ -79,27 +74,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
-
-  const typeInfo = task ? getTaskTypeInfo(task.aiContext, task.title) : null;
-  const effectiveColumns =
-    task?.project?.columns && task.project.columns.length > 0
-      ? task.project.columns
-      : columns && columns.length > 0
-      ? columns
-      : task?.column
-      ? [task.column]
-      : [];
-  const currentColumn = effectiveColumns.find((c: any) => c.id === task?.columnId) || task?.column;
-  const subtasks = task?.subtasks || [];
-
-  const isClosed = Boolean(task?.aiContext?.isClosed);
-  const isDone = Boolean(
-    currentColumn?.isDoneColumn ||
-    ["готово", "done", "вирішено", "resolved"].includes(currentColumn?.name?.toLowerCase().trim())
-  );
-  const resolution: string = isClosed
-    ? "Вирішено"
-    : task?.aiContext?.resolution || "Не вирішено";
 
   return (
     <div
@@ -168,87 +142,11 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
               <span className="text-xs text-destructive">{error || "Задачу не знайдено"}</span>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-border min-h-full">
-              {/* Left Side: Content & Details (8 cols) */}
-              <div className="lg:col-span-8 p-5 space-y-5">
-                {/* Title block */}
-                <IssueTitle
-                  title={task.title}
-                  isEditing={isEditingTitle}
-                  onStartEdit={() => setIsEditingTitle(true)}
-                  onCancelEdit={() => setIsEditingTitle(false)}
-                  onSaveTitle={handleSaveTitle}
-                />
-
-                {/* Details block with interactive status dropdown badge */}
-                <IssueDetailsCard
-                  task={task}
-                  typeInfo={typeInfo!}
-                  currentColumn={currentColumn}
-                  columns={effectiveColumns}
-                  canChangeStatus={canChangeStatus}
-                  onChangeStatus={handleChangeStatus}
-                  projectId={projectId}
-                  projectKey={task.project?.key || ""}
-                  dictionaries={dictionaries}
-                  isClosed={isClosed}
-                  isDone={isDone}
-                  resolution={resolution}
-                  onChangeType={handleChangeType}
-                  onChangePriority={handleChangePriority}
-                  onToggleComponent={handleToggleComponent}
-                  onToggleLabel={handleToggleLabel}
-                  onClosePermanently={handleClosePermanently}
-                />
-
-                {/* Description Block */}
-                <IssueDescriptionCard
-                  description={task.description}
-                  onSaveDescription={handleSaveDescription}
-                />
-
-                {/* Attachments */}
-                <IssueAttachmentsCard
-                  attachments={task.attachments}
-                  uploadingFile={uploadingFile}
-                  onUploadFile={handleUploadFile}
-                />
-
-                {/* Subtasks block */}
-                <IssueSubtasksCard
-                  subtasks={subtasks}
-                  onToggleSubtask={handleToggleSubtask}
-                  onDeleteSubtask={handleDeleteSubtask}
-                  onAddSubtask={handleAddSubtask}
-                />
-
-                {/* Activity / Comments Block */}
-                <IssueActivityTabs
-                  comments={task.comments}
-                  auditLogs={task.auditLogs}
-                  taskCreatedAt={task.createdAt}
-                  taskCreator={task.creator}
-                  currentUser={currentUser}
-                  aiRecommendation={aiRecommendation}
-                  aiLoading={aiLoading}
-                  commentInputRef={commentInputRef}
-                  onAddComment={handleAddComment}
-                  onGetAiRecommendation={handleGetAiRecommendation}
-                />
-              </div>
-
-              {/* Right Side: Metadata / Sidebar (4 cols) with internal time tracking */}
-              <div className="lg:col-span-4 bg-card/30">
-                <IssueSidebar
-                  task={task}
-                  projectId={projectId}
-                  canChangeAssignee={canChangeAssignee}
-                  currentUser={currentUser}
-                  onUpdateField={handleUpdateField}
-                  onReturnToClient={handleReturnToClient}
-                />
-              </div>
-            </div>
+            <IssueDetailContent
+              taskDetail={taskDetail}
+              projectId={projectId}
+              projectKey={task.project?.key || ""}
+            />
           )}
         </div>
       </div>

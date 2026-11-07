@@ -38,6 +38,8 @@ export const DEFAULT_TASK_DICTIONARIES: TaskDictionaries = {
   ],
 };
 
+let serverCachedDictionaries: TaskDictionaries | null = null;
+
 function getDictionariesFilePath(): string {
   if (fs.existsSync("/data")) {
     return "/data/task_dictionaries.json";
@@ -45,13 +47,21 @@ function getDictionariesFilePath(): string {
   return path.join(process.cwd(), "data", "task_dictionaries.json");
 }
 
+export function clearServerDictionariesCache() {
+  serverCachedDictionaries = null;
+}
+
 export function getTaskDictionaries(): TaskDictionaries {
+  if (serverCachedDictionaries) {
+    return serverCachedDictionaries;
+  }
+
   const filePath = getDictionariesFilePath();
   try {
     if (fs.existsSync(filePath)) {
       const content = fs.readFileSync(filePath, "utf8");
       const parsed = JSON.parse(content);
-      return {
+      serverCachedDictionaries = {
         componentsByType: {
           ...DEFAULT_TASK_DICTIONARIES.componentsByType,
           ...(parsed.componentsByType || {}),
@@ -62,12 +72,14 @@ export function getTaskDictionaries(): TaskDictionaries {
             : {},
         labels: Array.isArray(parsed.labels) ? parsed.labels : DEFAULT_TASK_DICTIONARIES.labels,
       };
+      return serverCachedDictionaries;
     }
   } catch (err) {
     console.error("Error reading task dictionaries:", err);
   }
 
-  return DEFAULT_TASK_DICTIONARIES;
+  serverCachedDictionaries = DEFAULT_TASK_DICTIONARIES;
+  return serverCachedDictionaries;
 }
 
 export function getProjectComponents(
@@ -75,10 +87,13 @@ export function getProjectComponents(
   projectId?: string | null,
   taskType: string = "TASK"
 ): string[] {
-  if (projectId && dict.componentsByProject?.[projectId]?.[taskType]) {
+  if (projectId && dict.componentsByProject?.[projectId]?.[taskType]?.length) {
     return dict.componentsByProject[projectId][taskType];
   }
-  return dict.componentsByType?.[taskType] || DEFAULT_TASK_DICTIONARIES.componentsByType[taskType as any] || [];
+  if (dict.componentsByType?.[taskType]?.length) {
+    return dict.componentsByType[taskType];
+  }
+  return DEFAULT_TASK_DICTIONARIES.componentsByType[taskType as any] || [];
 }
 
 export function saveTaskDictionaries(dict: Partial<TaskDictionaries>): TaskDictionaries {
@@ -117,5 +132,6 @@ export function saveTaskDictionaries(dict: Partial<TaskDictionaries>): TaskDicti
   };
 
   fs.writeFileSync(filePath, JSON.stringify(cleanData, null, 2), "utf8");
+  serverCachedDictionaries = cleanData;
   return cleanData;
 }

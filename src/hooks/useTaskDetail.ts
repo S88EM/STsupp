@@ -1,21 +1,51 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ColumnItem } from "@/components/board/ColumnCard";
 import { DictionariesData } from "@/components/jira/issue-detail/types";
+import { getTaskTypeInfo } from "@/lib/constants/task";
 
 export interface UseTaskDetailOptions {
   taskId: string | null;
   projectId: string;
+  columns?: ColumnItem[];
   isOpen?: boolean;
   onTaskUpdated?: () => void;
   onTaskDeleted?: (taskId: string) => void;
   currentUser?: any;
 }
 
+// Client-side in-memory cache for dictionaries to avoid repeated network calls
+let cachedDictionaries: DictionariesData | null = null;
+let dictionariesFetchPromise: Promise<DictionariesData | null> | null = null;
+
+async function fetchDictionariesCached(): Promise<DictionariesData | null> {
+  if (cachedDictionaries) return cachedDictionaries;
+  if (!dictionariesFetchPromise) {
+    dictionariesFetchPromise = fetch("/api/settings/dictionaries")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) cachedDictionaries = data;
+        dictionariesFetchPromise = null;
+        return data;
+      })
+      .catch(() => {
+        dictionariesFetchPromise = null;
+        return null;
+      });
+  }
+  return dictionariesFetchPromise;
+}
+
+export function invalidateDictionariesCache() {
+  cachedDictionaries = null;
+  dictionariesFetchPromise = null;
+}
+
 export function useTaskDetail({
   taskId,
   projectId,
+  columns,
   isOpen = true,
   onTaskUpdated,
   onTaskDeleted,
@@ -36,12 +66,14 @@ export function useTaskDetail({
   const [aiLoading, setAiLoading] = useState<boolean>(false);
   const [aiRecommendation, setAiRecommendation] = useState<string | null>(null);
 
-  // Dictionaries state
-  const [dictionaries, setDictionaries] = useState<DictionariesData>({
-    componentsByType: {},
-    componentsByProject: {},
-    labels: [],
-  });
+  // Dictionaries state with instant cached fallback
+  const [dictionaries, setDictionaries] = useState<DictionariesData>(
+    cachedDictionaries || {
+      componentsByType: {},
+      componentsByProject: {},
+      labels: [],
+    }
+  );
 
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -67,14 +99,15 @@ export function useTaskDetail({
     }
   }, [initialCurrentUser]);
 
-  // Fetch dictionaries
+  // Fetch dictionaries with in-memory caching
   useEffect(() => {
-    fetch("/api/settings/dictionaries")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data) setDictionaries(data);
-      })
-      .catch(() => {});
+    if (cachedDictionaries) {
+      setDictionaries(cachedDictionaries);
+      return;
+    }
+    fetchDictionariesCached().then((data) => {
+      if (data) setDictionaries(data);
+    });
   }, []);
 
   // Load task details
@@ -441,6 +474,40 @@ export function useTaskDetail({
     }
   }, [taskId, projectId]);
 
+  // Derived metadata & workflow properties
+  const typeInfo = useMemo(() => {
+    return task ? getTaskTypeInfo(task.aiContext, task.title) : null;
+  }, [task]);
+
+  const effectiveColumns: ColumnItem[] = useMemo(() => {
+    if (task?.project?.columns && task.project.columns.length > 0) {
+      return task.project.columns;
+    }
+    if (columns && columns.length > 0) {
+      return columns;
+    }
+    if (task?.column) {
+      return [task.column];
+    }
+    return [];
+  }, [task?.project?.columns, task?.column, columns]);
+
+  const currentColumn: ColumnItem | undefined = useMemo(() => {
+    return effectiveColumns.find((c: any) => c.id === task?.columnId) || task?.column;
+  }, [effectiveColumns, task?.columnId, task?.column]);
+
+  const subtasks = useMemo(() => task?.subtasks || [], [task?.subtasks]);
+
+  const isClosed = Boolean(task?.aiContext?.isClosed);
+  const isDone = Boolean(
+    currentColumn?.isDoneColumn ||
+    (currentColumn?.name &&
+      ["готово", "done", "вирішено", "resolved"].includes(currentColumn.name.toLowerCase().trim()))
+  );
+  const resolution: string = isClosed
+    ? "Вирішено"
+    : task?.aiContext?.resolution || "Не вирішено";
+
   return {
     task,
     setTask,
@@ -448,6 +515,13 @@ export function useTaskDetail({
     error,
     currentUser,
     dictionaries,
+    typeInfo,
+    effectiveColumns,
+    currentColumn,
+    subtasks,
+    isClosed,
+    isDone,
+    resolution,
     isEditingTitle,
     setIsEditingTitle,
     uploadingFile,

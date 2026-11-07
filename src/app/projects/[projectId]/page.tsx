@@ -105,29 +105,10 @@ function ProjectPageContent() {
     fetchInitialData();
   }, [projectId]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground text-sm">
-        Завантаження проєкту Jira...
-      </div>
-    );
-  }
-
-  if (!project) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center space-y-3">
-        <h2 className="text-xl font-bold text-foreground">Проєкт не знайдено</h2>
-        <a href="/" className="text-xs text-primary underline">
-          Повернутися на головну
-        </a>
-      </div>
-    );
-  }
-
-  // All tasks flattened with column metadata for Issue List
+  // All tasks flattened with column metadata for Issue List (MUST be called before any conditional return!)
   const allTasks = useMemo(() => {
     return columns.flatMap((c) =>
-      c.tasks.map((t) => ({
+      (c.tasks || []).map((t) => ({
         ...t,
         columnName: c.name,
         columnColor: c.color,
@@ -148,6 +129,25 @@ function ProjectPageContent() {
 
   // If selected task is deleted or invalid, fall back to first task
   const activeTask = allTasks.find((t) => t.id === selectedTaskId) || allTasks[0] || null;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground text-sm">
+        Завантаження проєкту Jira...
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center space-y-3">
+        <h2 className="text-xl font-bold text-foreground">Проєкт не знайдено</h2>
+        <a href="/" className="text-xs text-primary underline">
+          Повернутися на головну
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">

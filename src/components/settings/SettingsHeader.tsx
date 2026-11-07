@@ -1,0 +1,158 @@
+"use client";
+
+import React from "react";
+import Link from "next/link";
+import {
+  Settings,
+  ArrowLeft,
+  CheckCircle2,
+  AlertTriangle,
+  X,
+  Mail,
+  Tag,
+  Send,
+  ShieldCheck,
+} from "lucide-react";
+import { SettingsTab, TelegramStatus } from "./types";
+
+interface SettingsHeaderProps {
+  activeTab: SettingsTab;
+  onTabChange: (tab: SettingsTab) => void;
+  isSmtpConfigured: boolean;
+  telegramStatus: TelegramStatus;
+}
+
+export function SettingsHeader({
+  activeTab,
+  onTabChange,
+  isSmtpConfigured,
+  telegramStatus,
+}: SettingsHeaderProps) {
+  return (
+    <div className="space-y-6">
+      {/* Breadcrumb / Top Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Link
+              href="/"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Головна</span>
+            </Link>
+            <span className="text-muted-foreground text-xs">/</span>
+            <span className="text-xs font-medium text-foreground">Налаштування</span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+            <Settings className="w-6 h-6 text-primary" />
+            <span>Налаштування системи</span>
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {activeTab === "telegram" ? (
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+                telegramStatus.enabled && telegramStatus.hasToken && telegramStatus.chatId
+                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                  : telegramStatus.enabled
+                  ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                  : "bg-secondary text-muted-foreground border-border"
+              }`}
+            >
+              {telegramStatus.enabled && telegramStatus.hasToken && telegramStatus.chatId ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Telegram активний</span>
+                </>
+              ) : telegramStatus.enabled ? (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Потрібне налаштування</span>
+                </>
+              ) : (
+                <>
+                  <X className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span>Telegram вимкнено</span>
+                </>
+              )}
+            </span>
+          ) : (
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+                isSmtpConfigured
+                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                  : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+              }`}
+            >
+              {isSmtpConfigured ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Поштовий сервіс активний</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Режим симуляції (SMTP не налаштовано)</span>
+                </>
+              )}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-border overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => onTabChange("smtp")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === "smtp"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Mail className="w-4 h-4" />
+          <span>Поштовий сервер (SMTP)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onTabChange("dictionaries")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === "dictionaries"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Tag className="w-4 h-4" />
+          <span>Довідники: Компоненти та Мітки</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onTabChange("telegram")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === "telegram"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Send className="w-4 h-4" />
+          <span>Інтеграції: Telegram</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onTabChange("audit")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === "audit"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4 text-primary" />
+          <span>Аудит-лог (Безпека)</span>
+        </button>
+      </div>
+    </div>
+  );
+}

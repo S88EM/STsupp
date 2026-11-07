@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { CornerUpLeft } from "lucide-react";
 import { ColumnItem } from "../ColumnCard";
 
 interface TaskDetailSidebarProps {
@@ -11,6 +12,7 @@ interface TaskDetailSidebarProps {
   canChangeAssignee: boolean;
   canChangeStatus: boolean;
   onUpdateField: (field: string, value: any) => void;
+  onReturnToClient?: () => void;
 }
 
 export const TaskDetailSidebar: React.FC<TaskDetailSidebarProps> = ({
@@ -21,14 +23,37 @@ export const TaskDetailSidebar: React.FC<TaskDetailSidebarProps> = ({
   canChangeAssignee,
   canChangeStatus,
   onUpdateField,
+  onReturnToClient,
 }) => {
+  const isAssigneeStaff = Boolean(
+    task?.assignee && (task.assignee.role === "ADMIN" || task.assignee.role === "ENGINEER")
+  );
+  const hasCreator = Boolean(task?.creatorId || task?.creator?.id);
+  const isCreatorCurrentAssignee = task?.assigneeId === (task?.creatorId || task?.creator?.id);
+  const isClosed = Boolean(task?.aiContext?.isClosed);
+  const canReturnToClient =
+    canChangeAssignee && isAssigneeStaff && hasCreator && !isCreatorCurrentAssignee && !isClosed;
+
   return (
     <div className="w-full md:w-72 bg-secondary/10 p-6 space-y-5 flex-shrink-0 text-xs">
       {/* Assignee Selector */}
       <div>
-        <label className="font-semibold text-muted-foreground uppercase text-[10px] tracking-wider block mb-1.5">
-          Виконавець
-        </label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="font-semibold text-muted-foreground uppercase text-[10px] tracking-wider block">
+            Виконавець
+          </label>
+          {canReturnToClient && onReturnToClient && (
+            <button
+              type="button"
+              onClick={onReturnToClient}
+              className="text-[10px] font-semibold text-amber-500 hover:text-amber-400 hover:underline flex items-center gap-1 transition-colors cursor-pointer"
+              title={`Швидко перепризначити на автора (${task?.creator?.name || "клієнта"})`}
+            >
+              <CornerUpLeft className="w-3 h-3" />
+              <span>Повернути до клієнта</span>
+            </button>
+          )}
+        </div>
         {canChangeAssignee ? (
           <select
             value={task?.assigneeId || ""}

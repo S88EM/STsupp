@@ -15,12 +15,15 @@ import {
 } from "lucide-react";
 import { ColumnItem } from "@/components/board/ColumnCard";
 import { JIRA_TASK_TYPES, getPriorityIcon } from "../IssueListPane";
-import { DictionariesData } from "./types";
+import { DictionariesData, getStatusSemantic } from "./types";
 
 interface IssueDetailsCardProps {
   task: any;
   typeInfo: { icon: React.ReactNode; label: string; id: string };
   currentColumn: ColumnItem | undefined;
+  columns?: ColumnItem[];
+  canChangeStatus?: boolean;
+  onChangeStatus?: (columnId: string) => void;
   projectId: string;
   projectKey: string;
   dictionaries: DictionariesData;
@@ -38,6 +41,9 @@ export function IssueDetailsCard({
   task,
   typeInfo,
   currentColumn,
+  columns = [],
+  canChangeStatus = false,
+  onChangeStatus,
   projectId,
   projectKey,
   dictionaries,
@@ -54,12 +60,17 @@ export function IssueDetailsCard({
   const [showPriorityMenu, setShowPriorityMenu] = useState(false);
   const [showComponentsMenu, setShowComponentsMenu] = useState(false);
   const [showLabelsMenu, setShowLabelsMenu] = useState(false);
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
 
   const componentsMenuRef = useRef<HTMLDivElement>(null);
   const labelsMenuRef = useRef<HTMLDivElement>(null);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
+      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) {
+        setShowStatusMenu(false);
+      }
       if (componentsMenuRef.current && !componentsMenuRef.current.contains(e.target as Node)) {
         setShowComponentsMenu(false);
       }
@@ -77,6 +88,21 @@ export function IssueDetailsCard({
   const labelsList: string[] = Array.isArray(task.aiContext?.labels)
     ? task.aiContext.labels
     : [];
+
+  const statusConfig = getStatusSemantic(
+    currentColumn?.name,
+    currentColumn?.isDoneColumn,
+    isClosed
+  );
+
+  const columnsList: ColumnItem[] =
+    columns && columns.length > 0
+      ? columns
+      : task?.project?.columns && task.project.columns.length > 0
+      ? task.project.columns
+      : currentColumn
+      ? [currentColumn]
+      : [];
 
   return (
     <div className="rounded-xl border border-border bg-card/60 p-4 space-y-3">
@@ -342,21 +368,89 @@ export function IssueDetailsCard({
           </div>
         </div>
 
-        {/* Status */}
+        {/* Status (Interactive Dropdown Badge) */}
         <div className="flex items-center justify-between py-1 border-b border-border/50">
-          <span className="text-muted-foreground">Статус:</span>
-          <div className="flex items-center gap-1.5">
-            <span
-              className="px-2 py-0.5 rounded text-[11px] font-semibold text-white"
-              style={{ backgroundColor: currentColumn?.color || "#3b82f6" }}
-            >
-              {currentColumn?.name}
-            </span>
-            {isClosed && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-emerald-400 border border-slate-700 flex items-center gap-1">
-                <Lock className="w-2.5 h-2.5" />
-                <span>Закрита</span>
-              </span>
+          <span className="text-muted-foreground font-medium">Статус:</span>
+          <div className="relative" ref={statusMenuRef}>
+            {isClosed ? (
+              <div
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border shadow-xs select-none opacity-90 ${statusConfig.badgeClass}`}
+                title="Ця задача повністю закрита. Повторне відкриття заблоковано."
+              >
+                <span className={`w-2 h-2 rounded-full ${statusConfig.dotClass}`} />
+                <span className="font-semibold">{currentColumn?.name || statusConfig.label}</span>
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-800 text-emerald-400 border border-slate-700 flex items-center gap-0.5 ml-1">
+                  <Lock className="w-2.5 h-2.5" />
+                  <span>Закрита</span>
+                </span>
+              </div>
+            ) : canChangeStatus ? (
+              <button
+                type="button"
+                onClick={() => setShowStatusMenu(!showStatusMenu)}
+                className={`group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer shadow-xs hover:shadow hover:brightness-105 active:scale-95 ${statusConfig.badgeClass}`}
+                title="Натисніть, щоб змінити статус задачі"
+                aria-haspopup="true"
+                aria-expanded={showStatusMenu}
+              >
+                <span className={`w-2 h-2 rounded-full ${statusConfig.dotClass}`} />
+                <span className="font-bold tracking-tight">{currentColumn?.name || statusConfig.label}</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform duration-200 ml-0.5 opacity-70 group-hover:opacity-100 ${
+                    showStatusMenu ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+            ) : (
+              <div
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border shadow-xs select-none opacity-85 ${statusConfig.badgeClass}`}
+                title="Змінювати статус задачі можуть лише адміністратор та інженер"
+              >
+                <span className={`w-2 h-2 rounded-full ${statusConfig.dotClass}`} />
+                <span className="font-semibold">{currentColumn?.name || statusConfig.label}</span>
+              </div>
+            )}
+
+            {/* Status Dropdown Menu */}
+            {!isClosed && canChangeStatus && showStatusMenu && (
+              <div className="absolute right-0 top-full mt-1.5 w-48 rounded-xl bg-card border border-border shadow-2xl p-1 z-40 animate-in fade-in-50 zoom-in-95">
+                <div className="px-3 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/60">
+                  Змінити статус
+                </div>
+                <div className="max-h-60 overflow-y-auto py-1 space-y-0.5">
+                  {columnsList.length === 0 ? (
+                    <div className="p-2 text-center text-[11px] text-muted-foreground">
+                      Немає доступних статусів
+                    </div>
+                  ) : (
+                    columnsList.map((c) => {
+                      const isSelected = c.id === task.columnId;
+                      const cSemantic = getStatusSemantic(c.name, c.isDoneColumn);
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => {
+                            setShowStatusMenu(false);
+                            if (onChangeStatus) onChangeStatus(c.id);
+                          }}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer text-left ${
+                            isSelected
+                              ? `${cSemantic.activeItemClass} border border-border/50`
+                              : "text-foreground hover:bg-secondary/80"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${cSemantic.dotClass}`} />
+                            <span className={isSelected ? "font-bold" : "font-medium"}>{c.name}</span>
+                          </span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>

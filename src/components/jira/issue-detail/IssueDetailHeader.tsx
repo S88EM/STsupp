@@ -7,24 +7,23 @@ import {
   User,
   UserX,
   CheckCircle2,
-  Lock,
-  ChevronDown,
-  Check,
   MoreHorizontal,
   Copy,
   Sparkles,
   Trash2,
+  CornerUpLeft,
 } from "lucide-react";
 import { ColumnItem } from "@/components/board/ColumnCard";
+import { FEATURE_FLAGS } from "@/config/features";
 
 interface IssueDetailHeaderProps {
   projectName: string;
   task: any;
   typeInfo: { icon: React.ReactNode; label: string; id: string };
   currentColumn: ColumnItem | undefined;
-  columns: ColumnItem[];
+  columns?: ColumnItem[];
   canChangeAssignee: boolean;
-  canChangeStatus: boolean;
+  canChangeStatus?: boolean;
   currentUser?: any;
   isClosed: boolean;
   isDone: boolean;
@@ -32,8 +31,9 @@ interface IssueDetailHeaderProps {
   onFocusComment: () => void;
   onAssignToMe: () => void;
   onUnassignFromMe: () => void;
+  onReturnToClient?: () => void;
   onClosePermanently: () => void;
-  onChangeStatus: (columnId: string) => void;
+  onChangeStatus?: (columnId: string) => void;
   onGetAiRecommendation: () => void;
   onDeleteTask: () => void;
 }
@@ -42,10 +42,7 @@ export function IssueDetailHeader({
   projectName,
   task,
   typeInfo,
-  currentColumn,
-  columns,
   canChangeAssignee,
-  canChangeStatus,
   currentUser,
   isClosed,
   isDone,
@@ -53,13 +50,20 @@ export function IssueDetailHeader({
   onFocusComment,
   onAssignToMe,
   onUnassignFromMe,
+  onReturnToClient,
   onClosePermanently,
-  onChangeStatus,
   onGetAiRecommendation,
   onDeleteTask,
 }: IssueDetailHeaderProps) {
-  const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+
+  const isAssigneeStaff = Boolean(
+    task.assignee && (task.assignee.role === "ADMIN" || task.assignee.role === "ENGINEER")
+  );
+  const hasCreator = Boolean(task.creatorId || task.creator?.id);
+  const isCreatorCurrentAssignee = task.assigneeId === (task.creatorId || task.creator?.id);
+  const canReturnToClient =
+    canChangeAssignee && isAssigneeStaff && hasCreator && !isCreatorCurrentAssignee && !isClosed;
 
   return (
     <div className="p-4 border-b border-border/80 flex flex-wrap items-center justify-between gap-3 bg-card/40 sticky top-0 z-10 backdrop-blur-md">
@@ -75,7 +79,7 @@ export function IssueDetailHeader({
         </span>
       </div>
 
-      {/* Action Buttons & Transitions */}
+      {/* Action Buttons */}
       <div className="flex items-center gap-2">
         {/* Quick Action: Edit */}
         <button
@@ -123,6 +127,19 @@ export function IssueDetailHeader({
           </button>
         )}
 
+        {/* Quick Action: Return to Client */}
+        {canReturnToClient && onReturnToClient && (
+          <button
+            type="button"
+            onClick={onReturnToClient}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 hover:text-amber-400 transition-colors cursor-pointer shadow-xs"
+            title={`Повернути задачу автору (${task.creator?.name || "клієнту"})`}
+          >
+            <CornerUpLeft className="w-3.5 h-3.5" />
+            <span>Повернути до клієнта</span>
+          </button>
+        )}
+
         {/* Action: Permanently Close Task (Workflow: Available when in Done status) */}
         {isDone && !isClosed && (
           <button
@@ -135,65 +152,6 @@ export function IssueDetailHeader({
             <span>Закрити задачу повністю</span>
           </button>
         )}
-
-        {/* Jira-style Workflow Status Transitions */}
-        <div className="relative">
-          {isClosed ? (
-            <div
-              className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-white shadow-sm bg-slate-700/90 border border-slate-600/80 cursor-not-allowed select-none"
-              title="Ця задача повністю закрита. Повторне відкриття заблоковано."
-            >
-              <Lock className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{currentColumn?.name || "Готово"} (Закрита 🔒)</span>
-            </div>
-          ) : canChangeStatus ? (
-            <button
-              type="button"
-              onClick={() => setShowStatusMenu(!showStatusMenu)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-white transition-all shadow-sm hover:opacity-95 cursor-pointer"
-              style={{ backgroundColor: currentColumn?.color || "#3b82f6" }}
-            >
-              <span>{currentColumn?.name || "Статус"}</span>
-              <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
-            </button>
-          ) : (
-            <div
-              className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-white shadow-sm cursor-default"
-              style={{ backgroundColor: currentColumn?.color || "#3b82f6" }}
-              title="Змінювати статус задачі можуть лише адміністратор та інженер"
-            >
-              <span>{currentColumn?.name || "Статус"}</span>
-            </div>
-          )}
-
-          {canChangeStatus && showStatusMenu && (
-            <div className="absolute right-0 mt-1 w-44 rounded-lg bg-card border border-border shadow-xl py-1 z-30 animate-in fade-in-50 zoom-in-95">
-              <div className="px-3 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/60">
-                Змінити статус
-              </div>
-              {columns.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => {
-                    setShowStatusMenu(false);
-                    onChangeStatus(c.id);
-                  }}
-                  className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-foreground hover:bg-secondary transition-colors cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: c.color }}
-                    />
-                    <span>{c.name}</span>
-                  </span>
-                  {c.id === task.columnId && <Check className="w-3.5 h-3.5 text-primary" />}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* More Actions Menu */}
         <div className="relative">
@@ -213,36 +171,43 @@ export function IssueDetailHeader({
                 onClick={() => {
                   navigator.clipboard.writeText(window.location.href);
                   setShowMoreMenu(false);
-                  alert("Посилання на задачу скопійовано в буфер обміну");
                 }}
                 className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-secondary transition-colors cursor-pointer"
               >
                 <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>Копіювати посилання</span>
+                <span>Скопіювати посилання</span>
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowMoreMenu(false);
-                  onGetAiRecommendation();
-                }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-primary" />
-                <span>AI Аналіз задачі</span>
-              </button>
-              <div className="my-1 border-t border-border/80" />
-              <button
-                type="button"
-                onClick={() => {
-                  setShowMoreMenu(false);
-                  onDeleteTask();
-                }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Видалити задачу</span>
-              </button>
+
+              {FEATURE_FLAGS.ENABLE_AI_ASSISTANT && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMoreMenu(false);
+                    onGetAiRecommendation();
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-primary hover:bg-secondary transition-colors cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  <span>Отримати пораду ШІ</span>
+                </button>
+              )}
+
+              {currentUser?.role === "ADMIN" && (
+                <>
+                  <div className="my-1 border-t border-border/60" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      onDeleteTask();
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                    <span>Видалити задачу</span>
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>

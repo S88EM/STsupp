@@ -23,6 +23,11 @@ export async function GET(
       where: { id: taskId, projectId },
       include: {
         column: true,
+        project: {
+          include: {
+            columns: { orderBy: { orderIndex: "asc" } },
+          },
+        },
         assignee: { select: { id: true, name: true, email: true, avatarUrl: true, role: true } },
         creator: { select: { id: true, name: true, email: true, role: true } },
         subtasks: { orderBy: { orderIndex: "asc" } },
@@ -288,6 +293,11 @@ export async function PATCH(
       },
       include: {
         column: true,
+        project: {
+          include: {
+            columns: { orderBy: { orderIndex: "asc" } },
+          },
+        },
         assignee: { select: { id: true, name: true, email: true, role: true, avatarUrl: true } },
         creator: { select: { id: true, name: true, email: true, role: true } },
         subtasks: { orderBy: { orderIndex: "asc" } },
@@ -403,6 +413,18 @@ export async function PATCH(
         changes.labels = {
           old: Array.isArray(oldCtx.labels) ? oldCtx.labels : [],
           new: Array.isArray(newCtx.labels) ? newCtx.labels : [],
+        };
+      }
+      if (newCtx.originalEstimate !== undefined && newCtx.originalEstimate !== oldCtx.originalEstimate) {
+        changes.originalEstimate = {
+          old: oldCtx.originalEstimate || "Не вказано",
+          new: newCtx.originalEstimate || "Не вказано",
+        };
+      }
+      if (newCtx.timeSpent !== undefined && newCtx.timeSpent !== oldCtx.timeSpent) {
+        changes.timeSpent = {
+          old: oldCtx.timeSpent || "0h",
+          new: newCtx.timeSpent || "0h",
         };
       }
     }

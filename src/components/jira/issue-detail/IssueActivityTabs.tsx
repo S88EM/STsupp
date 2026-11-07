@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Sparkles, Bot, Send } from "lucide-react";
+import { Sparkles, Send } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
 import { TaskHistoryTimeline } from "@/components/common/TaskHistoryTimeline";
+import { FEATURE_FLAGS } from "@/config/features";
 
 interface CommentItem {
   id: string;
@@ -94,18 +95,22 @@ export function IssueActivityTabs({
           >
             Коментарі ({sortedComments.length})
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("ai")}
-            className={`pb-1 font-semibold flex items-center gap-1 transition-colors relative cursor-pointer ${
-              activeTab === "ai"
-                ? "text-primary border-b-2 border-primary -mb-2.5"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <span>ШІ-Асистент</span>
-          </button>
+
+          {FEATURE_FLAGS.ENABLE_AI_ASSISTANT && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("ai")}
+              className={`pb-1 font-semibold flex items-center gap-1 transition-colors relative cursor-pointer ${
+                activeTab === "ai"
+                  ? "text-primary border-b-2 border-primary -mb-2.5"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              <span>ШІ-Асистент</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setActiveTab("history")}
@@ -119,7 +124,7 @@ export function IssueActivityTabs({
           </button>
         </div>
 
-        {activeTab === "comments" && (
+        {FEATURE_FLAGS.ENABLE_AI_ASSISTANT && activeTab === "comments" && (
           <button
             type="button"
             onClick={onGetAiRecommendation}
@@ -138,54 +143,38 @@ export function IssueActivityTabs({
           {/* Comments List */}
           <div className="space-y-3 pt-1 divide-y divide-border/50">
             {sortedComments.length > 0 ? (
-              sortedComments.map((c) => (
-                <div key={c.id} className="pt-3 first:pt-0 space-y-1.5">
+              sortedComments.map((comment) => (
+                <div key={comment.id} className="pt-3 first:pt-0 space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center font-bold text-[10px] border border-border">
-                        {c.authorType === "AI_ASSISTANT" ? (
-                          <Bot className="w-3.5 h-3.5 text-primary" />
-                        ) : (
-                          (c.author?.name || c.authorName || "U")[0].toUpperCase()
-                        )}
-                      </div>
-                      <span className="font-semibold text-foreground">
-                        {c.authorType === "AI_ASSISTANT"
-                          ? "STsup AI Assistant"
-                          : c.author?.name || c.authorName || "Користувач"}
-                      </span>
-                      {c.authorType === "AI_ASSISTANT" && (
-                        <span className="px-1.5 py-0.2 rounded bg-primary/20 text-primary font-mono text-[9px] font-bold">
-                          AI
-                        </span>
-                      )}
-                    </div>
+                    <span className="font-semibold text-foreground">
+                      {comment.author?.name || comment.authorName || "Користувач"}
+                    </span>
                     <span className="text-[10px] text-muted-foreground">
-                      {formatTimeAgo(c.createdAt)}
+                      {formatTimeAgo(comment.createdAt)}
                     </span>
                   </div>
-                  <p className="text-xs text-foreground/90 whitespace-pre-wrap pl-8 leading-relaxed">
-                    {c.content}
+                  <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                    {comment.content}
                   </p>
                 </div>
               ))
             ) : (
-              <div className="py-6 text-center text-xs text-muted-foreground">
-                Коментарів поки немає. Будьте першим, хто залишить коментар!
+              <div className="text-center py-6 text-xs text-muted-foreground">
+                Поки що немає коментарів. Будьте першим, хто прокоментує!
               </div>
             )}
             <div ref={commentsEndRef} />
           </div>
 
-          {/* New Comment Box */}
-          <form onSubmit={handleSubmitComment} className="space-y-2 pt-2 border-t border-border/40">
+          {/* New Comment Input */}
+          <form onSubmit={handleSubmitComment} className="pt-2 space-y-2">
             <textarea
               ref={commentInputRef}
-              rows={3}
-              placeholder="Напишіть коментар або питання команді..."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              className="w-full text-xs p-3 rounded-lg bg-secondary/30 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground resize-none"
+              placeholder="Напишіть коментар..."
+              rows={3}
+              className="w-full text-xs p-3 rounded-xl bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground resize-none"
             />
             <div className="flex items-center justify-end gap-2">
               <button
@@ -202,7 +191,7 @@ export function IssueActivityTabs({
       )}
 
       {/* Tab: AI Assistant */}
-      {activeTab === "ai" && (
+      {FEATURE_FLAGS.ENABLE_AI_ASSISTANT && activeTab === "ai" && (
         <div className="space-y-3">
           <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/25 space-y-2">
             <div className="flex items-center justify-between">

@@ -123,6 +123,27 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
     }
   };
 
+  const handleReturnToClient = async () => {
+    if (!taskId) return;
+    try {
+      const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}/return-to-client`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTask((prev: any) => ({ ...prev, ...(data.task || {}) }));
+        onTaskUpdated();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Не вдалося повернути задачу клієнту");
+      }
+    } catch (e: any) {
+      console.error("Error returning to client:", e);
+      alert(e.message || "Помилка зв'язку із сервером");
+    }
+  };
+
   const handleSaveTitle = async (newTitle: string) => {
     await handleUpdateField({ title: newTitle });
     setIsEditingTitle(false);
@@ -375,8 +396,16 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
     );
   }
 
-  const typeInfo = getTaskTypeInfo(task.aiContext, task.title);
-  const currentColumn = columns.find((c) => c.id === task.columnId) || task.column;
+    const typeInfo = getTaskTypeInfo(task.aiContext, task.title);
+  const effectiveColumns =
+    task.project?.columns && task.project.columns.length > 0
+      ? task.project.columns
+      : columns && columns.length > 0
+      ? columns
+      : task.column
+      ? [task.column]
+      : [];
+  const currentColumn = effectiveColumns.find((c: any) => c.id === task.columnId) || task.column;
   const subtasks = task.subtasks || [];
 
   // Metadata from aiContext & workflow
@@ -388,7 +417,6 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
   const resolution: string = isClosed
     ? "Вирішено"
     : task.aiContext?.resolution || "Не вирішено";
-  const storyPoints = task.aiContext?.storyPoints ?? 3;
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto bg-background/50">
@@ -398,7 +426,7 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
         task={task}
         typeInfo={typeInfo}
         currentColumn={currentColumn}
-        columns={columns}
+        columns={effectiveColumns}
         canChangeAssignee={canChangeAssignee}
         canChangeStatus={canChangeStatus}
         currentUser={currentUser}
@@ -413,6 +441,7 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
           if (currentUser) handleUpdateField({ assigneeId: currentUser.userId });
         }}
         onUnassignFromMe={() => handleUpdateField({ assigneeId: null })}
+        onReturnToClient={handleReturnToClient}
         onClosePermanently={handleClosePermanently}
         onChangeStatus={handleChangeStatus}
         onGetAiRecommendation={handleGetAiRecommendation}
@@ -437,6 +466,9 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
             task={task}
             typeInfo={typeInfo}
             currentColumn={currentColumn}
+            columns={effectiveColumns}
+            canChangeStatus={canChangeStatus}
+            onChangeStatus={handleChangeStatus}
             projectId={projectId}
             projectKey={projectKey}
             dictionaries={dictionaries}
@@ -492,8 +524,8 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
           projectId={projectId}
           canChangeAssignee={canChangeAssignee}
           currentUser={currentUser}
-          storyPoints={storyPoints}
           onUpdateField={handleUpdateField}
+          onReturnToClient={handleReturnToClient}
         />
       </div>
     </div>

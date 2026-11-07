@@ -11,6 +11,7 @@ import {
   TaskDetailActivityTabs,
   TaskDetailSidebar,
 } from "./task-detail";
+import { FEATURE_FLAGS } from "@/config/features";
 
 export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   taskId,
@@ -123,6 +124,27 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleReturnToClient = async () => {
+    if (!taskId) return;
+    try {
+      const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}/return-to-client`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTask((prev: any) => ({ ...prev, ...(data.task || {}) }));
+        onTaskUpdated();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Не вдалося повернути задачу клієнту");
+      }
+    } catch (e: any) {
+      console.error("Error returning to client:", e);
+      alert(e.message || "Помилка зв'язку із сервером");
     }
   };
 
@@ -390,11 +412,13 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                 onDeleteSubtask={handleDeleteSubtask}
               />
 
-              <TaskDetailAiRecommendations
-                recommendations={task?.aiRecommendations}
-                aiLoading={aiLoading}
-                onTriggerAi={() => handleTriggerAiRecommendation(false)}
-              />
+              {FEATURE_FLAGS.ENABLE_AI_ASSISTANT && (
+                <TaskDetailAiRecommendations
+                  recommendations={task?.aiRecommendations}
+                  aiLoading={aiLoading}
+                  onTriggerAi={() => handleTriggerAiRecommendation(false)}
+                />
+              )}
 
               <TaskDetailAttachments
                 attachments={task?.attachments}
@@ -426,6 +450,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
               canChangeAssignee={canChangeAssignee}
               canChangeStatus={canChangeStatus}
               onUpdateField={handleUpdateField}
+              onReturnToClient={handleReturnToClient}
             />
           </div>
         )}

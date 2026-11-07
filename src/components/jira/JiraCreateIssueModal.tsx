@@ -21,6 +21,7 @@ import {
   CustomMultiSelect,
   CreateIssueFormHeader,
 } from "./create-issue";
+import { TIME_PRESETS, normalizeDurationInput } from "@/lib/timeEstimate";
 
 export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
   isOpen,
@@ -42,7 +43,7 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
   const [columnId, setColumnId] = useState(columns[0]?.id || "");
   const [priority, setPriority] = useState<"LOW" | "MEDIUM" | "HIGH" | "URGENT">("MEDIUM");
   const [dueDate, setDueDate] = useState("");
-  const [storyPoints, setStoryPoints] = useState<number>(3);
+  const [timeEstimate, setTimeEstimate] = useState<string>("");
   const [assigneeId, setAssigneeId] = useState<string>("");
   const [staffUsers, setStaffUsers] = useState<any[]>([]);
   const [clientUsers, setClientUsers] = useState<any[]>([]);
@@ -96,7 +97,7 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
       setColumnId(columns[0]?.id || "");
       setPriority("MEDIUM");
       setDueDate("");
-      setStoryPoints(3);
+      setTimeEstimate("");
       setAssigneeId("");
       setSelectedComponents([]);
       setSelectedLabels([]);
@@ -162,7 +163,7 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
           assigneeId: canChangeAssignee && assigneeId ? assigneeId : undefined,
           aiContext: {
             type: issueType,
-            storyPoints: Number(storyPoints) || 0,
+            originalEstimate: timeEstimate.trim() ? normalizeDurationInput(timeEstimate) : undefined,
             resolution: "Не вирішено",
             components: selectedComponents,
             labels: selectedLabels,
@@ -470,20 +471,39 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
             />
           </div>
 
-          {/* Story Points */}
-          <div>
-            <label className="text-xs font-medium text-foreground block mb-1">
-              Story Points (Складність)
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={storyPoints}
-              onChange={(e) => setStoryPoints(parseInt(e.target.value) || 0)}
-              className="w-28 text-xs py-2 px-3 rounded-lg bg-secondary/40 border border-border text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
+          {/* Time Estimate (Internal for Staff) */}
+          {currentUser?.role !== "CLIENT" && (
+            <div>
+              <label className="text-xs font-medium text-foreground block mb-1">
+                Оцінка часу (h, d, w, m)
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="напр. 4h, 1d, 1w"
+                  value={timeEstimate}
+                  onChange={(e) => setTimeEstimate(e.target.value)}
+                  className="w-36 text-xs py-2 px-3 rounded-lg bg-secondary/40 border border-border text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <div className="flex flex-wrap items-center gap-1">
+                  {TIME_PRESETS.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setTimeEstimate(preset)}
+                      className={`px-2 py-1 rounded text-[10px] font-mono border transition-colors cursor-pointer ${
+                        timeEstimate === preset
+                          ? "bg-primary/20 text-primary border-primary/40 font-bold"
+                          : "bg-secondary text-muted-foreground border-border hover:text-foreground"
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Footer Actions */}
           <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">

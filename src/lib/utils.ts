@@ -18,3 +18,20 @@ export function formatTimeAgo(date: Date | string): string {
   const diffInDays = Math.floor(diffInHours / 24);
   return `${diffInDays} дн. тому`;
 }
+
+export function getUserInitials(name?: string, email?: string): string {
+  if (name?.trim()) {
+    const parts = name.trim().split(" ");
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  }
+  return email ? email.slice(0, 2).toUpperCase() : "U";
+}
+
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}

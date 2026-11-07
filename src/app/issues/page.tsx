@@ -5,21 +5,12 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { IssueDetailPane } from "@/components/jira/IssueDetailPane";
 import { JiraCreateIssueModal } from "@/components/jira/JiraCreateIssueModal";
-import { getTaskTypeInfo, getPriorityIcon } from "@/components/jira/IssueListPane";
+import { Layers } from "lucide-react";
 import {
-  Search,
-  Filter,
-  CheckCircle2,
-  User,
-  Layers,
-  Inbox,
-  Plus,
-  FolderGit2,
-  ChevronRight,
-  Check,
-} from "lucide-react";
-
-type FilterType = "all" | "my" | "open";
+  FilterType,
+  IssuesSidebar,
+  IssuesMiddleList,
+} from "@/components/jira/issues-page";
 
 function IssuesPageContent() {
   const searchParams = useSearchParams();
@@ -184,342 +175,40 @@ function IssuesPageContent() {
       {/* 2. Main 3-Column Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar: Filter Nav & Project Filters */}
-        <div className="w-56 md:w-64 border-r border-border bg-card/60 flex flex-col flex-shrink-0 select-none">
-          <div className="p-3 border-b border-border/80">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-2 px-2">
-              Фільтри задач
-            </span>
-            <div className="space-y-1">
-              <button
-                onClick={() => handleFilterChange("all")}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  filterMode === "all"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-foreground hover:bg-secondary"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>Всі задачі</span>
-                </div>
-                {filterMode === "all" && (
-                  <span className="text-[10px] font-mono bg-primary-foreground/20 px-1.5 py-0.2 rounded-full">
-                    {tasks.length}
-                  </span>
-                )}
-              </button>
-
-              <button
-                onClick={() => handleFilterChange("my")}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  filterMode === "my"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-foreground hover:bg-secondary"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <User className="w-3.5 h-3.5" />
-                  <span>Призначені мені</span>
-                </div>
-                {filterMode === "my" && (
-                  <span className="text-[10px] font-mono bg-primary-foreground/20 px-1.5 py-0.2 rounded-full">
-                    {tasks.length}
-                  </span>
-                )}
-              </button>
-
-              <button
-                onClick={() => handleFilterChange("open")}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  filterMode === "open"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-foreground hover:bg-secondary"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Відкриті задачі</span>
-                </div>
-                {filterMode === "open" && (
-                  <span className="text-[10px] font-mono bg-primary-foreground/20 px-1.5 py-0.2 rounded-full">
-                    {tasks.length}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Project Scope Filter */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-1">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-2 px-2">
-              Проєкти
-            </span>
-
-            <button
-              onClick={() => setSelectedProjectId("")}
-              className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition-colors ${
-                selectedProjectId === ""
-                  ? "bg-secondary text-foreground font-semibold"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-              }`}
-            >
-              <span className="truncate">Всі дозволені проєкти</span>
-              {selectedProjectId === "" && <Check className="w-3 h-3 text-primary" />}
-            </button>
-
-            {projects.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setSelectedProjectId(p.id)}
-                className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition-colors ${
-                  selectedProjectId === p.id
-                    ? "bg-secondary text-foreground font-semibold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-                }`}
-              >
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="font-mono text-[10px] text-primary">[{p.key}]</span>
-                  <span className="truncate">{p.name}</span>
-                </div>
-                {selectedProjectId === p.id && <Check className="w-3 h-3 text-primary" />}
-              </button>
-            ))}
-          </div>
-
-          {/* Attributes Filters: Components & Labels */}
-          {(availableComponents.length > 0 || availableLabels.length > 0) && (
-            <div className="p-3 border-t border-border/80 space-y-3 bg-secondary/10">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
-                  Фільтрація полів
-                </span>
-                {(selectedComponent || selectedLabel) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedComponent("");
-                      setSelectedLabel("");
-                    }}
-                    className="text-[10px] text-muted-foreground hover:text-destructive px-1 rounded transition-colors cursor-pointer"
-                    title="Скинути фільтри"
-                  >
-                    Скинути
-                  </button>
-                )}
-              </div>
-
-              {/* Component Filter */}
-              {availableComponents.length > 0 && (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground px-1 block">
-                    Компонент:
-                  </label>
-                  <select
-                    value={selectedComponent}
-                    onChange={(e) => setSelectedComponent(e.target.value)}
-                    className="w-full text-xs py-1.5 px-2 rounded-lg bg-secondary/60 border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary truncate cursor-pointer"
-                  >
-                    <option value="">Всі компоненти</option>
-                    {availableComponents.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Label Filter */}
-              {availableLabels.length > 0 && (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground px-1 block">
-                    Мітка:
-                  </label>
-                  <select
-                    value={selectedLabel}
-                    onChange={(e) => setSelectedLabel(e.target.value)}
-                    className="w-full text-xs py-1.5 px-2 rounded-lg bg-secondary/60 border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary truncate cursor-pointer"
-                  >
-                    <option value="">Всі мітки</option>
-                    {availableLabels.map((l) => (
-                      <option key={l} value={l}>
-                        {l}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <IssuesSidebar
+          filterMode={filterMode}
+          onFilterChange={handleFilterChange}
+          tasksCount={tasks.length}
+          projects={projects}
+          selectedProjectId={selectedProjectId}
+          onSelectProject={setSelectedProjectId}
+          availableComponents={availableComponents}
+          selectedComponent={selectedComponent}
+          onSelectComponent={setSelectedComponent}
+          availableLabels={availableLabels}
+          selectedLabel={selectedLabel}
+          onSelectLabel={setSelectedLabel}
+          onResetAttributes={() => {
+            setSelectedComponent("");
+            setSelectedLabel("");
+          }}
+        />
 
         {/* Middle Column: Task List */}
-        <div className="w-80 md:w-96 flex flex-col border-r border-border bg-card/40 flex-shrink-0 select-none">
-          {/* Header & Search */}
-          <div className="p-3 border-b border-border/80 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs font-bold text-foreground tracking-tight">
-                  {filterMode === "my"
-                    ? "Призначені мені"
-                    : filterMode === "open"
-                    ? "Відкриті задачі"
-                    : "Всі задачі"}
-                </h3>
-                <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded-full bg-secondary text-muted-foreground border border-border">
-                  {filteredTasks.length}
-                </span>
-              </div>
-
-              {/* Quick Tab Switcher */}
-              <div className="flex items-center gap-1 text-[10px] bg-secondary/60 p-0.5 rounded-md border border-border/70">
-                <button
-                  onClick={() => handleFilterChange("all")}
-                  className={`px-2 py-0.5 rounded transition-all ${
-                    filterMode === "all"
-                      ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Всі
-                </button>
-                <button
-                  onClick={() => handleFilterChange("my")}
-                  className={`px-2 py-0.5 rounded transition-all ${
-                    filterMode === "my"
-                      ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Мої
-                </button>
-                <button
-                  onClick={() => handleFilterChange("open")}
-                  className={`px-2 py-0.5 rounded transition-all ${
-                    filterMode === "open"
-                      ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Відкриті
-                </button>
-              </div>
-            </div>
-
-            {/* Search Input */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Пошук за кодом, назвою, проєктом..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-            </div>
-
-            {/* Active Component / Label filter tags */}
-            {(selectedComponent || selectedLabel) && (
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                {selectedComponent && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-secondary text-foreground border border-border">
-                    <span>компонент: {selectedComponent}</span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedComponent("")}
-                      className="hover:text-destructive font-bold ml-0.5 cursor-pointer"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
-                {selectedLabel && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
-                    <span>мітка: {selectedLabel}</span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedLabel("")}
-                      className="hover:text-destructive font-bold ml-0.5 cursor-pointer"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* List Items */}
-          <div className="flex-1 overflow-y-auto divide-y divide-border/50">
-            {loading ? (
-              <div className="py-12 text-center text-xs text-muted-foreground animate-pulse">
-                Завантаження задач...
-              </div>
-            ) : filteredTasks.length === 0 ? (
-              <div className="py-16 px-4 text-center text-xs text-muted-foreground space-y-2">
-                <Inbox className="w-8 h-8 mx-auto text-muted-foreground/40" />
-                <p>Задач за обраним фільтром не знайдено</p>
-              </div>
-            ) : (
-              filteredTasks.map((t) => {
-                const typeInfo = getTaskTypeInfo(t.aiContext, t.title);
-                const isSelected = activeTask?.id === t.id;
-
-                return (
-                  <div
-                    key={t.id}
-                    onClick={() => setSelectedTaskId(t.id)}
-                    className={`p-3 text-xs cursor-pointer transition-colors border-l-2 ${
-                      isSelected
-                        ? "bg-primary/10 border-primary"
-                        : "border-transparent hover:bg-secondary/40"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        {typeInfo.icon}
-                        <span className="font-mono font-bold text-primary text-[11px]">
-                          {t.code}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground truncate font-medium">
-                          ({t.project?.key})
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {getPriorityIcon(t.priority)}
-                        <span
-                          className="px-1.5 py-0.5 rounded text-[9px] font-semibold text-white"
-                          style={{ backgroundColor: t.column?.color || "#3b82f6" }}
-                        >
-                          {t.column?.name}
-                        </span>
-                      </div>
-                    </div>
-
-                    <h4 className="font-medium text-foreground text-xs line-clamp-2 leading-snug mb-1.5">
-                      {t.title}
-                    </h4>
-
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span className="truncate max-w-[140px] text-[10px]">
-                        {t.project?.name}
-                      </span>
-                      {t.assignee ? (
-                        <span className="text-[10px] font-medium text-foreground">
-                          {t.assignee.name.split(" ")[0]}
-                        </span>
-                      ) : (
-                        <span className="text-[9px] text-muted-foreground italic">
-                          не призначено
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
+        <IssuesMiddleList
+          filterMode={filterMode}
+          onFilterChange={handleFilterChange}
+          filteredTasks={filteredTasks}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedComponent={selectedComponent}
+          onClearComponent={() => setSelectedComponent("")}
+          selectedLabel={selectedLabel}
+          onClearLabel={() => setSelectedLabel("")}
+          loading={loading}
+          activeTaskId={activeTask?.id || null}
+          onSelectTask={setSelectedTaskId}
+        />
 
         {/* Right Column: Active Task Details */}
         <div className="flex-1 flex overflow-hidden">

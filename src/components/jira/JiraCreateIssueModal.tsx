@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
-  X,
   Bug,
   CheckSquare,
   Bookmark,
@@ -13,253 +12,15 @@ import {
   ArrowUp,
   ArrowDown,
   Minus,
-  Paperclip,
-  Calendar,
   User,
-  Layers,
-  ChevronDown,
-  Check,
-  Tag,
 } from "lucide-react";
-import { ColumnItem } from "@/components/board/ColumnCard";
-
-interface JiraCreateIssueModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  projectId: string;
-  projectName?: string;
-  projectKey?: string;
-  columns: ColumnItem[];
-  allProjects?: Array<{ id: string; name: string; key: string }>;
-  currentUser?: any;
-  onIssueCreated: (createdTask: any) => void;
-}
-
-interface DropdownOption {
-  value: string;
-  label: string;
-  icon?: React.ReactNode;
-  isHeader?: boolean;
-}
-
-interface CustomSelectProps {
-  label: string;
-  required?: boolean;
-  value: string;
-  onChange: (val: string) => void;
-  options: DropdownOption[];
-  placeholder?: string;
-}
-
-const CustomSelect: React.FC<CustomSelectProps> = ({
-  label,
-  required = false,
-  value,
-  onChange,
-  options,
-  placeholder = "Оберіть зі списку...",
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const selectedOption = options.find((opt) => opt.value === value);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  return (
-    <div className="relative" ref={containerRef}>
-      <label className="text-xs font-medium text-foreground block mb-1">
-        {label} {required && <span className="text-destructive">*</span>}
-      </label>
-
-      {/* Trigger Button */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full text-xs py-2 px-3 rounded-lg bg-secondary/40 hover:bg-secondary/60 border border-border text-foreground font-medium flex items-center justify-between transition-colors focus:outline-none focus:ring-1 focus:ring-primary select-none cursor-pointer"
-      >
-        <div className="flex items-center gap-2 truncate pr-1">
-          {selectedOption?.icon}
-          <span className="truncate">{selectedOption?.label || placeholder}</span>
-        </div>
-        <ChevronDown
-          className={`w-3.5 h-3.5 text-muted-foreground flex-shrink-0 transition-transform ${
-            isOpen ? "rotate-180" : ""
-          }`}
-        />
-      </button>
-
-      {/* Dropdown Menu */}
-      {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 rounded-xl bg-card border border-border shadow-2xl p-1 z-50 max-h-56 overflow-y-auto animate-in fade-in-50 zoom-in-95">
-          {options.map((opt, idx) => {
-            if (opt.isHeader) {
-              return (
-                <div
-                  key={`header-${idx}`}
-                  className="px-2.5 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-secondary/30 rounded mt-1.5 first:mt-0 select-none"
-                >
-                  {opt.label}
-                </div>
-              );
-            }
-            const isSelected = opt.value === value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => {
-                  onChange(opt.value);
-                  setIsOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs transition-colors text-left cursor-pointer ${
-                  isSelected
-                    ? "bg-primary/15 text-primary font-semibold"
-                    : "text-foreground hover:bg-secondary/70"
-                }`}
-              >
-                <div className="flex items-center gap-2 truncate pr-2">
-                  {opt.icon}
-                  <span className="truncate">{opt.label}</span>
-                </div>
-                {isSelected && (
-                  <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-};
-
-interface CustomMultiSelectProps {
-  label: string;
-  selectedValues: string[];
-  options: string[];
-  onChange: (newValues: string[]) => void;
-  placeholder?: string;
-  emptyNotice?: string;
-  badgeClass?: string;
-}
-
-const CustomMultiSelect: React.FC<CustomMultiSelectProps> = ({
-  label,
-  selectedValues,
-  options,
-  onChange,
-  placeholder = "Оберіть зі списку...",
-  emptyNotice = "Немає доступних варіантів у довіднику",
-  badgeClass = "bg-secondary text-foreground border border-border",
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const toggleOption = (opt: string) => {
-    if (selectedValues.includes(opt)) {
-      onChange(selectedValues.filter((v) => v !== opt));
-    } else {
-      onChange([...selectedValues, opt]);
-    }
-  };
-
-  const removeValue = (opt: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    onChange(selectedValues.filter((v) => v !== opt));
-  };
-
-  return (
-    <div className="relative" ref={containerRef}>
-      <label className="text-xs font-medium text-foreground block mb-1">
-        {label}
-      </label>
-
-      {/* Trigger Area */}
-      <div
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full min-h-[38px] text-xs py-1.5 px-3 rounded-lg bg-secondary/40 hover:bg-secondary/60 border border-border text-foreground flex items-center justify-between transition-colors focus-within:ring-1 focus-within:ring-primary select-none cursor-pointer gap-2"
-      >
-        <div className="flex flex-wrap items-center gap-1.5 flex-1 py-0.5">
-          {selectedValues.length === 0 ? (
-            <span className="text-muted-foreground">{placeholder}</span>
-          ) : (
-            selectedValues.map((val) => (
-              <span
-                key={val}
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium ${badgeClass}`}
-              >
-                <span>{val}</span>
-                <span
-                  role="button"
-                  onClick={(e) => removeValue(val, e)}
-                  className="hover:text-destructive transition-colors ml-0.5 cursor-pointer font-bold"
-                >
-                  ×
-                </span>
-              </span>
-            ))
-          )}
-        </div>
-        <ChevronDown
-          className={`w-3.5 h-3.5 text-muted-foreground flex-shrink-0 transition-transform ${
-            isOpen ? "rotate-180" : ""
-          }`}
-        />
-      </div>
-
-      {/* Dropdown Menu */}
-      {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 rounded-xl bg-card border border-border shadow-2xl p-1 z-50 max-h-56 overflow-y-auto animate-in fade-in-50 zoom-in-95">
-          {options.length === 0 ? (
-            <div className="p-3 text-center text-xs text-muted-foreground">
-              {emptyNotice}
-            </div>
-          ) : (
-            options.map((opt) => {
-              const isSelected = selectedValues.includes(opt);
-              return (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => toggleOption(opt)}
-                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs transition-colors text-left cursor-pointer ${
-                    isSelected
-                      ? "bg-primary/15 text-primary font-semibold"
-                      : "text-foreground hover:bg-secondary/70"
-                  }`}
-                >
-                  <span className="truncate pr-2">{opt}</span>
-                  {isSelected && (
-                    <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                  )}
-                </button>
-              );
-            })
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
+import {
+  JiraCreateIssueModalProps,
+  DropdownOption,
+  CustomSelect,
+  CustomMultiSelect,
+  CreateIssueFormHeader,
+} from "./create-issue";
 
 export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
   isOpen,
@@ -556,28 +317,7 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-150">
       <div className="bg-card border border-border w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-secondary/30">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-              <CheckSquare className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-sm text-foreground">
-                Створення задачі
-              </h3>
-              <p className="text-[11px] text-muted-foreground">
-                Введіть інформацію про задачу, оберіть тип та виконавця
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+        <CreateIssueFormHeader onClose={onClose} />
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -652,7 +392,11 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
                   Статус
                 </label>
                 <div className="w-full bg-secondary/40 border border-border/80 rounded-lg py-2 px-3 text-xs text-foreground flex items-center justify-between">
-                  <span>{columns.find((c) => c.id === (columnId || columns[0]?.id))?.name || columns[0]?.name || "Беклог"}</span>
+                  <span>
+                    {columns.find((c) => c.id === (columnId || columns[0]?.id))?.name ||
+                      columns[0]?.name ||
+                      "Беклог"}
+                  </span>
                   <span className="text-[10px] text-muted-foreground">(За замовчуванням)</span>
                 </div>
               </div>
@@ -709,7 +453,9 @@ export const JiraCreateIssueModal: React.FC<JiraCreateIssueModalProps> = ({
               options={getAvailableComponents(selectedProjectId, issueType)}
               onChange={setSelectedComponents}
               placeholder="Оберіть компонент зі списку..."
-              emptyNotice={`Немає налаштованих компонентів для проєкту та типу "${issueTypeOptions.find((t) => t.value === issueType)?.label || issueType}"`}
+              emptyNotice={`Немає налаштованих компонентів для проєкту та типу "${
+                issueTypeOptions.find((t) => t.value === issueType)?.label || issueType
+              }"`}
               badgeClass="bg-secondary text-foreground font-mono border border-border/80"
             />
 

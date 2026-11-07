@@ -166,7 +166,11 @@ function IssuesPageContent() {
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* 1. Global Navbar */}
       <Navbar
-        currentProject={activeTask?.project || projects[0]}
+        currentProject={
+          selectedProjectId
+            ? projects.find((p) => p.id === selectedProjectId) || activeTask?.project
+            : { id: "all", name: "Всі проєкти", key: "ALL" }
+        }
         projects={projects}
         viewMode="list"
         onOpenNewTask={() => setIsCreateOpen(true)}

@@ -46,6 +46,10 @@ function ProjectPageContent() {
         setProject(data);
         setColumns(data.columns || []);
 
+        try {
+          sessionStorage.setItem("stsup_active_project_id", projectId);
+        } catch (e) {}
+
         // Flatten tasks to set default selected task if none selected
         const all = (data.columns || []).flatMap((c: any) => c.tasks || []);
         if (urlTaskId && all.some((t: any) => t.id === urlTaskId)) {
@@ -169,10 +173,10 @@ function ProjectPageContent() {
             {/* Right Column: Issue Detail View */}
             <IssueDetailPane
               taskId={activeTask?.id || null}
-              projectId={projectId}
-              projectName={project.name}
-              projectKey={project.key}
-              columns={columns}
+              projectId={activeTask?.projectId || projectId}
+              projectName={activeTask?.project?.name || project.name}
+              projectKey={activeTask?.project?.key || project.key}
+              columns={activeTask?.project?.columns || columns}
               onTaskUpdated={fetchProjectData}
               onTaskDeleted={async () => {
                 setSelectedTaskId(null);
@@ -287,9 +291,9 @@ function ProjectPageContent() {
       <JiraCreateIssueModal
         isOpen={isCreateIssueOpen}
         onClose={() => setIsCreateIssueOpen(false)}
-        projectId={projectId}
-        projectName={project.name}
-        projectKey={project.key}
+        projectId={projectId === "all" ? (allProjects[0]?.id || "all") : projectId}
+        projectName={projectId === "all" ? (allProjects[0]?.name || project.name) : project.name}
+        projectKey={projectId === "all" ? (allProjects[0]?.key || project.key) : project.key}
         columns={columns}
         allProjects={allProjects}
         currentUser={currentUser}
@@ -317,8 +321,8 @@ function ProjectPageContent() {
       {/* Kanban Board Task Detail Modal (if opened from Board) */}
       <TaskDetailModal
         taskId={boardDetailTaskId}
-        projectId={projectId}
-        columns={columns}
+        projectId={allTasks.find((t) => t.id === boardDetailTaskId)?.projectId || projectId}
+        columns={allTasks.find((t) => t.id === boardDetailTaskId)?.project?.columns || columns}
         isOpen={Boolean(boardDetailTaskId)}
         onClose={() => setBoardDetailTaskId(null)}
         onTaskUpdated={fetchProjectData}

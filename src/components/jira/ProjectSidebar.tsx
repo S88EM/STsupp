@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FolderGit2,
+  Layers,
 } from "lucide-react";
 
 export type JiraNavSection =
@@ -91,10 +92,14 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         <div className="flex items-center gap-2.5 overflow-hidden">
           {/* Project Avatar */}
           <div
-            className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex-shrink-0 flex items-center justify-center text-white font-bold text-xs tracking-wider shadow-sm border border-white/10"
+            className={`w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center text-white font-bold text-xs tracking-wider shadow-sm border border-white/10 ${
+              project.id === "all"
+                ? "bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-600 shadow-indigo-500/20"
+                : "bg-gradient-to-br from-blue-600 to-indigo-600"
+            }`}
             title={`[${project.key}] ${project.name}`}
           >
-            {project.key.slice(0, 3)}
+            {project.id === "all" ? <Layers className="w-4 h-4" /> : project.key.slice(0, 3)}
           </div>
 
           {!isCollapsed && (
@@ -103,7 +108,7 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 {project.name}
               </h2>
               <span className="text-[10px] text-muted-foreground font-mono block">
-                [{project.key}] Проєкт ПЗ
+                {project.id === "all" ? "[ALL] Глобальний контекст" : `[${project.key}] Проєкт ПЗ`}
               </span>
             </div>
           )}
@@ -170,7 +175,7 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       </div>
 
       {/* Footer / Project Settings */}
-      {isAdmin && onOpenSettings && (
+      {isAdmin && onOpenSettings && project.id !== "all" && (
         <div className="p-2 border-t border-border/80">
           <button
             onClick={onOpenSettings}

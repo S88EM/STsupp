@@ -238,7 +238,11 @@ function GlobalBoardsPageContent() {
       {/* 1. Global Navbar */}
       <Navbar
         projects={projects}
-        currentProject={projects[0]}
+        currentProject={
+          selectedProjectId
+            ? projects.find((p) => p.id === selectedProjectId) || projects[0]
+            : { id: "all", name: "Всі проєкти", key: "ALL" }
+        }
         viewMode="board"
         onOpenNewTask={() => setIsCreateOpen(true)}
       />

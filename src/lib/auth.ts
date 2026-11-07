@@ -93,6 +93,11 @@ export async function hasProjectAccess(
     return true;
   }
 
+  // Global context "all" is accessible to non-client roles
+  if (projectId === "all") {
+    return userRole !== "CLIENT";
+  }
+
   // All other roles must be assigned to the project or be the owner
   const project = await prisma.project.findFirst({
     where: {

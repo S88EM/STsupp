@@ -16,6 +16,28 @@ interface KanbanBoardProps {
   currentUser?: { role?: string; id?: string; email?: string } | null;
 }
 
+function mapStageToProjectColumn(task: any, destColId: string) {
+  const projectColumns: any[] = task?.project?.columns || [];
+  if (projectColumns.length === 0) return null;
+
+  const stageId = destColId.replace("all-", ""); // "backlog", "inprogress", "testing", "done"
+
+  const matched = projectColumns.find((c: any) => {
+    if (stageId === "done" && c.isDoneColumn) return true;
+    const name = (c.name || "").toLowerCase();
+    if (stageId === "done" && (name.includes("done") || name.includes("готов") || name.includes("виріш"))) return true;
+    if (stageId === "testing" && (name.includes("тест") || name.includes("review") || name.includes("перевір"))) return true;
+    if (stageId === "inprogress" && (name.includes("робот") || name.includes("progress") || name.includes("розроб"))) return true;
+    if (stageId === "backlog" && (name.includes("backlog") || name.includes("беклог") || name.includes("черг"))) return true;
+    return false;
+  });
+
+  if (matched) return matched;
+  if (stageId === "done") return projectColumns.find((c: any) => c.isDoneColumn) || projectColumns[projectColumns.length - 1];
+  if (stageId === "backlog") return projectColumns[0];
+  return projectColumns[1] || projectColumns[0];
+}
+
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   projectId,
   initialColumns,
@@ -103,6 +125,26 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       return col;
     });
     setColumns(newColumns);
+
+    if (projectId === "all") {
+      const targetCol = mapStageToProjectColumn(movedTask, destCol.id);
+      if (targetCol && (movedTask as any).projectId) {
+        try {
+          const res = await fetch(`/api/projects/${(movedTask as any).projectId}/tasks/${movedTask.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ columnId: targetCol.id }),
+          });
+          if (!res.ok) {
+            onRefresh();
+          }
+        } catch (err) {
+          console.error("Failed to sync global move:", err);
+          onRefresh();
+        }
+      }
+      return;
+    }
 
     // Send payload
     const updatedTasksPayload = [
@@ -231,7 +273,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             ))}
 
             {/* Quick Add Column Button at Board End (Admin/Engineer only) */}
-            {canChangeStatus && (
+            {canChangeStatus && projectId !== "all" && (
               <button
                 onClick={() => setIsNewColumnOpen(true)}
                 className="w-72 flex-shrink-0 h-32 rounded-xl border-2 border-dashed border-border/60 hover:border-primary/50 text-muted-foreground hover:text-foreground flex flex-col items-center justify-center gap-2 transition-all hover:bg-secondary/20"
@@ -265,8 +307,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
       <TaskDetailModal
         taskId={selectedTask?.id || null}
-        projectId={projectId}
-        columns={columns}
+        projectId={selectedTask?.projectId || projectId}
+        columns={selectedTask?.project?.columns || columns}
         isOpen={Boolean(selectedTask)}
         onClose={() => setSelectedTask(null)}
         onTaskUpdated={onRefresh}

@@ -12,6 +12,8 @@ export interface TaskItem {
   priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   columnId: string;
   orderIndex: number;
+  projectId?: string;
+  project?: any;
   dueDate?: string | null;
   assignee?: { id: string; name: string; avatarUrl?: string | null } | null;
   subtasks?: Array<{ id: string; isCompleted: boolean }>;

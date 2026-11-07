@@ -16,6 +16,11 @@ export default async function HomePage() {
     redirect("/portal");
   }
 
+  // For ADMIN and ENGINEER, default landing page is "Всі проєкти" (/projects/all)
+  if (currentUser.role === "ADMIN" || currentUser.role === "ENGINEER") {
+    redirect("/projects/all");
+  }
+
   const isSuperAdmin = currentUser.role === "ADMIN";
   const whereClause = isSuperAdmin
     ? {}

@@ -44,8 +44,18 @@ function LoginForm() {
         return;
       }
 
-      // Successful login - target dashboard or specified redirect (avoid looping on /login)
-      const targetUrl = redirect && redirect !== "/login" ? redirect : "/";
+      // Successful login - determine landing page based on role if no custom redirect
+      let targetUrl = redirect && redirect !== "/login" ? redirect : "/";
+      if (!redirect || redirect === "/" || redirect === "/login") {
+        if (data.user?.role === "CLIENT") {
+          targetUrl = "/portal";
+        } else if (data.user?.role === "ADMIN" || data.user?.role === "ENGINEER") {
+          targetUrl = "/projects/all";
+          try {
+            sessionStorage.setItem("stsup_active_project_id", "all");
+          } catch (e) {}
+        }
+      }
       window.location.href = targetUrl;
     } catch (err: any) {
       setError(err.message || "Помилка зв'язку із сервером");

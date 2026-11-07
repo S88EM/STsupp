@@ -17,6 +17,112 @@ export async function GET(
       }
     }
 
+    // Support global context "all"
+    if (projectId === "all") {
+      const isSuperAdmin = currentUser?.role === "ADMIN";
+      const whereClause = isSuperAdmin
+        ? {}
+        : {
+            OR: [
+              { ownerId: currentUser?.userId },
+              { members: { some: { userId: currentUser?.userId } } },
+            ],
+          };
+
+      const projects = await prisma.project.findMany({
+        where: whereClause,
+        include: {
+          columns: {
+            orderBy: { orderIndex: "asc" },
+            include: {
+              tasks: {
+                orderBy: { orderIndex: "asc" },
+                include: {
+                  assignee: { select: { id: true, name: true, email: true, avatarUrl: true, role: true } },
+                  creator: { select: { id: true, name: true, email: true, role: true } },
+                  subtasks: { orderBy: { orderIndex: "asc" } },
+                  _count: {
+                    select: {
+                      comments: true,
+                      attachments: true,
+                      subtasks: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          members: {
+            include: {
+              user: { select: { id: true, name: true, email: true, role: true, avatarUrl: true } },
+            },
+          },
+        },
+        orderBy: { name: "asc" },
+      });
+
+      const standardStages = [
+        { id: "all-backlog", name: "Беклог", color: "#64748b", orderIndex: 0, isDoneColumn: false, tasks: [] as any[] },
+        { id: "all-inprogress", name: "В роботі", color: "#3b82f6", orderIndex: 1, isDoneColumn: false, tasks: [] as any[] },
+        { id: "all-testing", name: "Тестування", color: "#eab308", orderIndex: 2, isDoneColumn: false, tasks: [] as any[] },
+        { id: "all-done", name: "Готово", color: "#22c55e", orderIndex: 3, isDoneColumn: true, tasks: [] as any[] },
+      ];
+
+      const mapColumnToStageIndex = (colName?: string, isDone?: boolean) => {
+        if (isDone) return 3;
+        const name = (colName || "").toLowerCase();
+        if (name.includes("done") || name.includes("готов") || name.includes("виріш")) return 3;
+        if (name.includes("тест") || name.includes("review") || name.includes("перевір")) return 2;
+        if (name.includes("робот") || name.includes("progress") || name.includes("розроб")) return 1;
+        return 0;
+      }
+
+      const allMembersMap = new Map<string, any>();
+
+      projects.forEach((proj) => {
+        proj.members.forEach((m) => {
+          if (!allMembersMap.has(m.userId)) {
+            allMembersMap.set(m.userId, m);
+          }
+        });
+
+        proj.columns.forEach((col) => {
+          const stageIdx = mapColumnToStageIndex(col.name, col.isDoneColumn);
+          col.tasks.forEach((t) => {
+            standardStages[stageIdx].tasks.push({
+              ...t,
+              project: {
+                id: proj.id,
+                name: proj.name,
+                key: proj.key,
+                columns: proj.columns.map((c) => ({
+                  id: c.id,
+                  name: c.name,
+                  color: c.color,
+                  isDoneColumn: c.isDoneColumn,
+                })),
+              },
+              projectName: proj.name,
+              projectKey: proj.key,
+              actualColumnId: col.id,
+              actualColumnName: col.name,
+              actualColumnColor: col.color,
+            });
+          });
+        });
+      });
+
+      return NextResponse.json({
+        id: "all",
+        name: "Всі проєкти",
+        key: "ALL",
+        description: "Агрегований вигляд задач з усіх доступних проєктів",
+        columns: standardStages,
+        members: Array.from(allMembersMap.values()),
+        isGlobalView: true,
+      });
+    }
+
     const project = await prisma.project.findUnique({
       where: { id: projectId },
       include: {
@@ -70,6 +176,9 @@ export async function PATCH(
     }
 
     const { projectId } = params;
+    if (projectId === "all") {
+      return NextResponse.json({ error: "Неможливо змінити глобальний контекст" }, { status: 400 });
+    }
     const body = await req.json();
     const { name, description } = body;
 
@@ -99,6 +208,9 @@ export async function DELETE(
     }
 
     const { projectId } = params;
+    if (projectId === "all") {
+      return NextResponse.json({ error: "Неможливо змінити глобальний контекст" }, { status: 400 });
+    }
 
     const existing = await prisma.project.findUnique({
       where: { id: projectId },

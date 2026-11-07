@@ -78,6 +78,7 @@ model ProjectMember {
   createdAt DateTime @default(now())
 
   @@unique([projectId, userId])
+  @@index([userId])
 }
 
 model Column {
@@ -130,6 +131,10 @@ model Task {
   @@unique([projectId, taskNumber])
   @@index([columnId, orderIndex])
   @@index([projectId])
+  @@index([assigneeId])
+  @@index([creatorId])
+  @@index([updatedAt])
+  @@index([priority])
 }
 
 model Subtask {

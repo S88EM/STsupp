@@ -4,12 +4,15 @@ import React, { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Lock, Mail, AlertCircle, CheckCircle, Send, Loader2 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
   const verifiedParam = searchParams.get("verified");
+  const { dict } = useI18n();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -75,7 +78,7 @@ function LoginForm() {
         body: JSON.stringify({ email: email.trim() }),
       });
       const data = await res.json();
-      setResendMessage(data.message || "Лист надіслано на вашу пошту.");
+      setResendMessage(data.message || dict.auth.verificationSent);
     } catch (err: any) {
       setError(err.message || "Помилка відправки листа");
     } finally {
@@ -85,16 +88,22 @@ function LoginForm() {
 
   return (
     <div className="w-full max-w-sm space-y-6">
+      {/* Top bar with Language Switcher */}
+      <div className="flex items-center justify-between">
+        <div className="w-9 h-9" />
+        <LanguageSwitcher variant="toggle" />
+      </div>
+
       {/* Brand */}
       <div className="text-center space-y-2">
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-blue-500/25 mx-auto">
           ST
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Вхід до STsup
+          {dict.auth.loginTitle}
         </h1>
         <p className="text-xs text-muted-foreground">
-          Увійдіть для доступу до ваших проектів та завдань
+          {dict.auth.loginSubtitle}
         </p>
       </div>
 
@@ -103,7 +112,7 @@ function LoginForm() {
         {verifiedParam && (
           <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium flex items-center gap-2">
             <CheckCircle className="w-4 h-4 flex-shrink-0" />
-            <span>Email успішно підтверджено! Тепер ви можете увійти.</span>
+            <span>{dict.auth.emailConfirmedSuccess}</span>
           </div>
         )}
 
@@ -130,7 +139,7 @@ function LoginForm() {
                     ) : (
                       <Send className="w-3 h-3" />
                     )}
-                    <span>Надіслати лист повторно</span>
+                    <span>{dict.auth.resendVerification}</span>
                   </button>
                 )}
               </div>
@@ -141,7 +150,7 @@ function LoginForm() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-xs font-medium text-muted-foreground block mb-1">
-              Email адреса
+              {dict.auth.email}
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -160,13 +169,13 @@ function LoginForm() {
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-medium text-muted-foreground">
-                Пароль
+                {dict.auth.password}
               </label>
               <Link
                 href="/forgot-password"
                 className="text-[11px] text-primary hover:underline"
               >
-                Забули пароль?
+                {dict.auth.forgotPassword}
               </Link>
             </div>
             <div className="relative">
@@ -187,7 +196,7 @@ function LoginForm() {
             disabled={loading}
             className="w-full py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            <span>{loading ? "Перевірка..." : "Увійти"}</span>
+            <span>{loading ? dict.auth.checking : dict.auth.loginBtn}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </form>
@@ -195,9 +204,9 @@ function LoginForm() {
 
       {/* Footer */}
       <div className="text-center text-xs text-muted-foreground">
-        Немає облікового запису?{" "}
+        {dict.auth.noAccount}{" "}
         <Link href="/register" className="text-primary hover:underline font-semibold">
-          Зареєструватись
+          {dict.auth.registerLink}
         </Link>
       </div>
     </div>
@@ -207,7 +216,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <Suspense fallback={<div className="text-xs text-muted-foreground">Завантаження...</div>}>
+      <Suspense fallback={<div className="text-xs text-muted-foreground">Loading...</div>}>
         <LoginForm />
       </Suspense>
     </div>

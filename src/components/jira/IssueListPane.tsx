@@ -16,6 +16,7 @@ import {
   Filter,
 } from "lucide-react";
 import { TaskItem } from "@/components/board/TaskCard";
+import { useI18n } from "@/lib/i18n";
 import {
   type JiraTaskType,
   JIRA_TASK_TYPES,
@@ -51,6 +52,7 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
   onOpenCreateTask,
   currentUserId,
 }) => {
+  const { dict } = useI18n();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMode, setFilterMode] = useState<"all" | "my" | "open">("all");
   const [selectedComponent, setSelectedComponent] = useState<string>("");
@@ -127,10 +129,10 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
           <div className="flex items-center gap-2">
             <h3 className="text-xs font-bold text-foreground tracking-tight">
               {filterMode === "my"
-                ? "Призначені мені"
+                ? dict.issue.assignedToMe
                 : filterMode === "open"
-                ? "Відкриті задачі"
-                : "Всі задачі"}
+                ? dict.issue.openIssues
+                : dict.issue.allIssues}
             </h3>
             <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded-full bg-secondary text-muted-foreground border border-border">
               {filteredTasks.length}
@@ -147,7 +149,7 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Всі
+              {dict.common.all}
             </button>
             <button
               onClick={() => setFilterMode("my")}
@@ -157,7 +159,7 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Мої
+              {dict.nav.myTasks.split(" ")[0]}
             </button>
             <button
               onClick={() => setFilterMode("open")}
@@ -167,7 +169,7 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Відкриті
+              {dict.issue.openIssues.split(" ")[0]}
             </button>
           </div>
         </div>
@@ -177,7 +179,7 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
           <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Швидкий пошук (ключ, назва)..."
+            placeholder={dict.issue.searchQuickPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg bg-secondary/40 border border-border/80 focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground/60"
@@ -194,7 +196,7 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
                 className="text-[10px] py-1 px-1.5 rounded bg-secondary/60 border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary max-w-[130px] truncate cursor-pointer"
                 title="Фільтр за компонентом"
               >
-                <option value="">Компоненти (Всі)</option>
+                <option value="">{dict.issue.filterComponentsAll}</option>
                 {availableComponents.map((c) => (
                   <option key={c} value={c}>
                     {c}
@@ -210,7 +212,7 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
                 className="text-[10px] py-1 px-1.5 rounded bg-secondary/60 border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary max-w-[110px] truncate cursor-pointer"
                 title="Фільтр за міткою"
               >
-                <option value="">Мітки (Всі)</option>
+                <option value="">{dict.issue.filterLabelsAll}</option>
                 {availableLabels.map((l) => (
                   <option key={l} value={l}>
                     {l}
@@ -227,9 +229,9 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
                   setSelectedLabel("");
                 }}
                 className="text-[10px] text-muted-foreground hover:text-destructive px-1.5 py-0.5 rounded transition-colors cursor-pointer"
-                title="Скинути фільтри компонентів та міток"
+                title={dict.issue.resetFiltersHint}
               >
-                ✕ Скинути
+                ✕ {dict.issue.resetFilters}
               </button>
             )}
           </div>
@@ -240,9 +242,9 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
       <div className="flex-1 overflow-y-auto divide-y divide-border/40">
         {filteredTasks.length === 0 ? (
           <div className="py-12 px-4 text-center text-xs text-muted-foreground space-y-1.5">
-            <p>Задач не знайдено</p>
+            <p>{dict.issue.noIssuesFound}</p>
             <p className="text-[11px] text-muted-foreground/70">
-              Спробуйте змінити фільтр або створіть нову задачу
+              {dict.issue.noIssuesFoundHint}
             </p>
           </div>
         ) : (
@@ -315,7 +317,7 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
                         </span>
                       </span>
                     ) : (
-                      <span className="italic text-muted-foreground/60">Не призначено</span>
+                      <span className="italic text-muted-foreground/60">{dict.common.notAssigned}</span>
                     )}
                   </div>
 
@@ -338,7 +340,7 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
           className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/25 text-xs font-semibold transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>+ Створити задачу</span>
+          <span>+ {dict.nav.createIssue}</span>
         </button>
       </div>
     </div>

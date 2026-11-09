@@ -20,6 +20,7 @@ export async function GET() {
         city: true,
         role: true,
         theme: true,
+        locale: true,
       },
     });
   } catch (e) {

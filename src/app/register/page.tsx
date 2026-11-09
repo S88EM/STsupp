@@ -3,8 +3,11 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Lock, Mail, User, AlertCircle, CheckCircle, ExternalLink, MapPin } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
 export default function RegisterPage() {
+  const { dict } = useI18n();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [city, setCity] = useState("");
@@ -21,12 +24,12 @@ export default function RegisterPage() {
     if (!name.trim() || !email.trim() || !city.trim() || !password || loading) return;
 
     if (password !== confirmPassword) {
-      setError("Паролі не співпадають");
+      setError(dict.auth.confirmPasswordPlaceholder);
       return;
     }
 
     if (password.length < 6) {
-      setError("Пароль має містити щонайменше 6 символів");
+      setError(dict.auth.passwordMinChars);
       return;
     }
 
@@ -47,7 +50,7 @@ export default function RegisterPage() {
 
       if (data.needVerification) {
         setRegisteredSuccess(true);
-        setSuccessMessage(data.message || "Лист для підтвердження надіслано на вашу пошту.");
+        setSuccessMessage(data.message || dict.auth.verificationSent);
         if (data.previewUrl) {
           setPreviewUrl(data.previewUrl);
         }
@@ -65,16 +68,22 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
+        {/* Top bar with Language Switcher */}
+        <div className="flex items-center justify-between">
+          <div className="w-9 h-9" />
+          <LanguageSwitcher variant="toggle" />
+        </div>
+
         {/* Brand */}
         <div className="text-center space-y-2">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-blue-500/25 mx-auto">
             ST
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Реєстрація в STsup
+            {dict.auth.registerTitle}
           </h1>
           <p className="text-xs text-muted-foreground">
-            Створіть власний профіль для роботи в команді
+            {dict.auth.loginSubtitle}
           </p>
         </div>
 
@@ -92,24 +101,23 @@ export default function RegisterPage() {
               <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium space-y-2">
                 <div className="flex items-center gap-2 font-semibold text-sm">
                   <CheckCircle className="w-5 h-5 flex-shrink-0 text-emerald-400" />
-                  <span>Лист підтвердження надіслано!</span>
+                  <span>{dict.auth.verificationSent}</span>
                 </div>
-                <p className="text-slate-300 leading-relaxed">
-                  Ми надіслали лист із посиланням на адресу <strong className="text-white">{email}</strong>.
-                  Перейдіть за посиланням у листі для активації облікового запису.
+                <p className="text-muted-foreground leading-relaxed">
+                  {email}
                 </p>
               </div>
 
               {previewUrl && (
                 <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 space-y-1.5">
                   <span className="text-[11px] font-semibold text-blue-400 block">
-                    Тестове пряме посилання (SMTP симуляція):
+                    SMTP Simulation:
                   </span>
                   <Link
                     href={previewUrl}
                     className="text-xs text-primary hover:underline break-all inline-flex items-center gap-1"
                   >
-                    <span>Активувати акаунт прямо зараз</span>
+                    <span>{dict.auth.loginBtn}</span>
                     <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
                   </Link>
                 </div>
@@ -119,7 +127,7 @@ export default function RegisterPage() {
                 href="/login"
                 className="w-full py-2.5 px-4 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center justify-center gap-2 transition-colors shadow-md shadow-primary/20"
               >
-                <span>Перейти до сторінки входу</span>
+                <span>{dict.auth.goToLogin}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -127,13 +135,13 @@ export default function RegisterPage() {
             <form onSubmit={handleSubmit} className="space-y-3.5">
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-1">
-                  Ваше ім'я
+                  {dict.auth.name}
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Олег Шевченко"
+                    placeholder={dict.auth.namePlaceholder}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
@@ -145,7 +153,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-1">
-                  Email адреса
+                  {dict.auth.email}
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -162,13 +170,13 @@ export default function RegisterPage() {
 
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-1">
-                  Місто <span className="text-destructive">*</span>
+                  {dict.auth.city} <span className="text-destructive">*</span>
                 </label>
                 <div className="relative">
                   <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="напр. Вінниця, Київ, Львів"
+                    placeholder={dict.auth.cityPlaceholder}
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     required
@@ -179,13 +187,13 @@ export default function RegisterPage() {
 
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-1">
-                  Пароль
+                  {dict.auth.password}
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="password"
-                    placeholder="мінімум 6 символів"
+                    placeholder={dict.auth.passwordMinChars}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -196,13 +204,13 @@ export default function RegisterPage() {
 
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-1">
-                  Підтвердження пароля
+                  {dict.auth.confirmPassword}
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="password"
-                    placeholder="повторіть пароль"
+                    placeholder={dict.auth.confirmPasswordPlaceholder}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
@@ -216,7 +224,7 @@ export default function RegisterPage() {
                 disabled={loading}
                 className="w-full py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
               >
-                <span>{loading ? "Створення..." : "Створити акаунт"}</span>
+                <span>{loading ? dict.auth.creating : dict.auth.createAccountBtn}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </form>
@@ -226,9 +234,9 @@ export default function RegisterPage() {
         {/* Footer */}
         {!registeredSuccess && (
           <div className="text-center text-xs text-muted-foreground">
-            Вже маєте обліковий запис?{" "}
+            {dict.auth.haveAccount}{" "}
             <Link href="/login" className="text-primary hover:underline font-semibold">
-              Увійти
+              {dict.auth.loginBtn}
             </Link>
           </div>
         )}

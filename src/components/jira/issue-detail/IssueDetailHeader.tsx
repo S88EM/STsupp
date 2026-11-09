@@ -17,6 +17,7 @@ import {
 import { ColumnItem } from "@/components/board/ColumnCard";
 import { FEATURE_FLAGS } from "@/config/features";
 import { getCanonicalTaskUrl } from "@/lib/taskUrl";
+import { useI18n } from "@/lib/i18n";
 
 interface IssueDetailHeaderProps {
   projectName: string;
@@ -57,6 +58,7 @@ export function IssueDetailHeader({
   onGetAiRecommendation,
   onDeleteTask,
 }: IssueDetailHeaderProps) {
+  const { dict } = useI18n();
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [copiedToast, setCopiedToast] = useState(false);
 
@@ -91,7 +93,7 @@ export function IssueDetailHeader({
           type="button"
           onClick={handleCopyLink}
           className="font-mono font-bold text-primary hover:text-primary/80 flex items-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-primary/10 transition-colors cursor-pointer group"
-          title={`Скопіювати пряме посилання (${task.code})`}
+          title={`${dict.issue.copyLink} (${task.code})`}
         >
           {typeInfo.icon}
           <span>{task.code}</span>
@@ -112,7 +114,7 @@ export function IssueDetailHeader({
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border border-border hover:bg-secondary text-foreground transition-colors cursor-pointer"
         >
           <Pencil className="w-3.5 h-3.5" />
-          <span>Редагувати</span>
+          <span>{dict.common.edit}</span>
         </button>
 
         {/* Quick Action: Comment */}
@@ -122,7 +124,7 @@ export function IssueDetailHeader({
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border border-border hover:bg-secondary text-foreground transition-colors cursor-pointer"
         >
           <MessageSquare className="w-3.5 h-3.5" />
-          <span>Коментувати</span>
+          <span>{dict.issue.addComment}</span>
         </button>
 
         {/* Quick Action: Assign to me / Unassign */}
@@ -132,20 +134,20 @@ export function IssueDetailHeader({
               type="button"
               onClick={onUnassignFromMe}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border border-border hover:bg-destructive/10 text-destructive transition-colors cursor-pointer"
-              title="Зняти себе з виконавців"
+              title={dict.issue.unassignFromMe}
             >
               <UserX className="w-3.5 h-3.5" />
-              <span>Зняти з мене</span>
+              <span>{dict.issue.unassignFromMe}</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={onAssignToMe}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border border-border hover:bg-secondary text-foreground transition-colors cursor-pointer"
-              title="Призначити цю задачу на себе"
+              title={dict.issue.assignToMe}
             >
               <User className="w-3.5 h-3.5" />
-              <span>Призначити на мене</span>
+              <span>{dict.issue.assignToMe}</span>
             </button>
           )
         )}
@@ -156,10 +158,10 @@ export function IssueDetailHeader({
             type="button"
             onClick={onReturnToClient}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 hover:text-amber-400 transition-colors cursor-pointer shadow-xs"
-            title={`Повернути задачу автору (${task.creator?.name || "клієнту"})`}
+            title={`${dict.issue.returnToClient} (${task.creator?.name || "client"})`}
           >
             <CornerUpLeft className="w-3.5 h-3.5" />
-            <span>Повернути до клієнта</span>
+            <span>{dict.issue.returnToClient}</span>
           </button>
         )}
 
@@ -169,10 +171,10 @@ export function IssueDetailHeader({
             type="button"
             onClick={onClosePermanently}
             className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-all cursor-pointer animate-in fade-in"
-            title="Закрити задачу повністю (без можливості повторного відкриття)"
+            title={dict.issue.closePermanentlyHint}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Закрити задачу повністю</span>
+            <span>{dict.issue.closePermanently}</span>
           </button>
         )}
 
@@ -182,7 +184,7 @@ export function IssueDetailHeader({
             type="button"
             onClick={() => setShowMoreMenu(!showMoreMenu)}
             className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
-            title="Додаткові дії..."
+            title={dict.common.actions}
           >
             <MoreHorizontal className="w-4 h-4" />
           </button>
@@ -195,7 +197,7 @@ export function IssueDetailHeader({
                 className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-secondary transition-colors cursor-pointer"
               >
                 <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>Скопіювати пряме посилання</span>
+                <span>{dict.issue.copyLink}</span>
               </button>
 
               {FEATURE_FLAGS.ENABLE_AI_ASSISTANT && (
@@ -208,7 +210,7 @@ export function IssueDetailHeader({
                   className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-primary hover:bg-secondary transition-colors cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-primary" />
-                  <span>Отримати пораду ШІ</span>
+                  <span>{dict.issue.aiRecommendation}</span>
                 </button>
               )}
 
@@ -224,7 +226,7 @@ export function IssueDetailHeader({
                     className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                    <span>Видалити задачу</span>
+                    <span>{dict.common.delete}</span>
                   </button>
                 </>
               )}
@@ -240,7 +242,7 @@ export function IssueDetailHeader({
             <Check className="w-3 h-3 stroke-[3]" />
           </div>
           <span>
-            Пряме посилання на <strong className="font-mono text-primary font-bold">{task.code}</strong> скопійовано!
+            {dict.common.linkCopied} (<strong className="font-mono text-primary font-bold">{task.code}</strong>)
           </span>
         </div>
       )}

@@ -7,6 +7,7 @@ import { TaskDetailModal } from "@/components/board/TaskDetailModal";
 import { JiraCreateIssueModal } from "@/components/jira/JiraCreateIssueModal";
 import { getTaskTypeInfo, getPriorityIcon } from "@/components/jira/IssueListPane";
 import { getCanonicalTaskPath } from "@/lib/taskUrl";
+import { useI18n } from "@/lib/i18n/context";
 import {
   Search,
   Plus,
@@ -55,6 +56,7 @@ function mapColumnToStageId(columnName?: string, isDoneColumn?: boolean): string
 }
 
 function GlobalBoardsPageContent() {
+  const { dict, locale } = useI18n();
   const [tasks, setTasks] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -287,10 +289,10 @@ function GlobalBoardsPageContent() {
         <div>
           <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Layers className="w-5 h-5 text-primary" />
-            <span>Загальна дошка задач (Крос-проєктний Kanban)</span>
+            <span>{dict.board.title}</span>
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Відображаються всі доступні задачі по всіх дозволених проєктах
+            {dict.board.subtitle}
           </p>
         </div>
 
@@ -301,7 +303,7 @@ function GlobalBoardsPageContent() {
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Пошук задач..."
+              placeholder={dict.common.search}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="text-xs pl-8 pr-3 py-1.5 rounded-lg bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary w-40 sm:w-52"
@@ -314,7 +316,7 @@ function GlobalBoardsPageContent() {
             onChange={(e) => setSelectedProjectId(e.target.value)}
             className="text-xs py-1.5 px-2.5 rounded-lg bg-secondary/60 border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
           >
-            <option value="">Усі проєкти ({projects.length})</option>
+            <option value="">{locale === "en" ? `All projects (${projects.length})` : `Усі проєкти (${projects.length})`}</option>
             {projects.map((p) => (
               <option key={p.id} value={p.id}>
                 [{p.key}] {p.name}
@@ -332,7 +334,7 @@ function GlobalBoardsPageContent() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Всі
+              {dict.common.all}
             </button>
             <button
               onClick={() => setAssigneeFilter("my")}
@@ -342,7 +344,7 @@ function GlobalBoardsPageContent() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Мої задачі
+              {dict.nav.myTasks}
             </button>
           </div>
 
@@ -352,7 +354,7 @@ function GlobalBoardsPageContent() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Створити</span>
+            <span>{dict.common.create}</span>
           </button>
         </div>
       </div>
@@ -377,7 +379,15 @@ function GlobalBoardsPageContent() {
                         style={{ backgroundColor: stage.color }}
                       />
                       <h3 className="text-xs font-bold text-foreground tracking-tight">
-                        {stage.name}
+                        {stage.id === "backlog"
+                          ? dict.statuses.backlog
+                          : stage.id === "inprogress"
+                          ? dict.statuses.in_progress
+                          : stage.id === "testing"
+                          ? dict.statuses.testing
+                          : stage.id === "done"
+                          ? dict.statuses.done
+                          : stage.name}
                       </h3>
                       <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border">
                         {stageTasks.length}
@@ -386,7 +396,7 @@ function GlobalBoardsPageContent() {
 
                     {!canChangeStatus && (
                       <span className="text-[10px] text-muted-foreground italic">
-                        Тільки читання
+                        {dict.common.readOnly}
                       </span>
                     )}
                   </div>
@@ -403,11 +413,11 @@ function GlobalBoardsPageContent() {
                       >
                         {loading && stageTasks.length === 0 ? (
                           <div className="py-8 text-center text-xs text-muted-foreground animate-pulse">
-                            Завантаження...
+                            {dict.common.loading}
                           </div>
                         ) : stageTasks.length === 0 ? (
                           <div className="py-10 text-center text-[11px] text-muted-foreground/60 italic border border-dashed border-border/40 rounded-lg">
-                            Немає задач
+                            {dict.board.noTasks}
                           </div>
                         ) : (
                           stageTasks.map((t, index) => {

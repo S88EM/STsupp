@@ -3,6 +3,8 @@
 import React from "react";
 import { Palette, LogOut } from "lucide-react";
 import { THEMES, applyTheme } from "@/components/theme/ThemeSwitcher";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import { useI18n } from "@/lib/i18n/context";
 import { getUserInitials } from "@/lib/utils";
 
 interface NavbarUserMenuProps {
@@ -17,7 +19,11 @@ interface NavbarUserMenuProps {
   onLogout: (e?: React.MouseEvent) => void;
 }
 
-export function getRoleLabel(role: string): string {
+export function getRoleLabel(role: string, dictRoles?: Record<string, string>): string {
+  if (dictRoles) {
+    const key = role.toLowerCase();
+    if (dictRoles[key]) return dictRoles[key];
+  }
   switch (role) {
     case "ADMIN":
       return "Адміністратор";
@@ -36,6 +42,9 @@ export const NavbarUserMenu: React.FC<NavbarUserMenuProps> = ({
   onToggle,
   onLogout,
 }) => {
+  const { dict } = useI18n();
+  const roleLabel = getRoleLabel(user.role, dict.roles as any);
+
   return (
     <div className="relative pl-1 border-l border-border/80">
       <button
@@ -58,19 +67,24 @@ export const NavbarUserMenu: React.FC<NavbarUserMenuProps> = ({
             {user.name}
           </span>
           <span className="text-[10px] text-muted-foreground leading-tight mt-0.5">
-            {getRoleLabel(user.role)}
+            {roleLabel}
           </span>
         </div>
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-11 w-56 rounded-xl bg-card border border-border shadow-2xl p-2 z-50 animate-in fade-in-50 zoom-in-95">
+        <div className="absolute right-0 top-11 w-60 rounded-xl bg-card border border-border shadow-2xl p-2 z-50 animate-in fade-in-50 zoom-in-95">
           <div className="px-3 py-2 border-b border-border/60">
             <span className="text-xs font-bold text-foreground block truncate">{user.name}</span>
             <span className="text-[10px] text-muted-foreground block truncate">{user.email}</span>
             <span className="text-[10px] font-semibold text-primary mt-1 inline-block">
-              {getRoleLabel(user.role)}
+              {roleLabel}
             </span>
+          </div>
+
+          {/* Language Selector */}
+          <div className="px-3 py-2.5 border-b border-border/60">
+            <LanguageSwitcher variant="menu-inline" />
           </div>
 
           {/* Quick Theme Picker */}
@@ -78,14 +92,14 @@ export const NavbarUserMenu: React.FC<NavbarUserMenuProps> = ({
             <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium">
               <span className="flex items-center gap-1.5">
                 <Palette className="w-3 h-3 text-primary" />
-                <span>Тема оформлення</span>
+                <span>{dict.nav.theme}</span>
               </span>
             </div>
 
             {/* Dark themes row */}
             <div className="space-y-1">
               <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider block">
-                Темні ({THEMES.filter((t) => t.mode === "dark").length})
+                {dict.nav.themeDark} ({THEMES.filter((t) => t.mode === "dark").length})
               </span>
               <div className="grid grid-cols-7 gap-1">
                 {THEMES.filter((t) => t.mode === "dark").map((t) => (
@@ -104,7 +118,7 @@ export const NavbarUserMenu: React.FC<NavbarUserMenuProps> = ({
             {/* Light themes row */}
             <div className="space-y-1">
               <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider block">
-                Світлі ({THEMES.filter((t) => t.mode === "light").length})
+                {dict.nav.themeLight} ({THEMES.filter((t) => t.mode === "light").length})
               </span>
               <div className="grid grid-cols-5 gap-1">
                 {THEMES.filter((t) => t.mode === "light").map((t) => (
@@ -129,7 +143,7 @@ export const NavbarUserMenu: React.FC<NavbarUserMenuProps> = ({
               className="w-full flex items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-destructive/10 rounded-lg transition-colors text-left cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span>Вийти з системи</span>
+              <span>{dict.nav.logout}</span>
             </button>
           </div>
         </div>

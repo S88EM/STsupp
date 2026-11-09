@@ -5,6 +5,7 @@ import { Sparkles, Send } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
 import { TaskHistoryTimeline } from "@/components/common/TaskHistoryTimeline";
 import { FEATURE_FLAGS } from "@/config/features";
+import { useI18n } from "@/lib/i18n";
 
 interface CommentItem {
   id: string;
@@ -43,6 +44,7 @@ export function IssueActivityTabs({
   onAddComment,
   onGetAiRecommendation,
 }: IssueActivityTabsProps) {
+  const { dict } = useI18n();
   const [activeTab, setActiveTab] = useState<"comments" | "ai" | "history">("comments");
   const [newComment, setNewComment] = useState("");
   const [postingComment, setPostingComment] = useState(false);
@@ -93,7 +95,7 @@ export function IssueActivityTabs({
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Коментарі ({sortedComments.length})
+            {dict.issue.comments} ({sortedComments.length})
           </button>
 
           {FEATURE_FLAGS.ENABLE_AI_ASSISTANT && (
@@ -120,7 +122,7 @@ export function IssueActivityTabs({
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Історія ({auditLogs?.length || 0})
+            {dict.issue.activity} ({auditLogs?.length || 0})
           </button>
         </div>
 
@@ -160,7 +162,7 @@ export function IssueActivityTabs({
               ))
             ) : (
               <div className="text-center py-6 text-xs text-muted-foreground">
-                Поки що немає коментарів. Будьте першим, хто прокоментує!
+                {dict.issue.noComments}
               </div>
             )}
             <div ref={commentsEndRef} />
@@ -172,7 +174,7 @@ export function IssueActivityTabs({
               ref={commentInputRef}
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Напишіть коментар..."
+              placeholder={dict.issue.commentPlaceholder}
               rows={3}
               className="w-full text-xs p-3 rounded-xl bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground resize-none"
             />
@@ -183,7 +185,7 @@ export function IssueActivityTabs({
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>{postingComment ? "Надсилання..." : "Коментувати"}</span>
+                <span>{postingComment ? dict.common.loading : dict.issue.sendComment}</span>
               </button>
             </div>
           </form>

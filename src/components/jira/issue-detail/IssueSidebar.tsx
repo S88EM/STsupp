@@ -23,6 +23,7 @@ import {
   formatDurationHuman,
   TIME_PRESETS,
 } from "@/lib/timeEstimate";
+import { useI18n } from "@/lib/i18n";
 
 interface IssueSidebarProps {
   task: any;
@@ -42,6 +43,7 @@ export function IssueSidebar({
   onUpdateField,
   onReturnToClient,
 }: IssueSidebarProps) {
+  const { dict } = useI18n();
   const [staffUsers, setStaffUsers] = useState<any[]>([]);
   const [clientUsers, setClientUsers] = useState<any[]>([]);
   const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
@@ -239,7 +241,7 @@ export function IssueSidebar({
                   </div>
                   <div className="truncate">
                     <span className="text-xs font-semibold text-foreground truncate block">
-                      {task.assignee ? task.assignee.name : "Не призначено"}
+                      {task.assignee ? task.assignee.name : dict.common.notAssigned}
                     </span>
                     {task.assignee && (
                       <span className="text-[10px] text-muted-foreground truncate block font-mono">
@@ -305,7 +307,7 @@ export function IssueSidebar({
                           <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[9px]">
                             {getUserInitials(currentUser.name, currentUser.email)}
                           </div>
-                          <span className="font-semibold">Призначити мені ({currentUser.name})</span>
+                          <span className="font-semibold">{dict.issue.assignToMe} ({currentUser.name})</span>
                         </div>
                       </button>
                     )}
@@ -324,7 +326,7 @@ export function IssueSidebar({
                           <div className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold text-[9px]">
                             <CornerUpLeft className="w-3 h-3" />
                           </div>
-                          <span className="font-semibold">Повернути до клієнта ({task.creator.name})</span>
+                          <span className="font-semibold">{dict.issue.returnToClient} ({task.creator.name})</span>
                         </div>
                       </button>
                     )}
@@ -335,7 +337,7 @@ export function IssueSidebar({
                     {staffUsers.length > 0 && (
                       <div className="space-y-0.5">
                         <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                          Команда підтримки ({staffUsers.length})
+                          {dict.issue.supportTeam} ({staffUsers.length})
                         </div>
                         {staffUsers
                           .filter((u) =>
@@ -383,7 +385,7 @@ export function IssueSidebar({
                     {clientUsers.length > 0 && (
                       <div className="space-y-0.5 pt-1 border-t border-border/60">
                         <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                          Клієнти проєкту ({clientUsers.length})
+                          {dict.issue.projectClients} ({clientUsers.length})
                         </div>
                         {clientUsers
                           .filter((u) =>
@@ -418,7 +420,7 @@ export function IssueSidebar({
                                   </div>
                                 </div>
                                 <span className="text-[9px] px-1.5 py-0.2 rounded border bg-blue-500/10 text-blue-400 border-blue-500/20 font-mono">
-                                  Клієнт
+                                  {dict.roles.client}
                                 </span>
                               </button>
                             );
@@ -437,7 +439,7 @@ export function IssueSidebar({
               </div>
               <div className="truncate">
                 <span className="text-xs font-semibold text-foreground truncate block">
-                  {task.assignee ? task.assignee.name : "Не призначено"}
+                  {task.assignee ? task.assignee.name : dict.common.notAssigned}
                 </span>
                 {task.assignee?.email && (
                   <span className="text-[10px] text-muted-foreground truncate block font-mono">
@@ -451,13 +453,13 @@ export function IssueSidebar({
 
         {/* Reporter / Creator */}
         <div className="space-y-1">
-          <span className="text-[11px] text-muted-foreground block">Автор (Reporter):</span>
+          <span className="text-[11px] text-muted-foreground block">{dict.issue.reporter}:</span>
           <div className="flex items-center gap-2 p-1.5 rounded-lg bg-secondary/20">
             <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center font-bold text-[10px] text-foreground">
               {task.creator ? task.creator.name[0].toUpperCase() : "A"}
             </div>
             <span className="text-xs font-medium text-foreground truncate">
-              {task.creator ? task.creator.name : "Адміністратор"}
+              {task.creator ? task.creator.name : dict.roles.admin}
             </span>
           </div>
         </div>
@@ -466,13 +468,13 @@ export function IssueSidebar({
       {/* Dates Section */}
       <div className="space-y-2.5 pt-3 border-t border-border/60">
         <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-          Дати
+          {dict.issue.dates}
         </h4>
 
         <div className="flex items-center justify-between text-xs py-0.5">
           <span className="text-muted-foreground flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5" />
-            <span>Створено:</span>
+            <span>{dict.issue.created}</span>
           </span>
           <span className="font-medium text-foreground">
             {new Date(task.createdAt).toLocaleDateString("uk-UA")}
@@ -482,7 +484,7 @@ export function IssueSidebar({
         <div className="flex items-center justify-between text-xs py-0.5">
           <span className="text-muted-foreground flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" />
-            <span>Оновлено:</span>
+            <span>{dict.issue.updated}</span>
           </span>
           <span className="font-medium text-foreground">
             {formatTimeAgo(task.updatedAt)}
@@ -492,7 +494,7 @@ export function IssueSidebar({
         {/* Due date */}
         <div className="space-y-1 pt-1">
           <span className="text-[11px] text-muted-foreground block">
-            Термін виконання:
+            {dict.issue.dueDate}:
           </span>
           <input
             type="date"
@@ -513,7 +515,7 @@ export function IssueSidebar({
           <div className="flex items-center justify-between">
             <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Timer className="w-3.5 h-3.5 text-primary" />
-              <span>Облік часу</span>
+              <span>{dict.issue.workTracking}</span>
             </h4>
             <button
               type="button"
@@ -524,7 +526,7 @@ export function IssueSidebar({
               }}
               className="text-[10px] font-semibold text-primary hover:underline cursor-pointer"
             >
-              {isEditingEstimate ? "Закрити" : "Змінити оцінку"}
+              {isEditingEstimate ? dict.common.close : dict.issue.changeEstimate}
             </button>
           </div>
 
@@ -533,7 +535,7 @@ export function IssueSidebar({
             <div className="p-2.5 rounded-xl bg-secondary/40 border border-border space-y-2 animate-in fade-in-50">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                  Часова оцінка (h, d, w, m):
+                  {dict.issue.timeEstimateUnitHint}
                 </label>
                 <button
                   type="button"
@@ -567,7 +569,7 @@ export function IssueSidebar({
                   onClick={() => handleSaveEstimate()}
                   className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors cursor-pointer"
                 >
-                  Зберегти
+                  {dict.common.save}
                 </button>
               </div>
 
@@ -580,7 +582,7 @@ export function IssueSidebar({
 
               {/* Quick Presets */}
               <div className="space-y-1 pt-1 border-t border-border/50">
-                <span className="text-[10px] text-muted-foreground block">Швидкий вибір:</span>
+                <span className="text-[10px] text-muted-foreground block">{dict.issue.quickPreset}</span>
                 <div className="flex flex-wrap gap-1">
                   {TIME_PRESETS.map((preset) => (
                     <button
@@ -609,7 +611,7 @@ export function IssueSidebar({
             <div className="p-2.5 rounded-xl bg-secondary/40 border border-border space-y-2 animate-in fade-in-50">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                  Витрачений час (h, d, w, m):
+                  {dict.issue.timeSpentUnitHint}
                 </label>
                 <button
                   type="button"
@@ -643,7 +645,7 @@ export function IssueSidebar({
                   onClick={() => handleSaveSpent()}
                   className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors cursor-pointer"
                 >
-                  Зберегти
+                  {dict.common.save}
                 </button>
               </div>
 
@@ -666,7 +668,7 @@ export function IssueSidebar({
               className="p-2 rounded-lg bg-secondary/30 border border-border/60 hover:border-primary/50 transition-colors cursor-pointer"
               title="Клікніть, щоб змінити часову оцінку"
             >
-              <span className="text-[10px] text-muted-foreground block">Оцінка</span>
+              <span className="text-[10px] text-muted-foreground block">{dict.issue.originalEstimate}</span>
               <span className="font-bold text-foreground font-mono">
                 {currentEstimate || "—"}
               </span>
@@ -679,13 +681,13 @@ export function IssueSidebar({
               className="p-2 rounded-lg bg-secondary/30 border border-border/60 hover:border-emerald-500/50 transition-colors cursor-pointer"
               title="Клікніть, щоб змінити витрачений час"
             >
-              <span className="text-[10px] text-muted-foreground block">Витрачено</span>
+              <span className="text-[10px] text-muted-foreground block">{dict.issue.loggedTime}</span>
               <span className="font-bold text-emerald-400 font-mono">
                 {currentTimeSpent || "0h"}
               </span>
             </div>
             <div className="p-2 rounded-lg bg-secondary/30 border border-border/60">
-              <span className="text-[10px] text-muted-foreground block">Залишилось</span>
+              <span className="text-[10px] text-muted-foreground block">{dict.issue.remainingTime}</span>
               <span className="font-bold text-blue-400 font-mono">
                 {calculatedRemaining}
               </span>
@@ -717,12 +719,12 @@ export function IssueSidebar({
               <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
                 {isOverspent ? (
                   <span className="text-rose-500 dark:text-rose-400 font-semibold">
-                    Витрачено {formattedPercent} (перевищення на {formatMinutesToDuration(overspentMinutes)})
+                    {dict.issue.loggedTime} {formattedPercent} ({dict.issue.overspent} {formatMinutesToDuration(overspentMinutes)})
                   </span>
                 ) : (
-                  <span>Витрачено {formattedPercent}</span>
+                  <span>{dict.issue.loggedTime} {formattedPercent}</span>
                 )}
-                <span>Загалом {totalDurationHuman}</span>
+                <span>{dict.issue.totalTime} {totalDurationHuman}</span>
               </div>
             </div>
           )}

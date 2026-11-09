@@ -12,6 +12,8 @@ import {
 import { CreateProjectModal } from "@/components/project/CreateProjectModal";
 import { ProjectSettingsModal } from "@/components/project/ProjectSettingsModal";
 import { ThemeSwitcherButton } from "@/components/theme/ThemeSwitcher";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import { useI18n } from "@/lib/i18n/context";
 import {
   NavbarServicesMenu,
   NavbarProjectsMenu,
@@ -51,6 +53,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const { dict } = useI18n();
 
   const headerRef = useRef<HTMLElement>(null);
 
@@ -142,14 +145,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold text-primary hover:bg-secondary/60 transition-colors"
             >
               <LifeBuoy className="w-3.5 h-3.5" />
-              <span>Портал підтримки</span>
+              <span>{dict.nav.portal}</span>
             </Link>
           ) : (
             <Link
               href={currentProject ? `/projects/${currentProject.id}` : "/"}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
             >
-              <span>Робочий стіл</span>
+              <span>{dict.nav.allProjects}</span>
             </Link>
           )}
         </div>
@@ -184,7 +187,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <LayoutGrid className="w-3.5 h-3.5" />
-            <span>Дошки</span>
+            <span>{dict.nav.board}</span>
           </Link>
         </div>
       </div>
@@ -196,7 +199,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Швидкий пошук..."
+            placeholder={dict.common.search}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-44 xl:w-56 text-xs pl-8 pr-2.5 py-1.5 rounded-lg bg-secondary/50 border border-border/80 focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground/60"
@@ -204,6 +207,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Theme / Background Switcher */}
+        <LanguageSwitcher variant="toggle" />
         <ThemeSwitcherButton />
 
         {/* Notifications */}

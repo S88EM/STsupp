@@ -15,6 +15,8 @@ import {
   Database,
 } from "lucide-react";
 import { SettingsTab, TelegramStatus } from "./types";
+import { useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
 interface SettingsHeaderProps {
   activeTab: SettingsTab;
@@ -29,6 +31,8 @@ export function SettingsHeader({
   isSmtpConfigured,
   telegramStatus,
 }: SettingsHeaderProps) {
+  const { dict } = useI18n();
+
   return (
     <div className="space-y-6">
       {/* Breadcrumb / Top Bar */}
@@ -40,18 +44,19 @@ export function SettingsHeader({
               className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Головна</span>
+              <span>{dict.common.back}</span>
             </Link>
             <span className="text-muted-foreground text-xs">/</span>
-            <span className="text-xs font-medium text-foreground">Налаштування</span>
+            <span className="text-xs font-medium text-foreground">{dict.nav.settings}</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
             <Settings className="w-6 h-6 text-primary" />
-            <span>Налаштування системи</span>
+            <span>{dict.settings.title}</span>
           </h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* Status Indicator */}
           {activeTab === "telegram" ? (
             <span
               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
@@ -65,17 +70,17 @@ export function SettingsHeader({
               {telegramStatus.enabled && telegramStatus.hasToken && telegramStatus.chatId ? (
                 <>
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Telegram активний</span>
+                  <span>{dict.settings.telegramActive}</span>
                 </>
               ) : telegramStatus.enabled ? (
                 <>
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Потрібне налаштування</span>
+                  <span>{dict.settings.telegramNeedsSetup}</span>
                 </>
               ) : (
                 <>
                   <X className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span>Telegram вимкнено</span>
+                  <span>{dict.settings.telegramDisabled}</span>
                 </>
               )}
             </span>
@@ -90,16 +95,19 @@ export function SettingsHeader({
               {isSmtpConfigured ? (
                 <>
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Поштовий сервіс активний</span>
+                  <span>{dict.settings.smtpActive}</span>
                 </>
               ) : (
                 <>
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Режим симуляції (SMTP не налаштовано)</span>
+                  <span>{dict.settings.smtpSimulation}</span>
                 </>
               )}
             </span>
           )}
+
+          {/* Quick Language Toggle */}
+          <LanguageSwitcher variant="toggle" />
         </div>
       </div>
 
@@ -115,7 +123,7 @@ export function SettingsHeader({
           }`}
         >
           <Mail className="w-4 h-4" />
-          <span>Поштовий сервер (SMTP)</span>
+          <span>{dict.settings.tabSmtp}</span>
         </button>
         <button
           type="button"
@@ -127,7 +135,7 @@ export function SettingsHeader({
           }`}
         >
           <Tag className="w-4 h-4" />
-          <span>Довідники: Компоненти та Мітки</span>
+          <span>{dict.settings.tabDictionaries}</span>
         </button>
         <button
           type="button"
@@ -139,7 +147,7 @@ export function SettingsHeader({
           }`}
         >
           <Send className="w-4 h-4" />
-          <span>Інтеграції: Telegram</span>
+          <span>{dict.settings.tabTelegram}</span>
         </button>
         <button
           type="button"
@@ -151,7 +159,7 @@ export function SettingsHeader({
           }`}
         >
           <ShieldCheck className="w-4 h-4 text-primary" />
-          <span>Аудит-лог (Безпека)</span>
+          <span>{dict.settings.tabAudit}</span>
         </button>
         <button
           type="button"
@@ -163,7 +171,7 @@ export function SettingsHeader({
           }`}
         >
           <Database className="w-4 h-4 text-emerald-400" />
-          <span>Резервне копіювання (Backup & Restore)</span>
+          <span>{dict.settings.tabBackup}</span>
         </button>
       </div>
     </div>

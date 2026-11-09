@@ -8,6 +8,7 @@ import {
   IssueDetailContent,
 } from "./issue-detail";
 import { useTaskDetail } from "@/hooks/useTaskDetail";
+import { useI18n } from "@/lib/i18n";
 
 export type { IssueDetailPaneProps };
 
@@ -21,6 +22,7 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
   onTaskDeleted,
   currentUser: initialCurrentUser,
 }) => {
+  const { dict } = useI18n();
   const taskDetail = useTaskDetail({
     taskId,
     projectId,
@@ -57,7 +59,7 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-muted-foreground select-none">
         <CheckSquare className="w-12 h-12 stroke-[1.2] opacity-30 mb-3" />
-        <h3 className="text-sm font-semibold text-foreground">Оберіть задачу зі списку</h3>
+        <h3 className="text-sm font-semibold text-foreground">{dict.common.selectOption}</h3>
         <p className="text-xs max-w-sm mt-1">
           Натисніть на будь-який тикет у середній колонці, щоб переглянути повні деталі, опис та історію.
         </p>
@@ -68,7 +70,7 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
   if (loading && !task) {
     return (
       <div className="flex-1 flex items-center justify-center p-8 text-xs text-muted-foreground">
-        Завантаження деталей задачі...
+        {dict.common.loading}
       </div>
     );
   }
@@ -77,7 +79,7 @@ export const IssueDetailPane: React.FC<IssueDetailPaneProps> = ({
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-2">
         <AlertCircle className="w-6 h-6 text-destructive" />
-        <span className="text-xs text-destructive">{error || "Задачу не знайдено"}</span>
+        <span className="text-xs text-destructive">{error || dict.issue.issueNotFound}</span>
       </div>
     );
   }

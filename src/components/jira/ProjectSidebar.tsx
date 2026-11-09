@@ -5,16 +5,13 @@ import {
   LayoutGrid,
   ListTodo,
   CheckSquare,
-  Zap,
-  Package,
   BarChart3,
-  Boxes,
   Settings,
   ChevronLeft,
   ChevronRight,
-  FolderGit2,
   Layers,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 export type JiraNavSection =
   | "issues" // 3-panel Jira Issues registry (default active)
@@ -48,6 +45,8 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   onOpenSettings,
   isAdmin = false,
 }) => {
+  const { dict } = useI18n();
+
   const menuItems: Array<{
     id: JiraNavSection;
     label: string;
@@ -56,25 +55,25 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   }> = [
     {
       id: "issues",
-      label: "Задачі",
+      label: dict.nav.issues,
       icon: <CheckSquare className="w-4 h-4" />,
-      badge: "3-панелі",
+      badge: dict.nav.threePanels,
     },
     {
       id: "board",
-      label: "Дошка (Kanban)",
+      label: dict.nav.board,
       icon: <LayoutGrid className="w-4 h-4" />,
     },
     {
       id: "backlog",
-      label: "Список задач (Backlog)",
+      label: dict.nav.backlog,
       icon: <ListTodo className="w-4 h-4" />,
     },
     ...(isAdmin
       ? [
           {
             id: "reports" as JiraNavSection,
-            label: "Звіти",
+            label: dict.nav.reports,
             icon: <BarChart3 className="w-4 h-4 text-cyan-400" />,
           },
         ]
@@ -108,7 +107,9 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 {project.name}
               </h2>
               <span className="text-[10px] text-muted-foreground font-mono block">
-                {project.id === "all" ? "[ALL] Глобальний контекст" : `[${project.key}] Проєкт ПЗ`}
+                {project.id === "all"
+                  ? dict.nav.globalContext
+                  : `[${project.key}] ${dict.nav.softwareProject}`}
               </span>
             </div>
           )}
@@ -118,7 +119,7 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         <button
           onClick={onToggleCollapse}
           className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-          title={isCollapsed ? "Розгорнути панель ( [ )" : "Згорнути панель ( [ )"}
+          title={isCollapsed ? dict.nav.expandSidebar : dict.nav.collapseSidebar}
         >
           {isCollapsed ? (
             <ChevronRight className="w-4 h-4" />
@@ -132,7 +133,7 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       <div className="flex-1 py-3 px-2 space-y-1 overflow-y-auto">
         {!isCollapsed && (
           <div className="px-2 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-            Планування та робота
+            {dict.nav.planningAndWork}
           </div>
         )}
 
@@ -179,13 +180,13 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         <div className="p-2 border-t border-border/80">
           <button
             onClick={onOpenSettings}
-            title={isCollapsed ? "Налаштування проєкту" : undefined}
+            title={isCollapsed ? dict.nav.projectSettings : undefined}
             className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors ${
               isCollapsed ? "justify-center" : ""
             }`}
           >
             <Settings className="w-4 h-4 flex-shrink-0" />
-            {!isCollapsed && <span>Налаштування проєкту</span>}
+            {!isCollapsed && <span>{dict.nav.projectSettings}</span>}
           </button>
         </div>
       )}

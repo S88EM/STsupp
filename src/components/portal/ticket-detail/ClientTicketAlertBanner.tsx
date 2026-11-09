@@ -2,6 +2,7 @@
 
 import React from "react";
 import { ArrowRightLeft, Loader2 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface ClientTicketAlertBannerProps {
   isWaitingForResponse: boolean;
@@ -16,6 +17,8 @@ export const ClientTicketAlertBanner: React.FC<ClientTicketAlertBannerProps> = (
   sendingReply,
   onReturnToSupport,
 }) => {
+  const { dict } = useI18n();
+
   if (!isWaitingForResponse) return null;
 
   return (
@@ -26,10 +29,10 @@ export const ClientTicketAlertBanner: React.FC<ClientTicketAlertBannerProps> = (
         </div>
         <div>
           <div className="font-bold text-foreground">
-            Служба підтримки очікує вашої відповіді
+            {dict.portal.supportWaitingReply}
           </div>
           <div className="text-muted-foreground text-[11px] leading-relaxed">
-            Надайте коментар з уточненнями нижче або натисніть кнопку, щоб повернути звернення в роботу
+            {dict.portal.supportWaitingReplyDesc}
           </div>
         </div>
       </div>
@@ -38,17 +41,17 @@ export const ClientTicketAlertBanner: React.FC<ClientTicketAlertBannerProps> = (
         onClick={onReturnToSupport}
         disabled={returningToSupport || sendingReply}
         className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all flex-shrink-0 disabled:opacity-50 cursor-pointer"
-        title="Повернути задачу в роботу інженеру підтримки"
+        title={dict.portal.returnToSupportBtn}
       >
         {returningToSupport ? (
           <>
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            <span>Повернення...</span>
+            <span>{dict.portal.returning}</span>
           </>
         ) : (
           <>
             <ArrowRightLeft className="w-3.5 h-3.5" />
-            <span>Повернути в підтримку</span>
+            <span>{dict.portal.returnToSupportBtn}</span>
           </>
         )}
       </button>

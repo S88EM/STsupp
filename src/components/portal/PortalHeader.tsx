@@ -9,6 +9,8 @@ import {
   LogOut,
 } from "lucide-react";
 import { ThemeSwitcherButton } from "@/components/theme/ThemeSwitcher";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import { useI18n } from "@/lib/i18n/context";
 import { ProjectItem, PortalCurrentUser, getUserInitials } from "./types";
 
 interface PortalHeaderProps {
@@ -28,6 +30,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
   onCreateTicketClick,
   onLogout,
 }) => {
+  const { dict, locale } = useI18n();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const isStaffUser = currentUser?.role === "ADMIN" || currentUser?.role === "ENGINEER";
 
@@ -41,7 +44,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
           <div className="flex items-center gap-2">
             <span className="font-bold text-sm tracking-tight text-foreground">STsup</span>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/15 text-primary border border-primary/20">
-              Портал підтримки
+              {dict.portal.title}
             </span>
           </div>
         </Link>
@@ -49,13 +52,13 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
         {/* Project selector if client has multiple */}
         {projects.length > 1 && (
           <div className="hidden md:flex items-center gap-1.5 ml-4 pl-4 border-l border-border/80">
-            <span className="text-xs text-muted-foreground">Проєкт:</span>
+            <span className="text-xs text-muted-foreground">{dict.board.filterProject}:</span>
             <select
               value={selectedProjectId}
               onChange={(e) => onSelectProject(e.target.value)}
               className="text-xs px-2.5 py-1 rounded-lg bg-secondary/50 border border-border text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary"
             >
-              <option value="">Всі доступні проєкти ({projects.length})</option>
+              <option value="">{locale === "en" ? `All available projects (${projects.length})` : `Всі доступні проєкти (${projects.length})`}</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   [{p.key}] {p.name}
@@ -73,10 +76,10 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
           <Link
             href="/"
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-secondary/60 hover:bg-secondary border border-border text-xs font-medium text-foreground transition-colors"
-            title="Перейти до інженерної панелі розробника"
+            title={dict.nav.devPanel}
           >
             <LayoutGrid className="w-3.5 h-3.5 text-primary" />
-            <span>Панель розробника</span>
+            <span>{dict.nav.devPanel}</span>
           </Link>
         )}
 
@@ -86,8 +89,11 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
           className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>Створити звернення</span>
+          <span>{dict.portal.newTicket}</span>
         </button>
+
+        {/* Language Switcher */}
+        <LanguageSwitcher variant="toggle" />
 
         {/* Theme Switcher */}
         <ThemeSwitcherButton />
@@ -107,7 +113,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
                   {currentUser.name}
                 </span>
                 <span className="text-[10px] text-muted-foreground leading-tight mt-0.5">
-                  {currentUser.role === "CLIENT" ? "Клієнт" : currentUser.role}
+                  {currentUser.role === "CLIENT" ? dict.roles.client : currentUser.role}
                 </span>
               </div>
               <ChevronDown className="w-3 h-3 text-muted-foreground hidden lg:block" />
@@ -123,8 +129,13 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
                     {currentUser.email}
                   </span>
                   <span className="text-[10px] font-semibold text-primary mt-1 inline-block">
-                    {currentUser.role === "CLIENT" ? "Клієнтський обліковий запис" : currentUser.role}
+                    {currentUser.role === "CLIENT" ? dict.portal.orgBoundary : currentUser.role}
                   </span>
+                </div>
+
+                {/* Inline Language selection inside profile modal */}
+                <div className="px-3 py-2 border-b border-border/60">
+                  <LanguageSwitcher variant="menu-inline" />
                 </div>
 
                 <div className="pt-1">
@@ -136,7 +147,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
-                    <span>Вийти з акаунта</span>
+                    <span>{dict.nav.logout}</span>
                   </button>
                 </div>
               </div>

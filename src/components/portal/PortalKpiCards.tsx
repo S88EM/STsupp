@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Layers, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { useI18n } from "@/lib/i18n/context";
 import { PortalKpiMetrics, PortalStatusFilter } from "./types";
 
 interface PortalKpiCardsProps {
@@ -15,6 +16,8 @@ export const PortalKpiCards: React.FC<PortalKpiCardsProps> = ({
   statusFilter,
   onSelectFilter,
 }) => {
+  const { dict, locale } = useI18n();
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       {/* Card 1: Всі звернення */}
@@ -27,11 +30,13 @@ export const PortalKpiCards: React.FC<PortalKpiCardsProps> = ({
         }`}
       >
         <div className="flex items-center justify-between text-muted-foreground mb-2">
-          <span className="text-xs font-semibold uppercase tracking-wider">Всі звернення</span>
+          <span className="text-xs font-semibold uppercase tracking-wider">{dict.portal.totalTickets}</span>
           <Layers className="w-4 h-4 text-primary" />
         </div>
         <div className="text-2xl sm:text-3xl font-bold text-foreground">{metrics.total}</div>
-        <span className="text-[11px] text-muted-foreground mt-1 block">У доступних проєктах</span>
+        <span className="text-[11px] text-muted-foreground mt-1 block">
+          {locale === "en" ? "In accessible projects" : "У доступних проєктах"}
+        </span>
       </button>
 
       {/* Card 2: В роботі */}
@@ -44,11 +49,13 @@ export const PortalKpiCards: React.FC<PortalKpiCardsProps> = ({
         }`}
       >
         <div className="flex items-center justify-between text-muted-foreground mb-2">
-          <span className="text-xs font-semibold uppercase tracking-wider">В роботі</span>
+          <span className="text-xs font-semibold uppercase tracking-wider">{dict.portal.inProgress}</span>
           <Clock className="w-4 h-4 text-blue-400" />
         </div>
         <div className="text-2xl sm:text-3xl font-bold text-blue-400">{metrics.inProgress}</div>
-        <span className="text-[11px] text-muted-foreground mt-1 block">Активні задачі інженерів</span>
+        <span className="text-[11px] text-muted-foreground mt-1 block">
+          {locale === "en" ? "Active engineer tasks" : "Активні задачі інженерів"}
+        </span>
       </button>
 
       {/* Card 3: Вирішено */}
@@ -61,11 +68,13 @@ export const PortalKpiCards: React.FC<PortalKpiCardsProps> = ({
         }`}
       >
         <div className="flex items-center justify-between text-muted-foreground mb-2">
-          <span className="text-xs font-semibold uppercase tracking-wider">Вирішено</span>
+          <span className="text-xs font-semibold uppercase tracking-wider">{dict.portal.resolved}</span>
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
         </div>
         <div className="text-2xl sm:text-3xl font-bold text-emerald-400">{metrics.resolved}</div>
-        <span className="text-[11px] text-muted-foreground mt-1 block">Успішно закриті тікети</span>
+        <span className="text-[11px] text-muted-foreground mt-1 block">
+          {locale === "en" ? "Resolved tickets" : "Успішно закриті тікети"}
+        </span>
       </button>
 
       {/* Card 4: Очікує відповіді */}
@@ -78,7 +87,7 @@ export const PortalKpiCards: React.FC<PortalKpiCardsProps> = ({
         }`}
       >
         <div className="flex items-center justify-between text-muted-foreground mb-2">
-          <span className="text-xs font-semibold uppercase tracking-wider">Очікує відповіді</span>
+          <span className="text-xs font-semibold uppercase tracking-wider">{dict.portal.awaitingClient}</span>
           <AlertCircle
             className={`w-4 h-4 ${
               metrics.awaitingResponse > 0 ? "text-amber-400 animate-pulse" : "text-purple-400"
@@ -92,7 +101,9 @@ export const PortalKpiCards: React.FC<PortalKpiCardsProps> = ({
         >
           {metrics.awaitingResponse}
         </div>
-        <span className="text-[11px] text-muted-foreground mt-1 block">Призначено на вас інженером</span>
+        <span className="text-[11px] text-muted-foreground mt-1 block">
+          {locale === "en" ? "Assigned to you by engineer" : "Призначено на вас інженером"}
+        </span>
       </button>
     </div>
   );

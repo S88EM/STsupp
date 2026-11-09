@@ -13,6 +13,7 @@ import { AgileViews } from "@/components/jira/AgileViews";
 import { ProjectSettingsModal } from "@/components/project/ProjectSettingsModal";
 import { getStatusSemantic } from "@/components/jira/issue-detail/types";
 import { getCanonicalTaskPath, extractTaskCodeFromPath } from "@/lib/taskUrl";
+import { useI18n } from "@/lib/i18n";
 
 export interface ProjectWorkspaceProps {
   initialProjectId?: string;
@@ -29,6 +30,7 @@ export function ProjectWorkspace({
   initialSection,
   isDirectBrowseMode = false,
 }: ProjectWorkspaceProps) {
+  const { dict } = useI18n();
   const params = useParams();
   const searchParams = useSearchParams();
 
@@ -254,7 +256,7 @@ export function ProjectWorkspace({
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground text-sm">
-        Завантаження проєкту Jira...
+        {dict.common.loading}
       </div>
     );
   }
@@ -262,9 +264,9 @@ export function ProjectWorkspace({
   if (!project) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center space-y-3">
-        <h2 className="text-xl font-bold text-foreground">Проєкт не знайдено</h2>
+        <h2 className="text-xl font-bold text-foreground">{dict.issue.issueNotFound}</h2>
         <a href="/" className="text-xs text-primary underline">
-          Повернутися на головну
+          ← {dict.common.back}
         </a>
       </div>
     );
@@ -347,36 +349,36 @@ export function ProjectWorkspace({
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold text-foreground">Беклог проєкту</h2>
+                  <h2 className="text-xl font-bold text-foreground">{dict.backlog.title}</h2>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground font-semibold">
                     {backlogTasks.length}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Загальний реєстр усіх задач, які очікують на взяття в роботу
+                  {dict.backlog.subtitle}
                 </p>
               </div>
               <button
                 onClick={() => setIsCreateIssueOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-all"
               >
-                + Створити задачу
+                + {dict.nav.createIssue}
               </button>
             </div>
 
             <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
               <div className="grid grid-cols-12 px-4 py-3 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wider bg-secondary/30">
-                <div className="col-span-2">Код</div>
-                <div className="col-span-5">Назва</div>
-                <div className="col-span-2">Статус</div>
-                <div className="col-span-2">Пріоритет</div>
-                <div className="col-span-1 text-right">Виконавець</div>
+                <div className="col-span-2">{dict.backlog.tableKey}</div>
+                <div className="col-span-5">{dict.backlog.tableTitle}</div>
+                <div className="col-span-2">{dict.issue.status}</div>
+                <div className="col-span-2">{dict.backlog.tablePriority}</div>
+                <div className="col-span-1 text-right">{dict.issue.assignee}</div>
               </div>
 
               <div className="divide-y divide-border/60">
                 {backlogTasks.length === 0 ? (
                   <div className="py-12 text-center text-xs text-muted-foreground">
-                    У беклозі цього проєкту немає задач, які очікують на взяття в роботу.
+                    {dict.backlog.emptyBacklog}
                   </div>
                 ) : (
                   backlogTasks.map((t) => (

@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { ChevronDown, Plus, Settings, Layers } from "lucide-react";
+import { useI18n } from "@/lib/i18n/context";
 
 interface NavbarProjectsMenuProps {
   isOpen: boolean;
@@ -25,6 +26,8 @@ export const NavbarProjectsMenu: React.FC<NavbarProjectsMenuProps> = ({
   onOpenCreateProject,
   onOpenSettings,
 }) => {
+  const { dict, locale } = useI18n();
+
   return (
     <div className="relative">
       <button
@@ -35,7 +38,7 @@ export const NavbarProjectsMenu: React.FC<NavbarProjectsMenuProps> = ({
             : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
         }`}
       >
-        <span>Проєкти</span>
+        <span>{dict.nav.projects}</span>
         <ChevronDown className="w-3 h-3 ml-0.5" />
       </button>
 
@@ -44,7 +47,7 @@ export const NavbarProjectsMenu: React.FC<NavbarProjectsMenuProps> = ({
           {currentProject && (
             <div className="px-2 py-1.5 border-b border-border/60 mb-1">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
-                Поточний проєкт
+                {locale === "en" ? "Current Project" : "Поточний проєкт"}
               </span>
               <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                 <span className="font-mono text-primary font-bold">[{currentProject.key}]</span>
@@ -75,17 +78,17 @@ export const NavbarProjectsMenu: React.FC<NavbarProjectsMenuProps> = ({
                 </div>
                 <div className="truncate">
                   <span className="font-mono text-primary mr-1 font-bold">[ALL]</span>
-                  <span>Всі проєкти</span>
+                  <span>{dict.nav.allProjects}</span>
                 </div>
               </div>
               <span className="text-[10px] text-muted-foreground group-hover:text-foreground font-medium px-1.5 py-0.5 rounded bg-secondary/60">
-                Всі ({projects.length})
+                {locale === "en" ? "All" : "Всі"} ({projects.length})
               </span>
             </Link>
           </div>
 
           <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-            Окремі проєкти ({projects.length})
+            {locale === "en" ? "Individual Projects" : "Окремі проєкти"} ({projects.length})
           </div>
           <div className="max-h-48 overflow-y-auto space-y-0.5 my-1">
             {projects.map((p) => (
@@ -121,7 +124,7 @@ export const NavbarProjectsMenu: React.FC<NavbarProjectsMenuProps> = ({
                 className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Створити новий проєкт...</span>
+                <span>{locale === "en" ? "Create new project..." : "Створити новий проєкт..."}</span>
               </button>
               <button
                 onClick={() => {
@@ -131,7 +134,7 @@ export const NavbarProjectsMenu: React.FC<NavbarProjectsMenuProps> = ({
                 className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
               >
                 <Settings className="w-3.5 h-3.5" />
-                <span>Налаштування проєктів...</span>
+                <span>{locale === "en" ? "Project settings..." : "Налаштування проєктів..."}</span>
               </button>
             </div>
           )}

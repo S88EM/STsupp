@@ -7,14 +7,14 @@
 **Сучасна, швидка та ресурсоощадна система управління задачами, проєктами та зверненнями клієнтів (Service Desk).**  
 Оптимізована для автономної роботи (Self-Hosted), роботи в локальній мережі, Docker-контейнерах та як Home Assistant Add-on.
 
-[![Version](https://img.shields.io/badge/version-0.4.5-blue.svg)](config.yaml)
+[![Version](https://img.shields.io/badge/version-0.4.6-blue.svg)](config.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-14.2.23-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-18.3.1-61dafb.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-6.2-2D3748.svg)](https://www.prisma.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14%2B-336791.svg)](https://www.postgresql.org/)
-[![Tests](https://img.shields.io/badge/Tests-51%20passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-69%20passing-brightgreen.svg)](tests/)
 [![RAM](https://img.shields.io/badge/RAM-~120--150%20MB-orange.svg)](#)
 
 </div>
@@ -81,6 +81,12 @@
 * **Повний Backup & Restore системи (`.stsup` gzip-архіви):**
   * **Експорт:** вивантаження всіх користувачів, проєктів, задач, коментарів, конфігурацій та файлів у єдиний стиснений файл.
   * **Відновлення:** валідація цілісності, безпечне підтвердження словом `ВІДНОВИТИ`, атомарне перезаписування бази у Prisma `$transaction` та розпакування вкладень.
+
+### 8. Повноцінна двомовна локалізація (UA / EN)
+* **Дві мови «з коробки»:** бездоганна українська та міжнародна англійська локалізації без машинного суржику чи термінологічних спотворень.
+* **Швидкий перемикач мови (UA/EN toggle):** доступний у верхній панелі навігації, у меню профілю користувача, на сторінці налаштувань, у клієнтському порталі та на екранах входу й реєстрації.
+* **Миттєве перемикання без перезавантаження:** повне клієнтське оновлення інтерфейсу в реальному часі без втрати контексту чи порушення канонічних посилань (`/browse/{KEY}-{ID}`).
+* **Багаторівневе збереження вибору:** збереження мови у профілі користувача в базі даних (`User.locale`), у `localStorage` (`stsup_lang`) та HTTP-cookie з автоматичною ініціалізацією SSR-атрибута `<html lang="...">`.
 
 ---
 

@@ -7,7 +7,7 @@
 **Сучасна, швидка та ресурсоощадна система управління задачами, проєктами та зверненнями клієнтів (Service Desk).**  
 Оптимізована для автономної роботи (Self-Hosted), роботи в локальній мережі, Docker-контейнерах та як Home Assistant Add-on.
 
-[![Version](https://img.shields.io/badge/version-0.4.2-blue.svg)](config.yaml)
+[![Version](https://img.shields.io/badge/version-0.4.3-blue.svg)](config.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-14.2.23-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-18.3.1-61dafb.svg)](https://react.dev/)

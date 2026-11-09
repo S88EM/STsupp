@@ -10,6 +10,7 @@ import {
   notifyTelegramCommentAdded,
   notifyTelegramTaskAssignment,
 } from "@/lib/telegram";
+import { getCanonicalTaskUrl } from "@/lib/taskUrl";
 
 function getBaseUrl(origin?: string): string {
   if (origin && origin.startsWith("http") && !origin.includes("localhost") && !origin.includes("127.0.0.1")) {
@@ -60,7 +61,9 @@ export async function notifyStatusChange({
 
     const updatedByName = updater?.name || "Користувач системи";
     const baseUrl = getBaseUrl(origin);
-    const taskUrl = `${baseUrl}/projects/${task.projectId}?taskId=${task.id}`;
+    const taskUrl = task.code
+      ? getCanonicalTaskUrl(task.code, baseUrl)
+      : `${baseUrl}/projects/${task.projectId}?taskId=${task.id}`;
 
     // Collect distinct recipients (excluding the person who made the change)
     const recipientMap = new Map<string, { name: string; email: string }>();
@@ -149,7 +152,9 @@ export async function notifyTaskAssignment({
 
     const assignedByName = assigner?.name || "Користувач системи";
     const baseUrl = getBaseUrl(origin);
-    const taskUrl = `${baseUrl}/projects/${task.projectId}?taskId=${task.id}`;
+    const taskUrl = task.code
+      ? getCanonicalTaskUrl(task.code, baseUrl)
+      : `${baseUrl}/projects/${task.projectId}?taskId=${task.id}`;
 
     sendTaskAssignedEmail({
       to: newAssignee.email,
@@ -224,7 +229,9 @@ export async function notifyNewComment({
 
     const commentAuthorName = comment.author?.name || comment.authorName || "AI Асистент";
     const baseUrl = getBaseUrl(origin);
-    const taskUrl = `${baseUrl}/projects/${task.projectId}?taskId=${task.id}`;
+    const taskUrl = task.code
+      ? getCanonicalTaskUrl(task.code, baseUrl)
+      : `${baseUrl}/projects/${task.projectId}?taskId=${task.id}`;
 
     // Collect distinct recipients (author, assignee, past commenters, watchers) excluding current author
     const recipientMap = new Map<string, { name: string; email: string }>();

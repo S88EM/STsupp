@@ -8,6 +8,7 @@ import { TaskDetailModal } from "./TaskDetailModal";
 import { NewTaskModal } from "./NewTaskModal";
 import { NewColumnModal } from "./NewColumnModal";
 import { Plus, Search } from "lucide-react";
+import { getCanonicalTaskPath } from "@/lib/taskUrl";
 
 interface KanbanBoardProps {
   projectId: string;
@@ -60,6 +61,33 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   const handleTaskClick = useCallback((task: TaskItem) => {
     setSelectedTask(task);
+    if (task.code && typeof window !== "undefined") {
+      const canonicalPath = getCanonicalTaskPath(task.code);
+      if (window.location.pathname !== canonicalPath) {
+        window.history.pushState(
+          { taskId: task.id, code: task.code },
+          "",
+          canonicalPath
+        );
+      }
+    }
+  }, []);
+
+  const handleCloseDetailModal = useCallback(() => {
+    setSelectedTask(null);
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/browse/")) {
+      window.history.pushState(null, "", `/projects/${projectId}?section=board`);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/browse/")) {
+        setSelectedTask(null);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   const handleAddTaskToColumn = useCallback((colId: string) => {
@@ -319,10 +347,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         projectId={selectedTask?.projectId || projectId}
         columns={selectedTask?.project?.columns || columns}
         isOpen={Boolean(selectedTask)}
-        onClose={() => setSelectedTask(null)}
+        onClose={handleCloseDetailModal}
         onTaskUpdated={onRefresh}
         onTaskDeleted={async () => {
-          setSelectedTask(null);
+          handleCloseDetailModal();
           await onRefresh();
         }}
       />

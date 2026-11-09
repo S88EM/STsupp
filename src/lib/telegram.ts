@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { getAppUrl } from "@/lib/email";
+import { getCanonicalTaskUrl } from "@/lib/taskUrl";
 
 export interface TelegramEventsConfig {
   taskCreated: boolean;
@@ -374,7 +375,9 @@ export async function notifyTelegramTaskCreated({
       origin && origin.startsWith("http") && !origin.includes("localhost") && !origin.includes("127.0.0.1")
         ? origin.replace(/\/+$/, "")
         : getAppUrl();
-    const taskUrl = `${baseUrl}/projects/${project.id}?taskId=${task.id}`;
+    const taskUrl = task.code
+      ? getCanonicalTaskUrl(task.code, baseUrl)
+      : `${baseUrl}/projects/${project.id}?taskId=${task.id}`;
 
     const creatorName = creator.name?.trim() || "Користувач системи";
 
@@ -459,7 +462,9 @@ export async function notifyTelegramStatusChanged({
       origin && origin.startsWith("http") && !origin.includes("localhost") && !origin.includes("127.0.0.1")
         ? origin.replace(/\/+$/, "")
         : getAppUrl();
-    const taskUrl = `${baseUrl}/projects/${project.id}?taskId=${task.id}`;
+    const taskUrl = task.code
+      ? getCanonicalTaskUrl(task.code, baseUrl)
+      : `${baseUrl}/projects/${project.id}?taskId=${task.id}`;
     const updater = updatedByName?.trim() || "Користувач системи";
 
     const lines = [
@@ -529,7 +534,9 @@ export async function notifyTelegramCommentAdded({
       origin && origin.startsWith("http") && !origin.includes("localhost") && !origin.includes("127.0.0.1")
         ? origin.replace(/\/+$/, "")
         : getAppUrl();
-    const taskUrl = `${baseUrl}/projects/${project.id}?taskId=${task.id}`;
+    const taskUrl = task.code
+      ? getCanonicalTaskUrl(task.code, baseUrl)
+      : `${baseUrl}/projects/${project.id}?taskId=${task.id}`;
 
     const snippet = commentText.length > 250
       ? commentText.substring(0, 247) + "..."
@@ -605,7 +612,9 @@ export async function notifyTelegramTaskAssignment({
       origin && origin.startsWith("http") && !origin.includes("localhost") && !origin.includes("127.0.0.1")
         ? origin.replace(/\/+$/, "")
         : getAppUrl();
-    const taskUrl = `${baseUrl}/projects/${project.id}?taskId=${task.id}`;
+    const taskUrl = task.code
+      ? getCanonicalTaskUrl(task.code, baseUrl)
+      : `${baseUrl}/projects/${project.id}?taskId=${task.id}`;
 
     let priorityLabel = "🟡 Середній";
     const p = (priority || "").toUpperCase();

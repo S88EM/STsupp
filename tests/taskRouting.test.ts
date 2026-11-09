@@ -5,6 +5,7 @@ import {
   isValidTaskCode,
   getCanonicalTaskPath,
   getCanonicalTaskUrl,
+  extractTaskCodeFromPath,
 } from "../src/lib/taskUrl";
 
 describe("taskRouting and URL utilities", () => {
@@ -57,6 +58,11 @@ describe("taskRouting and URL utilities", () => {
       assert.equal(getCanonicalTaskPath("st-1"), "/browse/ST-1");
       assert.equal(getCanonicalTaskPath("core-100"), "/browse/CORE-100");
     });
+
+    test("handles empty code gracefully", () => {
+      assert.equal(getCanonicalTaskPath(""), "");
+      assert.equal(getCanonicalTaskPath("  "), "");
+    });
   });
 
   describe("getCanonicalTaskUrl", () => {
@@ -81,6 +87,32 @@ describe("taskRouting and URL utilities", () => {
     test("falls back to relative path if origin is not provided", () => {
       assert.equal(getCanonicalTaskUrl("ST-1"), "/browse/ST-1");
       assert.equal(getCanonicalTaskUrl("ST-1", ""), "/browse/ST-1");
+    });
+  });
+
+  describe("extractTaskCodeFromPath", () => {
+    test("extracts uppercase code from /browse/{code} paths", () => {
+      assert.equal(extractTaskCodeFromPath("/browse/RIGA-2"), "RIGA-2");
+      assert.equal(extractTaskCodeFromPath("/browse/st-1"), "ST-1");
+      assert.equal(extractTaskCodeFromPath("/browse/CORE_API-42/"), "CORE_API-42");
+      assert.equal(extractTaskCodeFromPath("/browse/DEMO-99?tab=comments"), "DEMO-99");
+      assert.equal(extractTaskCodeFromPath("/browse/DEMO-99#activity"), "DEMO-99");
+    });
+
+    test("extracts uppercase code from /issues/{code} alias paths", () => {
+      assert.equal(extractTaskCodeFromPath("/issues/PRJ-10"), "PRJ-10");
+      assert.equal(extractTaskCodeFromPath("/issues/task-5/"), "TASK-5");
+    });
+
+    test("returns null for non-task or generic routes", () => {
+      assert.equal(extractTaskCodeFromPath("/projects/123"), null);
+      assert.equal(extractTaskCodeFromPath("/projects/all"), null);
+      assert.equal(extractTaskCodeFromPath("/portal"), null);
+      assert.equal(extractTaskCodeFromPath("/browse"), null);
+      assert.equal(extractTaskCodeFromPath("/browse/"), null);
+      assert.equal(extractTaskCodeFromPath("/settings"), null);
+      assert.equal(extractTaskCodeFromPath(null), null);
+      assert.equal(extractTaskCodeFromPath(undefined), null);
     });
   });
 });

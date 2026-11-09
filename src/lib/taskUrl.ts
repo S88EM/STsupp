@@ -23,8 +23,10 @@ export function isValidTaskCode(code?: string | null): boolean {
 /**
  * Returns canonical relative path to the task browse route.
  */
-export function getCanonicalTaskPath(code: string): string {
-  return `/browse/${normalizeTaskCode(code)}`;
+export function getCanonicalTaskPath(code?: string | null): string {
+  const normalized = normalizeTaskCode(code);
+  if (!normalized) return "";
+  return `/browse/${normalized}`;
 }
 
 /**
@@ -36,4 +38,13 @@ export function getCanonicalTaskUrl(code: string, origin?: string): string {
   // Ensure no double slashes if origin ends with a slash
   const cleanOrigin = origin.replace(/\/+$/, "");
   return `${cleanOrigin}${path}`;
+}
+
+/**
+ * Extracts task code from a pathname if it matches canonical /browse/{code} or /issues/{code}.
+ */
+export function extractTaskCodeFromPath(pathname?: string | null): string | null {
+  if (!pathname) return null;
+  const match = pathname.match(/^\/(?:browse|issues)\/([A-Za-z0-9_]+-\d+)(?:\/|\?|#|$)/i);
+  return match ? normalizeTaskCode(match[1]) : null;
 }

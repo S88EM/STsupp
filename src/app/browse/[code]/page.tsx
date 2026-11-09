@@ -9,19 +9,22 @@ import {
   Home,
   Loader2,
   FolderKanban,
-  CheckSquare,
 } from "lucide-react";
 import { normalizeTaskCode } from "@/lib/taskUrl";
+import { ProjectWorkspace } from "@/components/jira/ProjectWorkspace";
+import { ClientPortalContent } from "@/components/portal/ClientPortalContent";
+
+interface ResolvedTask {
+  id: string;
+  code: string;
+  title: string;
+  projectId: string;
+  projectKey: string;
+  projectName: string;
+}
 
 interface TaskResponse {
-  task?: {
-    id: string;
-    code: string;
-    title: string;
-    projectId: string;
-    projectKey: string;
-    projectName: string;
-  };
+  task?: ResolvedTask;
   userRole?: string;
   error?: string;
 }
@@ -36,6 +39,8 @@ export default function BrowseTaskPage() {
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [projectKey, setProjectKey] = useState<string>("");
+  const [resolvedTask, setResolvedTask] = useState<ResolvedTask | null>(null);
+  const [userRole, setUserRole] = useState<string>("");
 
   useEffect(() => {
     if (!taskCode) {
@@ -81,16 +86,9 @@ export default function BrowseTaskPage() {
         if (res.ok) {
           const data: TaskResponse = await res.json();
           if (data.task) {
-            // Role-based routing: Clients use /portal, staff use 3-panel Jira /projects/[id]
-            if (data.userRole === "CLIENT") {
-              router.replace(
-                `/portal?ticketId=${data.task.id}&projectId=${data.task.projectId}`
-              );
-            } else {
-              router.replace(
-                `/projects/${data.task.projectId}?taskId=${data.task.id}&section=issues`
-              );
-            }
+            setResolvedTask(data.task);
+            setUserRole(data.userRole || "");
+            setLoading(false);
             return;
           }
         }
@@ -115,6 +113,7 @@ export default function BrowseTaskPage() {
     };
   }, [taskCode, router]);
 
+  // Loading Screen
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
@@ -127,7 +126,7 @@ export default function BrowseTaskPage() {
               Пошук задачі <span className="font-mono text-primary font-bold">{taskCode || "..."}</span>
             </h2>
             <p className="text-xs text-muted-foreground">
-              Перевірка прав доступу та відкриття контексту проєкту...
+              Ініціалізація робочого простору проєкту...
             </p>
           </div>
         </div>
@@ -221,19 +220,44 @@ export default function BrowseTaskPage() {
   }
 
   // Generic Error Fallback
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-card border border-border rounded-2xl shadow-xl p-6 text-center space-y-4">
-        <AlertCircle className="w-10 h-10 text-destructive mx-auto" />
-        <h2 className="text-base font-bold text-foreground">Помилка завантаження</h2>
-        <p className="text-xs text-muted-foreground">{errorMessage || "Невідома помилка"}</p>
-        <button
-          onClick={() => router.push("/")}
-          className="px-4 py-2 rounded-xl text-xs font-semibold bg-primary text-primary-foreground cursor-pointer"
-        >
-          На головну
-        </button>
+  if (!resolvedTask) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-card border border-border rounded-2xl shadow-xl p-6 text-center space-y-4">
+          <AlertCircle className="w-10 h-10 text-destructive mx-auto" />
+          <h2 className="text-base font-bold text-foreground">Помилка завантаження</h2>
+          <p className="text-xs text-muted-foreground">{errorMessage || "Невідома помилка"}</p>
+          <button
+            onClick={() => router.push("/")}
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-primary text-primary-foreground cursor-pointer"
+          >
+            На головну
+          </button>
+        </div>
       </div>
-    </div>
+    );
+  }
+
+  // Render workspace directly at canonical /browse/[code] URL:
+  // - Client role: Render client portal with modal open
+  // - Staff / Admin role: Render 3-panel Jira workspace with task open
+  if (userRole === "CLIENT") {
+    return (
+      <ClientPortalContent
+        initialTicketId={resolvedTask.id}
+        initialTicketCode={resolvedTask.code}
+        initialProjectId={resolvedTask.projectId}
+        isDirectBrowseMode={true}
+      />
+    );
+  }
+
+  return (
+    <ProjectWorkspace
+      initialProjectId={resolvedTask.projectId}
+      initialTaskId={resolvedTask.id}
+      initialTaskCode={resolvedTask.code}
+      isDirectBrowseMode={true}
+    />
   );
 }

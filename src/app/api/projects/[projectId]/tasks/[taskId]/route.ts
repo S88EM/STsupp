@@ -22,7 +22,7 @@ export async function GET(
     }
 
     const task = await prisma.task.findUnique({
-      where: projectId === "all" ? { id: taskId } : { id: taskId, projectId },
+      where: { id: taskId },
       include: {
         column: true,
         project: {
@@ -112,7 +112,7 @@ export async function PATCH(
     const { title, description, priority, columnId, dueDate, assigneeId, aiContext } = body;
 
     const existingTask = await prisma.task.findUnique({
-      where: projectId === "all" ? { id: taskId } : { id: taskId, projectId },
+      where: { id: taskId },
       select: {
         id: true,
         creatorId: true,
@@ -307,7 +307,7 @@ export async function PATCH(
     }
 
     const updated = await prisma.task.update({
-      where: projectId === "all" ? { id: taskId } : ({ id: taskId, projectId } as any),
+      where: { id: taskId },
       data: {
         title: title !== undefined ? title.trim() : undefined,
         description: description !== undefined ? description : undefined,
@@ -499,7 +499,7 @@ export async function DELETE(
       );
     }
 
-    await prisma.task.delete({ where: projectId === "all" ? { id: taskId } : { id: taskId, projectId } });
+    await prisma.task.delete({ where: { id: taskId } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("DELETE task error:", error);

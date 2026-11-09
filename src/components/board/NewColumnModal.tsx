@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { X } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface NewColumnModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export const NewColumnModal: React.FC<NewColumnModalProps> = ({
   onClose,
   onCreateColumn,
 }) => {
+  const { dict } = useI18n();
   const [name, setName] = useState("");
   const [color, setColor] = useState("#3b82f6");
   const [isDoneColumn, setIsDoneColumn] = useState(false);
@@ -62,7 +64,9 @@ export const NewColumnModal: React.FC<NewColumnModalProps> = ({
         <form onSubmit={handleSubmit}>
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/80">
-            <span className="text-sm font-semibold text-foreground">Нова колонка / статус</span>
+            <span className="text-sm font-semibold text-foreground">
+              {dict.board.newColumnModalTitle}
+            </span>
             <button
               type="button"
               onClick={onClose}
@@ -76,11 +80,11 @@ export const NewColumnModal: React.FC<NewColumnModalProps> = ({
           <div className="p-5 space-y-4">
             <div>
               <label className="text-[11px] font-medium text-muted-foreground block mb-1">
-                Назва колонки
+                {dict.board.columnName}
               </label>
               <input
                 type="text"
-                placeholder="напр. Реліз, UX Review, Блокер..."
+                placeholder={dict.board.columnNamePlaceholder}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoFocus
@@ -92,7 +96,7 @@ export const NewColumnModal: React.FC<NewColumnModalProps> = ({
             {/* Color Selector */}
             <div>
               <label className="text-[11px] font-medium text-muted-foreground block mb-2">
-                Колір статусу
+                {dict.board.statusColor}
               </label>
               <div className="flex items-center gap-2 flex-wrap">
                 {PRESET_COLORS.map((c) => (
@@ -119,7 +123,7 @@ export const NewColumnModal: React.FC<NewColumnModalProps> = ({
                 className="rounded border-border text-primary focus:ring-primary h-4 w-4"
               />
               <label htmlFor="isDoneColumn" className="text-xs text-foreground cursor-pointer">
-                Вважати задачі в цій колонці виконаними (Done)
+                {dict.board.isDoneColumnLabel}
               </label>
             </div>
           </div>
@@ -131,14 +135,14 @@ export const NewColumnModal: React.FC<NewColumnModalProps> = ({
               onClick={onClose}
               className="text-xs px-3.5 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             >
-              Скасувати
+              {dict.common.cancel}
             </button>
             <button
               type="submit"
               disabled={loading || !name.trim()}
               className="text-xs px-4 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm transition-all disabled:opacity-50"
             >
-              {loading ? "Створення..." : "Додати колонку"}
+              {loading ? dict.board.creatingColumn : dict.board.createColumn}
             </button>
           </div>
         </form>

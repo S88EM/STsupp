@@ -23,6 +23,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 export interface AuditLogItem {
   id: string;
@@ -45,33 +46,25 @@ interface TaskHistoryTimelineProps {
   compact?: boolean;
 }
 
-const PRIORITY_LABELS: Record<string, { label: string; color: string }> = {
-  LOW: { label: "Низький", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
-  MEDIUM: { label: "Середній", color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
-  HIGH: { label: "Високий", color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
-  URGENT: { label: "Терміновий", color: "text-red-400 bg-red-500/10 border-red-500/20" },
-  CRITICAL: { label: "Терміновий", color: "text-red-400 bg-red-500/10 border-red-500/20" },
-};
-
-function formatRoleBadge(role?: string | null) {
+function formatRoleBadge(role?: string | null, dict?: any) {
   if (!role) return null;
   switch (role) {
     case "ADMIN":
       return (
         <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/20 text-primary border border-primary/30">
-          Адміністратор
+          {dict?.roles?.admin || "Адміністратор"}
         </span>
       );
     case "ENGINEER":
       return (
         <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-          Інженер
+          {dict?.roles?.engineer || "Інженер"}
         </span>
       );
     case "CLIENT":
       return (
         <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30">
-          Клієнт
+          {dict?.roles?.client || "Клієнт"}
         </span>
       );
     default:
@@ -83,10 +76,10 @@ function formatRoleBadge(role?: string | null) {
   }
 }
 
-function formatFullDateTime(dateStr: string) {
+function formatFullDateTime(dateStr: string, locale?: string) {
   try {
     const d = new Date(dateStr);
-    return d.toLocaleString("uk-UA", {
+    return d.toLocaleString(locale === "en" ? "en-US" : "uk-UA", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -107,6 +100,17 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
   className = "",
   compact = false,
 }) => {
+  const { dict, locale } = useI18n();
+  const isEn = locale === "en";
+
+  const PRIORITY_LABELS: Record<string, { label: string; color: string }> = {
+    LOW: { label: dict.priorities.low, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+    MEDIUM: { label: dict.priorities.medium, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
+    HIGH: { label: dict.priorities.high, color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
+    URGENT: { label: dict.priorities.urgent, color: "text-red-400 bg-red-500/10 border-red-500/20" },
+    CRITICAL: { label: dict.priorities.urgent, color: "text-red-400 bg-red-500/10 border-red-500/20" },
+  };
+
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [filterType, setFilterType] = useState<"all" | "assignee" | "status" | "content" | "priority">("all");
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
@@ -115,7 +119,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
     setExpandedDescriptions((prev) => ({ ...prev, [logId]: !prev[logId] }));
   };
 
-  // Filter logs according to selected category
+  // Filter logs by selected facet
   const filteredLogs = useMemo(() => {
     return auditLogs.filter((log) => {
       if (filterType === "all") return true;
@@ -152,7 +156,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-muted-foreground font-medium flex items-center gap-1">
             <Filter className="w-3.5 h-3.5 text-primary" />
-            <span>Фільтр:</span>
+            <span>{isEn ? "Filter:" : "Фільтр:"}</span>
           </span>
           <div className="flex items-center gap-1 p-0.5 rounded-lg bg-secondary/60 border border-border/80">
             <button
@@ -162,7 +166,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                 filterType === "all" ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Всі ({auditLogs.length})
+              {isEn ? "All" : "Всі"} ({auditLogs.length})
             </button>
             <button
               type="button"
@@ -171,7 +175,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                 filterType === "assignee" ? "bg-card text-primary shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Виконавці
+              {isEn ? "Assignees" : "Виконавці"}
             </button>
             <button
               type="button"
@@ -180,7 +184,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                 filterType === "status" ? "bg-card text-blue-400 shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Статуси
+              {isEn ? "Statuses" : "Статуси"}
             </button>
             <button
               type="button"
@@ -189,7 +193,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                 filterType === "content" ? "bg-card text-amber-400 shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Текст
+              {isEn ? "Text" : "Текст"}
             </button>
             <button
               type="button"
@@ -198,7 +202,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                 filterType === "priority" ? "bg-card text-red-400 shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Пріоритет
+              {isEn ? "Priority" : "Пріоритет"}
             </button>
           </div>
         </div>
@@ -208,10 +212,10 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
           type="button"
           onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-secondary/80 hover:bg-secondary text-foreground text-[11px] font-medium border border-border/80 transition-colors cursor-pointer"
-          title="Змінити порядок сортування"
+          title={isEn ? "Change sort order" : "Змінити порядок сортування"}
         >
           <ArrowDownUp className="w-3 h-3 text-primary" />
-          <span>{sortOrder === "desc" ? "Спочатку нові ↓" : "Спочатку старі ↑"}</span>
+          <span>{sortOrder === "desc" ? (isEn ? "Newest first ↓" : "Спочатку нові ↓") : (isEn ? "Oldest first ↑" : "Спочатку старі ↑")}</span>
         </button>
       </div>
 
@@ -227,22 +231,24 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-foreground">
-                    {taskCreator?.name || "Користувач"}
+                    {taskCreator?.name || (isEn ? "User" : "Користувач")}
                   </span>
-                  {formatRoleBadge(taskCreator?.role)}
+                  {formatRoleBadge(taskCreator?.role, dict)}
                   <span className="text-emerald-500 dark:text-emerald-400 font-semibold text-[11px]">
-                    створив(-ла) звернення
+                    {isEn ? "created the ticket" : "створив(-ла) звернення"}
                   </span>
                 </div>
                 <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
                   <Clock className="w-3 h-3" />
-                  <span title={formatFullDateTime(taskCreatedAt)}>
+                  <span title={formatFullDateTime(taskCreatedAt, locale)}>
                     {formatTimeAgo(taskCreatedAt)}
                   </span>
                 </div>
               </div>
               <div className="text-[11px] text-muted-foreground">
-                Початкова реєстрація задачі в системі ({formatFullDateTime(taskCreatedAt)})
+                {isEn
+                  ? `Initial ticket registration in system (${formatFullDateTime(taskCreatedAt, locale)})`
+                  : `Початкова реєстрація задачі в системі (${formatFullDateTime(taskCreatedAt, locale)})`}
               </div>
             </div>
           </div>
@@ -251,8 +257,8 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
         {sortedLogs.length === 0 ? (
           <div className="p-4 text-center text-xs text-muted-foreground bg-secondary/20 rounded-xl border border-border/60 italic">
             {filterType === "all"
-              ? "Поки що немає записів про зміну параметрів задачі."
-              : "Для обраного фільтру змін не знайдено."}
+              ? isEn ? "No records of task parameter changes yet." : "Поки що немає записів про зміну параметрів задачі."
+              : isEn ? "No changes found for the selected filter." : "Для обраного фільтру змін не знайдено."}
           </div>
         ) : (
           sortedLogs.map((log) => {
@@ -286,22 +292,22 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px]">
-                        {(log.actorName || "К").slice(0, 2).toUpperCase()}
+                        {(log.actorName || "C").slice(0, 2).toUpperCase()}
                       </div>
                       <span className="font-bold text-foreground">
-                        {isActorMe ? `${log.actorName} (Ви)` : log.actorName || log.actorEmail}
+                        {isActorMe ? `${log.actorName} (${isEn ? "You" : "Ви"})` : log.actorName || log.actorEmail}
                       </span>
-                      {formatRoleBadge(actorRole)}
+                      {formatRoleBadge(actorRole, dict)}
                     </div>
 
                     <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                       <Clock className="w-3 h-3 text-muted-foreground" />
-                      <span className="font-medium" title={formatFullDateTime(log.createdAt)}>
+                      <span className="font-medium" title={formatFullDateTime(log.createdAt, locale)}>
                         {formatTimeAgo(log.createdAt)}
                       </span>
                       <span className="hidden sm:inline text-muted-foreground/50">•</span>
                       <span className="hidden sm:inline text-[10px] text-muted-foreground/80 font-mono">
-                        {formatFullDateTime(log.createdAt)}
+                        {formatFullDateTime(log.createdAt, locale)}
                       </span>
                     </div>
                   </div>
@@ -313,11 +319,15 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                       <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 space-y-1">
                         <div className="font-semibold flex items-center gap-1.5">
                           <Sparkles className="w-3.5 h-3.5" />
-                          <span>Повернено звернення до служби підтримки</span>
+                          <span>{isEn ? "Returned ticket to support" : "Повернено звернення до служби підтримки"}</span>
                         </div>
                         <div className="text-[11px] text-foreground/80">
                           {changes.replyCommentAdded
-                            ? "Клієнт надав відповідь та повернув задачу в активну чергу інженерів."
+                            ? isEn
+                              ? "Client replied and returned ticket to active support queue."
+                              : "Клієнт надав відповідь та повернув задачу в активну чергу інженерів."
+                            : isEn
+                            ? "Client returned ticket back to support."
                             : "Клієнт перевів звернення назад у підтримку."}
                         </div>
                       </div>
@@ -328,18 +338,18 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                       <div className="flex items-start gap-2 flex-wrap p-2 rounded-lg bg-secondary/30 border border-border/60">
                         <span className="font-medium text-muted-foreground flex items-center gap-1 min-w-[130px]">
                           <User className="w-3.5 h-3.5 text-primary" />
-                          <span>Виконавець:</span>
+                          <span>{dict.issue.assignee}:</span>
                         </span>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-foreground line-through opacity-70">
-                            {changes.assignee?.old || "Не призначено"}
+                            {changes.assignee?.old || dict.common.notAssigned}
                           </span>
-                          {changes.assignee?.oldRole && formatRoleBadge(changes.assignee.oldRole)}
+                          {changes.assignee?.oldRole && formatRoleBadge(changes.assignee.oldRole, dict)}
                           <ArrowRight className="w-3.5 h-3.5 text-primary flex-shrink-0" />
                           <span className="font-bold text-foreground">
-                            {changes.assignee?.new || "Не призначено"}
+                            {changes.assignee?.new || dict.common.notAssigned}
                           </span>
-                          {changes.assignee?.newRole && formatRoleBadge(changes.assignee.newRole)}
+                          {changes.assignee?.newRole && formatRoleBadge(changes.assignee.newRole, dict)}
                         </div>
                       </div>
                     )}
@@ -349,15 +359,15 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                       <div className="flex items-start gap-2 flex-wrap p-2 rounded-lg bg-secondary/30 border border-border/60">
                         <span className="font-medium text-muted-foreground flex items-center gap-1 min-w-[130px]">
                           <ArrowRightLeft className="w-3.5 h-3.5 text-blue-400" />
-                          <span>Статус:</span>
+                          <span>{dict.issue.status}:</span>
                         </span>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-secondary text-muted-foreground border border-border line-through">
-                            {changes.status?.old || changes.columnId?.old || "Початковий"}
+                            {changes.status?.old || changes.columnId?.old || (isEn ? "Initial" : "Початковий")}
                           </span>
                           <ArrowRight className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
-                            {changes.status?.new || changes.columnId?.new || "Новий"}
+                            {changes.status?.new || changes.columnId?.new || (isEn ? "New" : "Новий")}
                           </span>
                         </div>
                       </div>
@@ -368,7 +378,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                       <div className="flex items-start gap-2 flex-wrap p-2 rounded-lg bg-secondary/30 border border-border/60">
                         <span className="font-medium text-muted-foreground flex items-center gap-1 min-w-[130px]">
                           <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Критичність:</span>
+                          <span>{dict.issue.priority}:</span>
                         </span>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span
@@ -395,7 +405,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                       <div className="space-y-1.5 p-2 rounded-lg bg-secondary/30 border border-border/60">
                         <div className="font-medium text-muted-foreground flex items-center gap-1">
                           <Pencil className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Зміна назви звернення:</span>
+                          <span>{isEn ? "Summary updated:" : "Зміна назви звернення:"}</span>
                         </div>
                         <div className="space-y-1 pl-4 text-[11px]">
                           <div className="line-through text-muted-foreground bg-destructive/10 text-destructive/90 px-2 py-1 rounded border border-destructive/20">
@@ -414,14 +424,18 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-muted-foreground flex items-center gap-1">
                             <FileText className="w-3.5 h-3.5 text-primary" />
-                            <span>Оновлено опис задачі</span>
+                            <span>{isEn ? "Task description updated" : "Оновлено опис задачі"}</span>
                           </span>
                           <button
                             type="button"
                             onClick={() => toggleDescriptionExpand(log.id)}
                             className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
                           >
-                            <span>{expandedDescriptions[log.id] ? "Приховати диф" : "Показати порівняння"}</span>
+                            <span>
+                              {expandedDescriptions[log.id]
+                                ? isEn ? "Hide diff" : "Приховати диф"
+                                : isEn ? "Show comparison" : "Показати порівняння"}
+                            </span>
                             {expandedDescriptions[log.id] ? (
                               <ChevronUp className="w-3 h-3" />
                             ) : (
@@ -434,18 +448,18 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                           <div className="space-y-1.5 pt-2 text-[11px]">
                             <div className="space-y-0.5">
                               <span className="text-[10px] font-bold uppercase text-muted-foreground">
-                                Попередній варіант:
+                                {isEn ? "Previous version:" : "Попередній варіант:"}
                               </span>
                               <div className="p-2 rounded bg-destructive/5 border border-destructive/20 text-muted-foreground whitespace-pre-line max-h-40 overflow-y-auto">
-                                {changes.description.old || "(порожній опис)"}
+                                {changes.description.old || (isEn ? "(empty description)" : "(порожній опис)")}
                               </div>
                             </div>
                             <div className="space-y-0.5">
                               <span className="text-[10px] font-bold uppercase text-emerald-400">
-                                Новий варіант:
+                                {isEn ? "New version:" : "Новий варіант:"}
                               </span>
                               <div className="p-2 rounded bg-emerald-500/5 border border-emerald-500/20 text-foreground whitespace-pre-line max-h-40 overflow-y-auto">
-                                {changes.description.new || "(порожній опис)"}
+                                {changes.description.new || (isEn ? "(empty description)" : "(порожній опис)")}
                               </div>
                             </div>
                           </div>
@@ -458,13 +472,13 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                       <div className="flex items-start gap-2 flex-wrap p-2 rounded-lg bg-secondary/30 border border-border/60">
                         <span className="font-medium text-muted-foreground flex items-center gap-1 min-w-[130px]">
                           <Tag className="w-3.5 h-3.5 text-purple-400" />
-                          <span>Тип задачі:</span>
+                          <span>{dict.issue.type}:</span>
                         </span>
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-secondary line-through">
                             {changes.type.old}
                           </span>
-                          <ArrowRight className="w-3 h-3 text-purple-400" />
+                          <ArrowRight className="w-3.5 h-3.5 text-purple-400" />
                           <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-400 border border-purple-500/30 font-bold">
                             {changes.type.new}
                           </span>
@@ -477,7 +491,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                       <div className="flex items-start gap-2 flex-wrap p-2 rounded-lg bg-secondary/30 border border-border/60">
                         <span className="font-medium text-muted-foreground flex items-center gap-1 min-w-[130px]">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Рішення:</span>
+                          <span>{dict.issue.resolution}:</span>
                         </span>
                         <div className="flex items-center gap-2">
                           {changes.resolution.old && (
@@ -498,19 +512,19 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                       <div className="flex items-start gap-2 flex-wrap p-2 rounded-lg bg-secondary/30 border border-border/60">
                         <span className="font-medium text-muted-foreground flex items-center gap-1 min-w-[130px]">
                           <Boxes className="w-3.5 h-3.5 text-cyan-400" />
-                          <span>Компоненти:</span>
+                          <span>{dict.issue.components}:</span>
                         </span>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-muted-foreground">
                             {Array.isArray(changes.components.old) && changes.components.old.length > 0
                               ? changes.components.old.join(", ")
-                              : "(немає)"}
+                              : isEn ? "(none)" : "(немає)"}
                           </span>
                           <ArrowRight className="w-3 h-3 text-cyan-400" />
                           <span className="font-semibold text-cyan-400">
                             {Array.isArray(changes.components.new) && changes.components.new.length > 0
                               ? changes.components.new.join(", ")
-                              : "(немає)"}
+                              : isEn ? "(none)" : "(немає)"}
                           </span>
                         </div>
                       </div>
@@ -521,19 +535,19 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                       <div className="flex items-start gap-2 flex-wrap p-2 rounded-lg bg-secondary/30 border border-border/60">
                         <span className="font-medium text-muted-foreground flex items-center gap-1 min-w-[130px]">
                           <Bookmark className="w-3.5 h-3.5 text-primary" />
-                          <span>Мітки:</span>
+                          <span>{dict.issue.labels}:</span>
                         </span>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-muted-foreground">
                             {Array.isArray(changes.labels.old) && changes.labels.old.length > 0
                               ? changes.labels.old.join(", ")
-                              : "(немає)"}
+                              : isEn ? "(none)" : "(немає)"}
                           </span>
-                          <ArrowRight className="w-3 h-3 text-primary" />
+                          <ArrowRight className="w-3.5 h-3.5 text-primary" />
                           <span className="font-semibold text-primary">
                             {Array.isArray(changes.labels.new) && changes.labels.new.length > 0
                               ? changes.labels.new.join(", ")
-                              : "(немає)"}
+                              : isEn ? "(none)" : "(немає)"}
                           </span>
                         </div>
                       </div>
@@ -544,15 +558,15 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                       <div className="flex items-start gap-2 flex-wrap p-2 rounded-lg bg-secondary/30 border border-border/60">
                         <span className="font-medium text-muted-foreground flex items-center gap-1 min-w-[130px]">
                           <Calendar className="w-3.5 h-3.5 text-primary" />
-                          <span>Термін виконання:</span>
+                          <span>{dict.issue.dueDate}:</span>
                         </span>
                         <div className="flex items-center gap-2">
                           <span className="line-through text-muted-foreground">
-                            {changes.dueDate.old || "(не встановлено)"}
+                            {changes.dueDate.old || (isEn ? "(not set)" : "(не встановлено)")}
                           </span>
-                          <ArrowRight className="w-3 h-3 text-primary" />
+                          <ArrowRight className="w-3.5 h-3.5 text-primary" />
                           <span className="font-semibold text-foreground">
-                            {changes.dueDate.new || "(не встановлено)"}
+                            {changes.dueDate.new || (isEn ? "(not set)" : "(не встановлено)")}
                           </span>
                         </div>
                       </div>
@@ -561,7 +575,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
                     {/* Fallback if no specific diff matched */}
                     {Object.keys(changes).length === 0 && (
                       <div className="text-muted-foreground italic">
-                        Параметри задачі було оновлено.
+                        {isEn ? "Task properties were updated." : "Параметри задачі було оновлено."}
                       </div>
                     )}
                   </div>

@@ -4,6 +4,7 @@ import React from "react";
 import { MessageSquare, Bot, Send, Loader2, ArrowRightLeft } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
 import { CommentItem } from "../types";
+import { useI18n } from "@/lib/i18n";
 
 interface ClientTicketDialogueProps {
   comments: CommentItem[];
@@ -30,11 +31,14 @@ export const ClientTicketDialogue: React.FC<ClientTicketDialogueProps> = ({
   onReturnToSupport,
   commentsEndRef,
 }) => {
+  const { dict, locale } = useI18n();
+  const isEn = locale === "en";
+
   return (
     <div className="space-y-3 pt-2 border-t border-border/80">
       <span className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
         <MessageSquare className="w-3.5 h-3.5 text-primary" />
-        <span>Діалог з підтримкою ({comments.length})</span>
+        <span>{dict.portal.dialogueWithSupport} ({comments.length})</span>
       </span>
 
       <div className="space-y-3">
@@ -74,31 +78,31 @@ export const ClientTicketDialogue: React.FC<ClientTicketDialogueProps> = ({
                       {isAi ? (
                         <Bot className="w-3.5 h-3.5" />
                       ) : (
-                        (comment.author?.name || "К").slice(0, 2).toUpperCase()
+                        (comment.author?.name || "C").slice(0, 2).toUpperCase()
                       )}
                     </div>
                     <span className="font-semibold text-foreground">
                       {isClientMe
-                        ? "Ви (Клієнт)"
+                        ? isEn ? "You (Client)" : "Ви (Клієнт)"
                         : isClientColleague
-                        ? comment.author?.name || "Колега"
+                        ? comment.author?.name || (isEn ? "Colleague" : "Колега")
                         : isAi
-                        ? "AI Асистент"
-                        : comment.author?.name || "Служба підтримки"}
+                        ? isEn ? "AI Assistant" : "AI Асистент"
+                        : comment.author?.name || (isEn ? "Support Team" : "Служба підтримки")}
                     </span>
                     {isStaff && (
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/20 text-primary">
-                        Служба підтримки
+                        {isEn ? "Support Team" : "Служба підтримки"}
                       </span>
                     )}
                     {isClientColleague && (
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/20">
-                        Організація
+                        {isEn ? "Organization" : "Організація"}
                       </span>
                     )}
                     {isClientMe && (
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-secondary text-muted-foreground border border-border">
-                        Ви
+                        {isEn ? "You" : "Ви"}
                       </span>
                     )}
                   </div>
@@ -114,7 +118,7 @@ export const ClientTicketDialogue: React.FC<ClientTicketDialogueProps> = ({
           })
         ) : (
           <div className="text-xs text-muted-foreground/80 italic p-4 rounded-xl bg-secondary/15 border border-border/40 text-center">
-            Поки немає коментарів. Напишіть нижче, якщо у вас є уточнення або додаткові питання.
+            {dict.portal.noCommentsHint}
           </div>
         )}
         {commentsEndRef && <div ref={commentsEndRef as React.RefObject<HTMLDivElement>} />}
@@ -126,13 +130,17 @@ export const ClientTicketDialogue: React.FC<ClientTicketDialogueProps> = ({
           rows={3}
           value={replyText}
           onChange={(e) => onChangeReplyText(e.target.value)}
-          placeholder="Напишіть повідомлення команді підтримки (підтримується Ctrl+V для скріншотів)..."
+          placeholder={dict.portal.dialoguePlaceholder}
           className="w-full text-xs p-3 rounded-xl bg-secondary/40 border border-border text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary font-normal leading-relaxed resize-y"
           disabled={sendingReply}
         />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <span className="text-[10px] text-muted-foreground">
-            Натисніть <kbd className="px-1 py-0.5 rounded bg-secondary font-mono text-[9px]">Ctrl+V</kbd> щоб вставити скріншот
+            {isEn ? (
+              <>Press <kbd className="px-1 py-0.5 rounded bg-secondary font-mono text-[9px]">Ctrl+V</kbd> to paste screenshot</>
+            ) : (
+              <>Натисніть <kbd className="px-1 py-0.5 rounded bg-secondary font-mono text-[9px]">Ctrl+V</kbd> щоб вставити скріншот</>
+            )}
           </span>
           <div className="flex items-center justify-end gap-2 flex-wrap">
             {isWaitingForResponse ? (
@@ -142,20 +150,20 @@ export const ClientTicketDialogue: React.FC<ClientTicketDialogueProps> = ({
                   onClick={() => onReturnToSupport(Boolean(replyText.trim()))}
                   disabled={returningToSupport || sendingReply}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-all disabled:opacity-50 cursor-pointer"
-                  title="Надіслати відповідь та повернути звернення до служби підтримки"
+                  title={dict.portal.returnToSupportBtn}
                 >
                   {returningToSupport ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Повернення...</span>
+                      <span>{dict.portal.returning}</span>
                     </>
                   ) : (
                     <>
                       <ArrowRightLeft className="w-3.5 h-3.5" />
                       <span>
                         {replyText.trim()
-                          ? "Відповісти та повернути в підтримку"
-                          : "Повернути до підтримки"}
+                          ? dict.portal.replyAndReturnToSupport
+                          : dict.portal.returnToSupportBtn}
                       </span>
                     </>
                   )}
@@ -165,10 +173,10 @@ export const ClientTicketDialogue: React.FC<ClientTicketDialogueProps> = ({
                     type="submit"
                     disabled={sendingReply || returningToSupport}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-secondary hover:bg-secondary/80 border border-border text-foreground transition-all disabled:opacity-50 cursor-pointer"
-                    title="Надіслати тільки коментар без зміни статусу"
+                    title={dict.portal.commentOnly}
                   >
                     <Send className="w-3.5 h-3.5" />
-                    <span>Тільки коментар</span>
+                    <span>{dict.portal.commentOnly}</span>
                   </button>
                 )}
               </>
@@ -181,12 +189,12 @@ export const ClientTicketDialogue: React.FC<ClientTicketDialogueProps> = ({
                 {sendingReply ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Відправка...</span>
+                    <span>{dict.portal.sending}</span>
                   </>
                 ) : (
                   <>
                     <Send className="w-3.5 h-3.5" />
-                    <span>Надіслати відповідь</span>
+                    <span>{dict.portal.sendReply}</span>
                   </>
                 )}
               </button>

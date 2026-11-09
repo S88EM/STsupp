@@ -10,6 +10,7 @@ export interface MailConfig {
   pass: string;
   from: string;
   appUrl?: string;
+  isEnabled?: boolean;
 }
 
 function getSmtpConfigFilePath(): string {
@@ -56,7 +57,15 @@ export function getMailConfig(): MailConfig {
   const from = (savedConfig.from || process.env.SMTP_FROM || haOptions.smtp_from || '"STsup" <no-reply@stsup.local>').trim();
   const appUrl = (savedConfig.appUrl || process.env.APP_URL || haOptions.app_url || "").trim();
 
-  return { host, port, secure, user, pass, from, appUrl };
+  const isEnabled = savedConfig.isEnabled !== undefined
+    ? Boolean(savedConfig.isEnabled)
+    : process.env.SMTP_ENABLED !== undefined
+    ? (process.env.SMTP_ENABLED === "true" || process.env.SMTP_ENABLED === "1")
+    : haOptions.smtp_enabled !== undefined
+    ? Boolean(haOptions.smtp_enabled)
+    : true;
+
+  return { host, port, secure, user, pass, from, appUrl, isEnabled };
 }
 
 
@@ -96,6 +105,7 @@ export function saveMailConfig(newCfg: Partial<MailConfig>): MailConfig {
     pass: newCfg.pass !== undefined && newCfg.pass !== "" ? newCfg.pass.trim() : current.pass,
     from: (newCfg.from !== undefined && newCfg.from.trim() ? newCfg.from.trim() : current.from).trim(),
     appUrl: newCfg.appUrl !== undefined ? newCfg.appUrl.trim() : current.appUrl,
+    isEnabled: newCfg.isEnabled !== undefined ? Boolean(newCfg.isEnabled) : (current.isEnabled ?? true),
   };
 
   const configPath = getSmtpConfigFilePath();
@@ -216,6 +226,11 @@ export async function testMailConnection(testEmail?: string, customCfg?: Partial
   return { success: true, host: cfg.host, port: cfg.port };
 }
 
+export function isMailEnabled(): boolean {
+  const cfg = getMailConfig();
+  return Boolean(cfg.host && cfg.from && cfg.isEnabled !== false);
+}
+
 export function isMailConfigured(): boolean {
   const cfg = getMailConfig();
   if (!cfg.host) return false;
@@ -244,6 +259,11 @@ export async function sendMail({
     console.log(`BODY (Plain text):\n${text || html.replace(/<[^>]+>/g, " ").trim()}`);
     console.log(`==============================================================\n`);
     return { success: true, simulated: true };
+  }
+
+  if (!isMailEnabled()) {
+    console.log(`[STsup Email] Notifications are currently disabled in settings. Skipping email to ${to}`);
+    return { success: true, disabled: true, simulated: true };
   }
 
   try {

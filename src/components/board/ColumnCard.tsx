@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { Droppable } from "@hello-pangea/dnd";
 import { TaskCard, TaskItem } from "./TaskCard";
 import { Plus, MoreHorizontal, Trash2, Edit2, Check } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import { getLocalizedStatusName } from "@/lib/constants/task";
 
 export interface ColumnItem {
   id: string;
@@ -33,6 +35,7 @@ export const ColumnCard: React.FC<ColumnCardProps> = React.memo(({
   isDragDisabled = false,
   canManageColumns = true,
 }) => {
+  const { dict, locale } = useI18n();
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(column.name);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -87,9 +90,9 @@ export const ColumnCard: React.FC<ColumnCardProps> = React.memo(({
               className={`text-xs font-semibold text-foreground tracking-tight truncate ${
                 canManageColumns ? "cursor-pointer hover:underline" : ""
               }`}
-              title={canManageColumns ? "Натисніть щоб редагувати назву" : undefined}
+              title={canManageColumns ? (locale === "en" ? "Click to edit title" : "Натисніть щоб редагувати назву") : undefined}
             >
-              {column.name}
+              {getLocalizedStatusName(column.name, dict, locale)}
             </h3>
           )}
 
@@ -104,7 +107,7 @@ export const ColumnCard: React.FC<ColumnCardProps> = React.memo(({
           <button
             onClick={() => onAddTaskToColumn(column.id)}
             className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-            title="Додати задачу"
+            title={dict.board.addTask}
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
@@ -128,19 +131,19 @@ export const ColumnCard: React.FC<ColumnCardProps> = React.memo(({
                     className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-secondary text-foreground text-left"
                   >
                     <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span>Перейменувати</span>
+                    <span>{dict.board.renameColumn}</span>
                   </button>
                   <button
                     onClick={() => {
                       setMenuOpen(false);
-                      if (confirm(`Видалити колонку "${column.name}"?`)) {
+                      if (confirm(locale === "en" ? `Delete column "${column.name}"?` : `Видалити колонку "${column.name}"?`)) {
                         onDeleteColumn(column.id);
                       }
                     }}
                     className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-destructive/10 text-destructive text-left"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Видалити</span>
+                    <span>{dict.board.deleteColumn}</span>
                   </button>
                 </div>
               )}
@@ -179,7 +182,7 @@ export const ColumnCard: React.FC<ColumnCardProps> = React.memo(({
         className="mt-2 w-full py-1.5 px-3 rounded-lg border border-dashed border-border/70 hover:border-border text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/40 flex items-center justify-center gap-1.5 transition-all"
       >
         <Plus className="w-3.5 h-3.5" />
-        <span>Додати задачу</span>
+        <span>{dict.board.addTask}</span>
       </button>
     </div>
   );

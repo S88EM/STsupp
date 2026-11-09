@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { X, Sparkles, Calendar, User, Flag } from "lucide-react";
 import { ColumnItem } from "./ColumnCard";
+import { useI18n } from "@/lib/i18n";
+import { getLocalizedStatusName } from "@/lib/constants/task";
 
 interface NewTaskModalProps {
   isOpen: boolean;
@@ -27,6 +29,7 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({
   canChangeStatus = true,
   onCreateTask,
 }) => {
+  const { dict, locale } = useI18n();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [columnId, setColumnId] = useState(defaultColumnId || columns[0]?.id || "");
@@ -65,7 +68,9 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({
         <form onSubmit={handleSubmit}>
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/80">
-            <span className="text-sm font-semibold text-foreground">Нова задача</span>
+            <span className="text-sm font-semibold text-foreground">
+              {dict.board.newTaskModalTitle}
+            </span>
             <button
               type="button"
               onClick={onClose}
@@ -81,7 +86,7 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({
             <div>
               <input
                 type="text"
-                placeholder="Що потрібно зробити?"
+                placeholder={dict.board.taskTitlePlaceholder}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 autoFocus
@@ -93,7 +98,7 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({
             {/* Description */}
             <div>
               <textarea
-                placeholder="Додайте опис або вставте скріншот..."
+                placeholder={dict.board.taskDescPlaceholder}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={4}
@@ -106,7 +111,7 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({
               {/* Column/Status */}
               <div>
                 <label className="text-[11px] font-medium text-muted-foreground block mb-1">
-                  Статус
+                  {dict.issue.status}
                 </label>
                 {canChangeStatus ? (
                   <select
@@ -116,13 +121,17 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({
                   >
                     {columns.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name}
+                        {getLocalizedStatusName(c.name, dict, locale)}
                       </option>
                     ))}
                   </select>
                 ) : (
                   <div className="w-full text-xs bg-secondary/30 border border-border/60 rounded-lg py-1.5 px-2.5 text-muted-foreground">
-                    {columns.find((c) => c.id === (defaultColumnId || columns[0]?.id))?.name || "Беклог"}
+                    {getLocalizedStatusName(
+                      columns.find((c) => c.id === (defaultColumnId || columns[0]?.id))?.name || "Беклог",
+                      dict,
+                      locale
+                    )}
                   </div>
                 )}
               </div>
@@ -130,17 +139,17 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({
               {/* Priority */}
               <div>
                 <label className="text-[11px] font-medium text-muted-foreground block mb-1">
-                  Пріоритет
+                  {dict.issue.priority}
                 </label>
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as any)}
                   className="w-full text-xs bg-secondary/50 border border-border rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-primary text-foreground cursor-pointer"
                 >
-                  <option value="LOW">Низький</option>
-                  <option value="MEDIUM">Середній</option>
-                  <option value="HIGH">Високий</option>
-                  <option value="URGENT">Терміновий ⚡</option>
+                  <option value="LOW">{dict.priorities.low}</option>
+                  <option value="MEDIUM">{dict.priorities.medium}</option>
+                  <option value="HIGH">{dict.priorities.high}</option>
+                  <option value="URGENT">{dict.priorities.urgent}</option>
                 </select>
               </div>
             </div>
@@ -148,7 +157,7 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({
             {/* Due date */}
             <div>
               <label className="text-[11px] font-medium text-muted-foreground block mb-1">
-                Дедлайн (опціонально)
+                {dict.board.taskDueDate}
               </label>
               <input
                 type="date"
@@ -166,14 +175,14 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({
               onClick={onClose}
               className="text-xs px-3.5 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             >
-              Скасувати
+              {dict.common.cancel}
             </button>
             <button
               type="submit"
               disabled={loading || !title.trim()}
               className="text-xs px-4 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm transition-all disabled:opacity-50"
             >
-              {loading ? "Створення..." : "Створити задачу"}
+              {loading ? dict.common.saving : dict.board.createTask}
             </button>
           </div>
         </form>

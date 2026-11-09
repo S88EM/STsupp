@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { History, ChevronDown } from "lucide-react";
 import { TaskHistoryTimeline } from "@/components/common/TaskHistoryTimeline";
 import { AuditLogItem } from "../types";
+import { useI18n } from "@/lib/i18n";
 
 interface ClientTicketHistoryProps {
   auditLogs?: AuditLogItem[];
@@ -18,6 +19,7 @@ export const ClientTicketHistory: React.FC<ClientTicketHistoryProps> = ({
   taskCreator,
   currentUser,
 }) => {
+  const { dict } = useI18n();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   return (
@@ -30,7 +32,7 @@ export const ClientTicketHistory: React.FC<ClientTicketHistoryProps> = ({
         <div className="flex items-center gap-2">
           <History className="w-3.5 h-3.5 text-primary" />
           <span className="text-xs font-bold text-foreground">
-            Історія активності та змін ({auditLogs.length})
+            {dict.portal.activityHistory} ({auditLogs.length})
           </span>
         </div>
         <ChevronDown

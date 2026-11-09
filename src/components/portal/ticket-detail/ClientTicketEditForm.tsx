@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Pencil, Loader2, Check } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface ClientTicketEditFormProps {
   title: string;
@@ -15,13 +16,6 @@ interface ClientTicketEditFormProps {
   onCancel: () => void;
 }
 
-const PRIORITY_OPTIONS = [
-  { id: "LOW", label: "🟢 Низька", desc: "Дрібне питання" },
-  { id: "MEDIUM", label: "🔵 Звичайна", desc: "Стандартна задача" },
-  { id: "HIGH", label: "🟠 Висока", desc: "Впливає на роботу" },
-  { id: "URGENT", label: "🔴 Критична", desc: "Повна зупинка" },
-] as const;
-
 export const ClientTicketEditForm: React.FC<ClientTicketEditFormProps> = ({
   title,
   onChangeTitle,
@@ -33,29 +27,38 @@ export const ClientTicketEditForm: React.FC<ClientTicketEditFormProps> = ({
   onSave,
   onCancel,
 }) => {
+  const { dict } = useI18n();
+
+  const priorityOptions = [
+    { id: "LOW" as const, label: `🟢 ${dict.priorities.low}`, desc: dict.portal.priorityMinorDesc },
+    { id: "MEDIUM" as const, label: `🔵 ${dict.priorities.medium}`, desc: dict.portal.priorityStandardDesc },
+    { id: "HIGH" as const, label: `🟠 ${dict.priorities.high}`, desc: dict.portal.priorityDisruptedDesc },
+    { id: "URGENT" as const, label: `🔴 ${dict.priorities.urgent}`, desc: dict.portal.priorityOutageDesc },
+  ];
+
   return (
     <form onSubmit={onSave} className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-4">
       <div className="flex items-center justify-between border-b border-primary/20 pb-2.5">
         <div className="flex items-center gap-2 text-xs font-bold text-foreground">
           <Pencil className="w-4 h-4 text-primary" />
-          <span>Редагування звернення</span>
+          <span>{dict.portal.editTicketHeader}</span>
         </div>
         <span className="text-[11px] text-muted-foreground">
-          Власник звернення може змінити назву, критичність та опис
+          {dict.portal.editTicketSubtitle}
         </span>
       </div>
 
       {/* Title Input */}
       <div className="space-y-1.5">
         <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-          <span>Тема / Назва звернення</span>
+          <span>{dict.portal.ticketSubject}</span>
           <span className="text-destructive">*</span>
         </label>
         <input
           type="text"
           value={title}
           onChange={(e) => onChangeTitle(e.target.value)}
-          placeholder="Коротко вкажіть суть проблеми..."
+          placeholder={dict.portal.subjectPlaceholder}
           className="w-full text-sm font-medium px-3 py-2 rounded-lg bg-card border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
           required
         />
@@ -64,10 +67,10 @@ export const ClientTicketEditForm: React.FC<ClientTicketEditFormProps> = ({
       {/* Priority Selection */}
       <div className="space-y-1.5">
         <label className="text-xs font-semibold text-foreground">
-          Критичність (Пріоритет)
+          {dict.portal.urgencyLabel}
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {PRIORITY_OPTIONS.map((p) => {
+          {priorityOptions.map((p) => {
             const isSelected = priority === p.id;
             return (
               <button
@@ -91,13 +94,13 @@ export const ClientTicketEditForm: React.FC<ClientTicketEditFormProps> = ({
       {/* Description Textarea */}
       <div className="space-y-1.5">
         <label className="text-xs font-semibold text-foreground">
-          Детальний опис
+          {dict.portal.detailedDescription}
         </label>
         <textarea
           rows={4}
           value={description}
           onChange={(e) => onChangeDescription(e.target.value)}
-          placeholder="Детально опишіть проблему, деталі або запитання..."
+          placeholder={dict.portal.detailedDescriptionPlaceholder}
           className="w-full text-xs p-3 rounded-lg bg-card border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground resize-y leading-relaxed"
         />
       </div>
@@ -110,7 +113,7 @@ export const ClientTicketEditForm: React.FC<ClientTicketEditFormProps> = ({
           disabled={saving}
           className="px-3 py-1.5 rounded-lg border border-border hover:bg-secondary text-xs font-medium text-foreground transition-colors cursor-pointer"
         >
-          Скасувати
+          {dict.common.cancel}
         </button>
         <button
           type="submit"
@@ -120,12 +123,12 @@ export const ClientTicketEditForm: React.FC<ClientTicketEditFormProps> = ({
           {saving ? (
             <>
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span>Збереження...</span>
+              <span>{dict.common.saving}</span>
             </>
           ) : (
             <>
               <Check className="w-3.5 h-3.5" />
-              <span>Зберегти зміни</span>
+              <span>{dict.common.saveChanges}</span>
             </>
           )}
         </button>

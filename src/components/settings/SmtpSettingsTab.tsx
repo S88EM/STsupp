@@ -17,7 +17,7 @@ import {
 
 interface SmtpSettingsTabProps {
   currentUserEmail?: string;
-  onStatusChange?: (isConfigured: boolean) => void;
+  onStatusChange?: (isConfigured: boolean, isEnabled?: boolean) => void;
 }
 
 export function SmtpSettingsTab({
@@ -35,6 +35,7 @@ export function SmtpSettingsTab({
   const [from, setFrom] = useState("");
   const [appUrl, setAppUrl] = useState("");
   const [isConfigured, setIsConfigured] = useState(false);
+  const [isEnabled, setIsEnabled] = useState(true);
 
   // Test email
   const [testEmail, setTestEmail] = useState("");
@@ -58,8 +59,10 @@ export function SmtpSettingsTab({
           setFrom(smtpData.from || "");
           setAppUrl(smtpData.appUrl || "");
           const configured = Boolean(smtpData.isConfigured);
+          const enabled = smtpData.isEnabled !== false;
           setIsConfigured(configured);
-          onStatusChange?.(configured);
+          setIsEnabled(enabled);
+          onStatusChange?.(configured, enabled);
         }
       } catch (err) {
         console.error("Failed to load SMTP settings:", err);
@@ -99,6 +102,7 @@ export function SmtpSettingsTab({
           pass: pass || undefined,
           from,
           appUrl,
+          isEnabled,
         }),
       });
 
@@ -109,8 +113,10 @@ export function SmtpSettingsTab({
       }
 
       const configured = Boolean(data.config?.isConfigured);
+      const enabled = data.config?.isEnabled !== false;
       setIsConfigured(configured);
-      onStatusChange?.(configured);
+      setIsEnabled(enabled);
+      onStatusChange?.(configured, enabled);
       setHasSavedPass(Boolean(data.config?.hasPass));
       setPass("");
       setSaveSuccess("Налаштування поштового сервісу успішно збережено!");
@@ -207,6 +213,40 @@ export function SmtpSettingsTab({
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
                   Вкажіть адресу вашого Home Assistant або домен (наприклад, <code className="text-blue-400">http://192.168.1.100:3000</code>). Вона автоматично підставлятиметься у всі листи замість localhost.
                 </p>
+              </div>
+
+              {/* Notification Sending Toggle */}
+              <div className="flex items-center justify-between p-3.5 rounded-xl bg-secondary/40 border border-border">
+                <div className="space-y-0.5 pr-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-foreground">
+                      Надсилання поштових сповіщень
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        isEnabled
+                          ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                          : "bg-muted text-muted-foreground border border-border"
+                      }`}
+                    >
+                      {isEnabled ? "Увімкнено" : "Вимкнено"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-normal">
+                    {isEnabled
+                      ? "Система автоматично надсилає сповіщення про створення задач, зміну статусів, коментарі та скидання пароля"
+                      : "Надсилання сповіщень призупинено. Листи симулюватимуться у системний лог без фактичної відправки"}
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={isEnabled}
+                    onChange={(e) => setIsEnabled(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-secondary/80 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
               </div>
 
               {/* Presets */}

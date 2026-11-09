@@ -39,21 +39,25 @@ export async function POST(
     }
 
     let oldColumnId: string | null = null;
+    let actualProjectId = projectId;
     if (taskId && destinationColumnId) {
       const currentTask = await prisma.task.findUnique({
-        where: { id: taskId, projectId },
-        select: { columnId: true },
+        where: { id: taskId },
+        select: { columnId: true, projectId: true },
       });
-      if (currentTask && currentTask.columnId !== destinationColumnId) {
-        oldColumnId = currentTask.columnId;
+      if (currentTask) {
+        actualProjectId = currentTask.projectId;
+        if (currentTask.columnId !== destinationColumnId) {
+          oldColumnId = currentTask.columnId;
+        }
       }
     }
 
-    // Run updates in a single Prisma transaction
+    // Run updates in a single Prisma transaction using primary key id
     await prisma.$transaction(
       updatedTasks.map((t) =>
         prisma.task.update({
-          where: { id: t.id, projectId },
+          where: { id: t.id },
           data: {
             columnId: t.columnId,
             orderIndex: t.orderIndex,
@@ -88,7 +92,7 @@ export async function POST(
             targetType: "TASK",
             targetId: taskId,
             details: {
-              projectId,
+              projectId: actualProjectId,
               taskCode: movedTask.code,
               taskTitle: movedTask.title,
               actorRole: currentUser.role,

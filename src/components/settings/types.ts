@@ -1,4 +1,4 @@
-export type SettingsTab = "smtp" | "dictionaries" | "telegram" | "audit" | "backup";
+export type SettingsTab = "general" | "smtp" | "dictionaries" | "telegram" | "audit" | "backup";
 
 export interface BackupSummaryData {
   usersCount: number;

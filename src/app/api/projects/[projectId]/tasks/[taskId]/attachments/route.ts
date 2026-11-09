@@ -3,6 +3,11 @@ import path from "path";
 import fs from "fs";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hasProjectAccess } from "@/lib/auth";
+import {
+  getSystemSettings,
+  getMaxAttachmentSizeBytes,
+  isBlockedExtension,
+} from "@/lib/system-settings";
 
 export async function GET(
   req: Request,
@@ -57,23 +62,20 @@ export async function POST(
       return NextResponse.json({ error: "Файл не надано" }, { status: 400 });
     }
 
-    // 1. File size limit: 25 MB max to protect memory & storage
-    const MAX_FILE_SIZE = 25 * 1024 * 1024;
-    if (file.size > MAX_FILE_SIZE) {
+    // 1. Dynamic file size limit from system settings (default: 25 MB)
+    const maxSizeBytes = getMaxAttachmentSizeBytes();
+    const maxMb = getSystemSettings().maxAttachmentSizeMb;
+    if (file.size > maxSizeBytes) {
       return NextResponse.json(
-        { error: "Розмір файлу перевищує допустимий ліміт 25 МБ" },
+        { error: `Розмір файлу перевищує встановлений ліміт системи (${maxMb} МБ)` },
         { status: 400 }
       );
     }
 
-    // 2. Security validation: block executable and script extensions
-    const ext = (path.extname(file.name) || "").toLowerCase();
-    const BLOCKED_EXTENSIONS = new Set([
-      ".exe", ".bat", ".cmd", ".sh", ".php", ".cgi", ".dll", ".com", ".vbs", ".ps1", ".msi"
-    ]);
-    if (BLOCKED_EXTENSIONS.has(ext)) {
+    // 2. Security validation: block dangerous executable & script extensions from settings
+    if (isBlockedExtension(file.name)) {
       return NextResponse.json(
-        { error: "Завантаження виконуваних файлів або скриптів заборонено з міркувань безпеки" },
+        { error: "Завантаження виконуваних файлів або скриптів заборонено політикою безпеки" },
         { status: 400 }
       );
     }
@@ -87,6 +89,7 @@ export async function POST(
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
+    const ext = path.extname(file.name);
     const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}${ext}`;
     const filePath = path.join(uploadDir, uniqueFileName);
 

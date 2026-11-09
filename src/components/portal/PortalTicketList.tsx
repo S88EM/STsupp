@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { TicketItem, PortalStatusFilter } from "./types";
 import { PortalTicketCard } from "./PortalTicketCard";
+import { useI18n } from "@/lib/i18n";
 
 interface PortalTicketListProps {
   tickets: TicketItem[];
@@ -34,11 +35,13 @@ export const PortalTicketList: React.FC<PortalTicketListProps> = ({
   onSelectTicket,
   onCreateTicketClick,
 }) => {
+  const { dict, locale } = useI18n();
+
   if (loading) {
     return (
       <div className="p-16 text-center text-muted-foreground flex flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-card">
         <RefreshCw className="w-6 h-6 animate-spin text-primary" />
-        <span className="text-xs">Завантаження списку звернень...</span>
+        <span className="text-xs">{dict.portal.loadingTickets}</span>
       </div>
     );
   }
@@ -62,31 +65,33 @@ export const PortalTicketList: React.FC<PortalTicketListProps> = ({
         <div className="space-y-1">
           <h3 className="text-sm font-bold text-foreground">
             {statusFilter === "resolved"
-              ? "Немає вирішених звернень"
+              ? dict.portal.noResolvedTickets
               : statusFilter === "in_progress"
-              ? "Немає звернень у роботі"
+              ? dict.portal.noInProgressTickets
               : statusFilter === "backlog"
-              ? "Немає звернень у черзі"
+              ? dict.portal.noBacklogTickets
               : statusFilter === "awaiting_response"
-              ? "Немає звернень, що очікують відповіді"
+              ? dict.portal.noAwaitingTickets
               : searchQuery
-              ? "Звернень за запитом не знайдено"
-              : "Звернень не знайдено"}
+              ? dict.portal.noSearchResults
+              : dict.portal.noTickets}
           </h3>
           <p className="text-xs text-muted-foreground max-w-sm">
             {statusFilter === "resolved"
-              ? "Тут відображатимуться закриті тікети після завершення робіт нашими інженерами."
+              ? dict.portal.noResolvedDesc
               : statusFilter === "in_progress"
-              ? "Наразі жодне звернення не перебуває в активній розробці. Тікети очікують у черзі або вже вирішені."
+              ? dict.portal.noInProgressDesc
               : statusFilter === "backlog"
-              ? "Усі ваші звернення вже взяті інженерами в активну роботу або вирішені."
+              ? dict.portal.noBacklogDesc
               : statusFilter === "awaiting_response"
-              ? "Чудово! Наразі всі ваші звернення знаходяться в обробці інженерів і не потребують вашої відповіді."
+              ? dict.portal.noAwaitingDesc
               : searchQuery
-              ? `За запитом «${searchQuery}» результатів не виявлено. Спробуйте змінити критерії пошуку.`
+              ? locale === "en"
+                ? `No results found for "${searchQuery}". Try modifying your search criteria.`
+                : `За запитом «${searchQuery}» результатів не виявлено. Спробуйте змінити критерії пошуку.`
               : scopeFilter === "my"
-              ? "У вас ще немає створених звернень. Перемкніть фільтр на «Всі звернення організації / проєкту» або створіть нове звернення."
-              : "У цьому проєкті ще немає зареєстрованих звернень. Створіть перше звернення, і наша служба підтримки допоможе вам!"}
+              ? dict.portal.noMyTicketsDesc
+              : dict.portal.noProjectTicketsDesc}
           </p>
         </div>
         {statusFilter === "all" && !searchQuery && (
@@ -95,7 +100,7 @@ export const PortalTicketList: React.FC<PortalTicketListProps> = ({
             className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/20 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Створити перше звернення</span>
+            <span>{dict.portal.createFirstTicket}</span>
           </button>
         )}
       </div>

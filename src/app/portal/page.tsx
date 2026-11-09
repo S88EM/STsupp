@@ -8,7 +8,7 @@ export default function ClientPortalPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-background flex items-center justify-center text-xs text-muted-foreground">
-          Завантаження порталу клієнта...
+          Loading...
         </div>
       }
     >

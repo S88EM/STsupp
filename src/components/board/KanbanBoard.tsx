@@ -9,6 +9,7 @@ import { NewTaskModal } from "./NewTaskModal";
 import { NewColumnModal } from "./NewColumnModal";
 import { Plus, Search } from "lucide-react";
 import { getCanonicalTaskPath } from "@/lib/taskUrl";
+import { useI18n } from "@/lib/i18n";
 
 interface KanbanBoardProps {
   projectId: string;
@@ -45,6 +46,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onRefresh,
   currentUser,
 }) => {
+  const { dict } = useI18n();
   const canChangeStatus = Boolean(
     currentUser && (currentUser.role === "ADMIN" || currentUser.role === "ENGINEER")
   );
@@ -132,7 +134,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       }));
 
       try {
-        await fetch(`/api/projects/${projectId}/tasks/reorder`, {
+        const res = await fetch(`/api/projects/${projectId}/tasks/reorder`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -141,9 +143,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             updatedTasks: updatedTasksPayload,
           }),
         });
+        if (!res.ok) {
+          console.error("Failed to sync task reorder, status:", res.status);
+        }
+        await onRefresh();
       } catch (err) {
         console.error("Failed to sync task reorder:", err);
-        onRefresh();
+        await onRefresh();
       }
       return;
     }
@@ -165,20 +171,24 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
     if (projectId === "all") {
       const targetCol = mapStageToProjectColumn(movedTask, destCol.id);
-      if (targetCol && (movedTask as any).projectId) {
+      const targetProjectId = (movedTask as any).projectId || movedTask.project?.id;
+      if (targetCol && targetProjectId) {
         try {
-          const res = await fetch(`/api/projects/${(movedTask as any).projectId}/tasks/${movedTask.id}`, {
+          const res = await fetch(`/api/projects/${targetProjectId}/tasks/${movedTask.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ columnId: targetCol.id }),
           });
           if (!res.ok) {
-            onRefresh();
+            console.error("Failed to sync global move, status:", res.status);
           }
+          await onRefresh();
         } catch (err) {
           console.error("Failed to sync global move:", err);
-          onRefresh();
+          await onRefresh();
         }
+      } else {
+        await onRefresh();
       }
       return;
     }
@@ -190,7 +200,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     ];
 
     try {
-      await fetch(`/api/projects/${projectId}/tasks/reorder`, {
+      const res = await fetch(`/api/projects/${projectId}/tasks/reorder`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -199,9 +209,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           updatedTasks: updatedTasksPayload,
         }),
       });
+      if (!res.ok) {
+        console.error("Failed to sync cross-column move, status:", res.status);
+      }
+      await onRefresh();
     } catch (err) {
       console.error("Failed to sync cross-column move:", err);
-      onRefresh();
+      await onRefresh();
     }
   }, [canChangeStatus, columns, projectId, onRefresh]);
 
@@ -273,7 +287,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Швидкий пошук задач..."
+            placeholder={dict.issue.searchQuickPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg bg-secondary/50 border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -287,7 +301,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-foreground bg-secondary/60 hover:bg-secondary border border-border/80 transition-colors"
           >
             <Plus className="w-3.5 h-3.5 text-primary" />
-            <span>Нова колонка</span>
+            <span>{dict.board.newColumn}</span>
           </button>
         </div>
       </div>
@@ -316,7 +330,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 className="w-72 flex-shrink-0 h-32 rounded-xl border-2 border-dashed border-border/60 hover:border-primary/50 text-muted-foreground hover:text-foreground flex flex-col items-center justify-center gap-2 transition-all hover:bg-secondary/20"
               >
                 <Plus className="w-5 h-5 text-primary" />
-                <span className="text-xs font-semibold">Додати нову колонку</span>
+                <span className="text-xs font-semibold">{dict.board.addColumn}</span>
               </button>
             )}
           </div>

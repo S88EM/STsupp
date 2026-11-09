@@ -11,6 +11,7 @@ import {
   Mail,
   Tag,
   Send,
+  Sliders,
   ShieldCheck,
   Database,
 } from "lucide-react";
@@ -22,6 +23,7 @@ interface SettingsHeaderProps {
   activeTab: SettingsTab;
   onTabChange: (tab: SettingsTab) => void;
   isSmtpConfigured: boolean;
+  isSmtpEnabled?: boolean;
   telegramStatus: TelegramStatus;
 }
 
@@ -29,6 +31,7 @@ export function SettingsHeader({
   activeTab,
   onTabChange,
   isSmtpConfigured,
+  isSmtpEnabled = true,
   telegramStatus,
 }: SettingsHeaderProps) {
   const { dict } = useI18n();
@@ -87,15 +90,22 @@ export function SettingsHeader({
           ) : (
             <span
               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
-                isSmtpConfigured
+                isSmtpConfigured && isSmtpEnabled !== false
                   ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                  : isSmtpConfigured && isSmtpEnabled === false
+                  ? "bg-slate-500/10 text-slate-400 border-slate-500/30"
                   : "bg-amber-500/10 text-amber-400 border-amber-500/30"
               }`}
             >
-              {isSmtpConfigured ? (
+              {isSmtpConfigured && isSmtpEnabled !== false ? (
                 <>
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                   <span>{dict.settings.smtpActive}</span>
+                </>
+              ) : isSmtpConfigured && isSmtpEnabled === false ? (
+                <>
+                  <X className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{dict.settings.smtpDisabled}</span>
                 </>
               ) : (
                 <>
@@ -113,6 +123,18 @@ export function SettingsHeader({
 
       {/* Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-border overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => onTabChange("general")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === "general"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Sliders className="w-4 h-4" />
+          <span>{dict.settings.tabGeneral}</span>
+        </button>
         <button
           type="button"
           onClick={() => onTabChange("smtp")}

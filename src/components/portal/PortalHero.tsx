@@ -17,7 +17,7 @@ export const PortalHero: React.FC<PortalHeroProps> = ({
   onRefreshClick,
   refreshing,
 }) => {
-  const { dict } = useI18n();
+  const { dict, locale } = useI18n();
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-card via-card/90 to-primary/10 border border-border p-6 sm:p-8 shadow-sm">
       <div className="max-w-2xl space-y-2">
@@ -26,7 +26,7 @@ export const PortalHero: React.FC<PortalHeroProps> = ({
           <span>{dict.portal.customerServiceCenter}</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-          {dict.portal.welcomeGreeting}, {userName || "Користувач"}!
+          {dict.portal.welcomeGreeting}, {userName || (locale === "en" ? "User" : "Користувач")}!
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
           {dict.portal.heroSubtitle}

@@ -3,6 +3,8 @@
 import React from "react";
 import { Draggable } from "@hello-pangea/dnd";
 import { CheckSquare, MessageSquare, AlertCircle, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import { getLocalizedPriority } from "@/lib/constants/task";
 
 export interface TaskItem {
   id: string;
@@ -33,6 +35,7 @@ interface TaskCardProps {
 }
 
 export const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, index, onClick, isDragDisabled = false }) => {
+  const { dict } = useI18n();
   const completedSubtasks = task.subtasks?.filter((s) => s.isCompleted).length || 0;
   const totalSubtasks = task.subtasks?.length || 0;
 
@@ -72,7 +75,10 @@ export const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, index, onCl
               <span className="font-mono text-muted-foreground font-semibold group-hover:text-primary transition-colors">
                 {task.code}
               </span>
-              <div className="flex items-center gap-1.5" title={`Пріоритет: ${task.priority}`}>
+              <div
+                className="flex items-center gap-1.5"
+                title={`${dict.issue.priority}: ${getLocalizedPriority(task.priority, dict)}`}
+              >
                 {renderPriorityIcon()}
               </div>
             </div>
@@ -113,7 +119,9 @@ export const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, index, onCl
                   {task.assignee.name.substring(0, 2).toUpperCase()}
                 </div>
               ) : (
-                <span className="text-[10px] text-muted-foreground/60 italic">не призначено</span>
+                <span className="text-[10px] text-muted-foreground/60 italic">
+                  {dict.common.notAssigned.toLowerCase()}
+                </span>
               )}
             </div>
           </div>

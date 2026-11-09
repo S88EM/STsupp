@@ -20,7 +20,7 @@ export async function PATCH(
     const { name, color, isDoneColumn } = body;
 
     const updated = await prisma.column.update({
-      where: { id: columnId, projectId },
+      where: { id: columnId },
       data: {
         name: name !== undefined ? name.trim() : undefined,
         color: color !== undefined ? color : undefined,
@@ -77,7 +77,7 @@ export async function DELETE(
     }
 
     await prisma.column.delete({
-      where: { id: columnId, projectId },
+      where: { id: columnId },
     });
 
     return NextResponse.json({ success: true });

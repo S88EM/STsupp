@@ -6,6 +6,7 @@ import { Shield } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import {
   SettingsHeader,
+  GeneralSettingsTab,
   SmtpSettingsTab,
   DictionariesSettingsTab,
   TelegramSettingsTab,
@@ -20,6 +21,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<SettingsTab>("smtp");
   const [isSmtpConfigured, setIsSmtpConfigured] = useState(false);
+  const [isSmtpEnabled, setIsSmtpEnabled] = useState(true);
   const [telegramStatus, setTelegramStatus] = useState<TelegramStatus>({
     enabled: false,
     hasToken: false,
@@ -30,7 +32,7 @@ export default function SettingsPage() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get("tab");
-      if (tab === "audit" || tab === "smtp" || tab === "dictionaries" || tab === "telegram" || tab === "backup") {
+      if (tab === "general" || tab === "audit" || tab === "smtp" || tab === "dictionaries" || tab === "telegram" || tab === "backup") {
         setActiveTab(tab as SettingsTab);
       }
     }
@@ -52,6 +54,7 @@ export default function SettingsPage() {
         if (smtpRes.ok) {
           const smtpData = await smtpRes.json();
           setIsSmtpConfigured(Boolean(smtpData.isConfigured));
+          setIsSmtpEnabled(smtpData.isEnabled !== false);
         }
 
         if (tgRes.ok) {
@@ -113,13 +116,21 @@ export default function SettingsPage() {
           activeTab={activeTab}
           onTabChange={handleTabChange}
           isSmtpConfigured={isSmtpConfigured}
+          isSmtpEnabled={isSmtpEnabled}
           telegramStatus={telegramStatus}
         />
+
+        <div className={activeTab === "general" ? "block" : "hidden"}>
+          <GeneralSettingsTab />
+        </div>
 
         <div className={activeTab === "smtp" ? "block" : "hidden"}>
           <SmtpSettingsTab
             currentUserEmail={currentUser?.email}
-            onStatusChange={setIsSmtpConfigured}
+            onStatusChange={(configured, enabled) => {
+              setIsSmtpConfigured(configured);
+              if (enabled !== undefined) setIsSmtpEnabled(enabled);
+            }}
           />
         </div>
 

@@ -6,16 +6,13 @@ import { formatFileSize } from "@/lib/utils";
 import {
   X,
   Send,
-  Paperclip,
   UploadCloud,
   FileText,
-  Image as ImageIcon,
   AlertCircle,
-  CheckCircle2,
   Loader2,
   Trash2,
-  Layers,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface ProjectItem {
   id: string;
@@ -44,6 +41,7 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
   defaultProjectId,
   onTicketCreated,
 }) => {
+  const { dict, locale } = useI18n();
   const [projectId, setProjectId] = useState<string>("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -122,23 +120,22 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
     });
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     if (!projectId) {
-      setError("Будь ласка, оберіть проєкт");
+      setError(dict.portal.errSelectProject);
       return;
     }
 
     if (!title.trim()) {
-      setError("Вкажіть тему звернення");
+      setError(dict.portal.errEnterSubject);
       return;
     }
 
     if (!description.trim()) {
-      setError("Опишіть проблему або питання");
+      setError(dict.portal.errEnterDescription);
       return;
     }
 
@@ -158,7 +155,7 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Не вдалося створити звернення");
+        throw new Error(data.error || dict.portal.errCreateFailed);
       }
 
       const createdTask = await res.json();
@@ -184,7 +181,7 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
       onClose();
     } catch (err: any) {
       console.error("Ticket submission error:", err);
-      setError(err.message || "Сталася помилка при надсиланні звернення");
+      setError(err.message || dict.portal.errSubmitFailed);
     } finally {
       setSubmitting(false);
     }
@@ -205,9 +202,9 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
               <UploadCloud className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-foreground">Нове звернення до підтримки</h2>
+              <h2 className="text-base font-bold text-foreground">{dict.portal.createModalTitle}</h2>
               <p className="text-xs text-muted-foreground">
-                Опишіть ситуацію, і наша команда оперативно візьме тікет у роботу
+                {dict.portal.createModalSubtitle}
               </p>
             </div>
           </div>
@@ -232,7 +229,7 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
           {/* Project Selection */}
           <div>
             <label className="text-xs font-semibold text-foreground block mb-1.5">
-              Проєкт / Сервіс <span className="text-destructive">*</span>
+              {dict.portal.projectService} <span className="text-destructive">*</span>
             </label>
             {projects.length > 1 ? (
               <select
@@ -254,7 +251,7 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
               </div>
             ) : (
               <div className="text-xs text-amber-500 font-medium">
-                Немає доступних проєктів. Зверніться до адміністратора.
+                {dict.portal.noProjectsAvailable}
               </div>
             )}
           </div>
@@ -262,14 +259,14 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
           {/* Title */}
           <div>
             <label className="text-xs font-semibold text-foreground block mb-1.5">
-              Тема звернення <span className="text-destructive">*</span>
+              {dict.portal.ticketSubject} <span className="text-destructive">*</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               disabled={submitting}
-              placeholder="Наприклад: Помилка під час синхронізації або запит на налаштування"
+              placeholder={dict.portal.subjectPlaceholder}
               className="w-full text-xs px-3 py-2.5 rounded-xl bg-secondary/40 border border-border text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary font-medium"
             />
           </div>
@@ -277,7 +274,7 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
           {/* Urgency / Priority */}
           <div>
             <label className="text-xs font-semibold text-foreground block mb-1.5">
-              Терміновість / Вплив на роботу
+              {dict.portal.urgencyLabel}
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button
@@ -290,8 +287,8 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
                 }`}
               >
                 <span className="text-sm">🟢</span>
-                <span className="mt-1">Низька</span>
-                <span className="text-[10px] text-muted-foreground/70">Консультація</span>
+                <span className="mt-1">{dict.priorities.low}</span>
+                <span className="text-[10px] text-muted-foreground/70">{dict.portal.priorityMinorDesc}</span>
               </button>
 
               <button
@@ -304,8 +301,8 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
                 }`}
               >
                 <span className="text-sm">🔵</span>
-                <span className="mt-1">Звичайна</span>
-                <span className="text-[10px] text-muted-foreground/70">Стандартна</span>
+                <span className="mt-1">{dict.priorities.medium}</span>
+                <span className="text-[10px] text-muted-foreground/70">{dict.portal.priorityStandardDesc}</span>
               </button>
 
               <button
@@ -318,8 +315,8 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
                 }`}
               >
                 <span className="text-sm">🟠</span>
-                <span className="mt-1">Висока</span>
-                <span className="text-[10px] text-muted-foreground/70">Порушено процес</span>
+                <span className="mt-1">{dict.priorities.high}</span>
+                <span className="text-[10px] text-muted-foreground/70">{dict.portal.priorityDisruptedDesc}</span>
               </button>
 
               <button
@@ -332,8 +329,8 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
                 }`}
               >
                 <span className="text-sm">🔴</span>
-                <span className="mt-1">Критична</span>
-                <span className="text-[10px] text-muted-foreground/70">Аварійний збій</span>
+                <span className="mt-1">{dict.priorities.urgent}</span>
+                <span className="text-[10px] text-muted-foreground/70">{dict.portal.priorityOutageDesc}</span>
               </button>
             </div>
           </div>
@@ -341,14 +338,14 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
           {/* Description */}
           <div>
             <label className="text-xs font-semibold text-foreground block mb-1.5">
-              Детальний опис <span className="text-destructive">*</span>
+              {dict.portal.detailedDescription} <span className="text-destructive">*</span>
             </label>
             <textarea
               rows={5}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={submitting}
-              placeholder="Будь ласка, опишіть якомога детальніше:&#10;1. Що саме сталося або що потрібно зробити?&#10;2. Який очікувався результат?&#10;3. За яких умов виникає проблема?"
+              placeholder={dict.portal.detailedDescriptionPlaceholder}
               className="w-full text-xs p-3 rounded-xl bg-secondary/40 border border-border text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary font-normal leading-relaxed resize-y"
             />
           </div>
@@ -357,10 +354,11 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-semibold text-foreground">
-                Вкладення та скріншоти
+                {dict.portal.attachmentsAndScreenshots}
               </label>
               <span className="text-[11px] text-muted-foreground">
-                Підтримується <kbd className="px-1.5 py-0.5 rounded bg-secondary text-primary font-mono text-[10px]">Ctrl+V</kbd>
+                {dict.portal.ctrlVSupported}{" "}
+                <kbd className="px-1.5 py-0.5 rounded bg-secondary text-primary font-mono text-[10px]">Ctrl+V</kbd>
               </span>
             </div>
 
@@ -384,10 +382,10 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
             >
               <UploadCloud className="w-6 h-6 text-muted-foreground" />
               <div className="text-xs font-medium text-foreground">
-                Перетягніть файли сюди або <span className="text-primary underline">оберіть на диску</span>
+                {dict.portal.dragFilesOrBrowse}
               </div>
               <div className="text-[10px] text-muted-foreground">
-                Зображення, логи, PDF або скріншот з буфера обміну
+                {dict.portal.fileTypesHint}
               </div>
               <input
                 ref={fileInputRef}
@@ -425,7 +423,7 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
                       type="button"
                       onClick={() => handleRemoveFile(item.id)}
                       className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                      title="Видалити"
+                      title={dict.common.delete}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -444,7 +442,7 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
             disabled={submitting}
             className="px-4 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
-            Скасувати
+            {dict.common.cancel}
           </button>
 
           <button
@@ -456,12 +454,12 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
             {submitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Надсилання звернення...</span>
+                <span>{dict.portal.submittingTicket}</span>
               </>
             ) : (
               <>
                 <Send className="w-3.5 h-3.5" />
-                <span>Надіслати звернення</span>
+                <span>{dict.portal.submitTicket}</span>
               </>
             )}
           </button>

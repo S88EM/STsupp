@@ -133,7 +133,26 @@ export function getLocalizedStatusName(
   if (lower === "в роботі" || semanticKey === "inprogress") return dict.statuses.in_progress;
   if (lower === "тестування" || semanticKey === "testing") return dict.statuses.testing;
   if (lower === "готово" || lower === "вирішено" || semanticKey === "done") return dict.statuses.done;
-  if (lower === "очікує клієнта" || lower === "очікування клієнта") return dict.statuses.awaiting_client;
+  if (
+    lower === "очікує клієнта" ||
+    lower === "очікування клієнта" ||
+    lower === "очікує відповіді" ||
+    lower.includes("очікує")
+  ) {
+    return dict.statuses.awaiting_client;
+  }
   if (lower === "закрита" || lower === "закрито") return dict.issue.closed;
   return name;
+}
+
+export function getLocalizedPriority(
+  priority?: string,
+  dict?: TranslationDictionary
+): string {
+  if (!priority) return "";
+  const key = priority.toUpperCase();
+  if (key === "URGENT" || key === "CRITICAL") return dict?.priorities.urgent || "Urgent";
+  if (key === "HIGH") return dict?.priorities.high || "High";
+  if (key === "LOW") return dict?.priorities.low || "Low";
+  return dict?.priorities.medium || "Medium";
 }

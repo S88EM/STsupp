@@ -25,7 +25,7 @@ export async function POST(
     const { comment } = body;
 
     const task = await prisma.task.findUnique({
-      where: { id: taskId, projectId },
+      where: { id: taskId },
       include: {
         column: true,
         assignee: { select: { id: true, name: true, email: true, role: true } },
@@ -194,7 +194,7 @@ export async function POST(
     };
 
     const updatedTask = await prisma.task.update({
-      where: { id: taskId, projectId },
+      where: { id: taskId },
       data: {
         columnId: targetColumnId,
         assigneeId: targetAssigneeId,

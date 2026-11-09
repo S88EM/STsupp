@@ -20,6 +20,7 @@ export async function GET() {
       hasPass: Boolean(cfg.pass),
       from: cfg.from,
       appUrl: cfg.appUrl || "",
+      isEnabled: cfg.isEnabled !== false,
       isConfigured: isMailConfigured(),
     });
   } catch (error: any) {
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { host, port, secure, user, pass, from, appUrl } = body;
+    const { host, port, secure, user, pass, from, appUrl, isEnabled } = body;
 
     const saved = saveMailConfig({
       host: host !== undefined ? String(host).trim() : undefined,
@@ -46,6 +47,7 @@ export async function POST(req: Request) {
       pass: pass !== undefined && pass !== "" ? String(pass) : undefined,
       from: from !== undefined ? String(from).trim() : undefined,
       appUrl: appUrl !== undefined ? String(appUrl).trim() : undefined,
+      isEnabled: isEnabled !== undefined ? Boolean(isEnabled) : undefined,
     });
 
     await logAuditEvent({
@@ -60,6 +62,7 @@ export async function POST(req: Request) {
         user: saved.user,
         from: saved.from,
         appUrl: saved.appUrl,
+        isEnabled: saved.isEnabled,
       },
     });
 
@@ -74,6 +77,7 @@ export async function POST(req: Request) {
         hasPass: Boolean(saved.pass),
         from: saved.from,
         appUrl: saved.appUrl || "",
+        isEnabled: saved.isEnabled !== false,
         isConfigured: isMailConfigured(),
       },
     });

@@ -30,7 +30,7 @@ export const PortalFilters: React.FC<PortalFiltersProps> = ({
   metrics,
   totalFound,
 }) => {
-  const { dict } = useI18n();
+  const { dict, locale } = useI18n();
   return (
     <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -138,7 +138,11 @@ export const PortalFilters: React.FC<PortalFiltersProps> = ({
         </div>
 
         <div className="text-muted-foreground text-[11px]">
-          Знайдено: <strong className="text-foreground">{totalFound}</strong> звернень
+          {locale === "en" ? (
+            <>Found: <strong className="text-foreground">{totalFound}</strong> {totalFound === 1 ? "ticket" : "tickets"}</>
+          ) : (
+            <>Знайдено: <strong className="text-foreground">{totalFound}</strong> звернень</>
+          )}
         </div>
       </div>
     </div>

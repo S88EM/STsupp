@@ -4,6 +4,7 @@ import React, { useRef } from "react";
 import { Paperclip, Plus, Loader2, FileText, Download } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
 import { AttachmentItem, formatFileSize, isImageFile } from "../types";
+import { useI18n } from "@/lib/i18n";
 
 interface ClientTicketAttachmentsProps {
   attachments?: AttachmentItem[];
@@ -16,6 +17,7 @@ export const ClientTicketAttachments: React.FC<ClientTicketAttachmentsProps> = (
   uploading,
   onUploadFile,
 }) => {
+  const { dict } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -23,7 +25,7 @@ export const ClientTicketAttachments: React.FC<ClientTicketAttachmentsProps> = (
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
           <Paperclip className="w-3.5 h-3.5 text-primary" />
-          <span>Вкладені файли та скріншоти ({attachments.length})</span>
+          <span>{dict.portal.attachmentsAndScreenshots} ({attachments.length})</span>
         </span>
 
         <button
@@ -37,7 +39,7 @@ export const ClientTicketAttachments: React.FC<ClientTicketAttachmentsProps> = (
           ) : (
             <Plus className="w-3 h-3" />
           )}
-          <span>Додати файл</span>
+          <span>{dict.portal.addFile}</span>
         </button>
         <input
           ref={fileInputRef}
@@ -90,7 +92,7 @@ export const ClientTicketAttachments: React.FC<ClientTicketAttachmentsProps> = (
         </div>
       ) : (
         <div className="text-xs text-muted-foreground/80 italic p-3 rounded-xl bg-secondary/15 border border-border/40 text-center">
-          До цього звернення файлів ще не прикріплено. Ви можете додати їх або вставити скріншот через Ctrl+V.
+          {dict.portal.noAttachmentsHint}
         </div>
       )}
     </div>

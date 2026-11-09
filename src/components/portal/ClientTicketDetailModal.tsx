@@ -15,6 +15,7 @@ import {
   ClientTicketHistory,
   ClientTicketDialogue,
 } from "./ticket-detail";
+import { useI18n } from "@/lib/i18n";
 
 export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = ({
   taskId,
@@ -24,6 +25,7 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
   onTicketUpdated,
   currentUser,
 }) => {
+  const { dict, locale } = useI18n();
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -147,7 +149,12 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Не вдалося зберегти зміни звернення");
+        throw new Error(
+          data.error ||
+            (locale === "en"
+              ? "Failed to save ticket changes"
+              : "Не вдалося зберегти зміни звернення")
+        );
       }
 
       const updated = await res.json();
@@ -162,7 +169,10 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
       await loadTask();
     } catch (err: any) {
       console.error("Save edit error:", err);
-      setError(err.message || "Помилка при збереженні змін");
+      setError(
+        err.message ||
+          (locale === "en" ? "Error saving ticket changes" : "Помилка при збереженні змін")
+      );
     } finally {
       setSavingEdit(false);
     }
@@ -184,7 +194,12 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Не вдалося повернути звернення до служби підтримки");
+        throw new Error(
+          data.error ||
+            (locale === "en"
+              ? "Failed to return ticket to support"
+              : "Не вдалося повернути звернення до служби підтримки")
+        );
       }
 
       const result = await res.json();
@@ -202,7 +217,12 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
       }, 150);
     } catch (err: any) {
       console.error("Return to support error:", err);
-      setError(err.message || "Помилка при поверненні звернення до служби підтримки");
+      setError(
+        err.message ||
+          (locale === "en"
+            ? "Error returning ticket to support"
+            : "Помилка при поверненні звернення до служби підтримки")
+      );
     } finally {
       setReturningToSupport(false);
     }
@@ -222,14 +242,14 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
       });
 
       if (!res.ok) {
-        throw new Error("Не вдалося завантажити файл");
+        throw new Error(locale === "en" ? "Failed to upload file" : "Не вдалося завантажити файл");
       }
 
       await loadTask();
       onTicketUpdated?.();
     } catch (err: any) {
       console.error("Upload error:", err);
-      setError(err.message || "Помилка завантаження файлу");
+      setError(err.message || (locale === "en" ? "File upload error" : "Помилка завантаження файлу"));
     } finally {
       setUploadingFile(false);
     }
@@ -279,7 +299,9 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
       });
 
       if (!res.ok) {
-        throw new Error("Не вдалося надіслати повідомлення");
+        throw new Error(
+          locale === "en" ? "Failed to send message" : "Не вдалося надіслати повідомлення"
+        );
       }
 
       setReplyText("");
@@ -291,7 +313,9 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
       }, 100);
     } catch (err: any) {
       console.error("Send reply error:", err);
-      setError(err.message || "Помилка відправки повідомлення");
+      setError(
+        err.message || (locale === "en" ? "Error sending message" : "Помилка відправки повідомлення")
+      );
     } finally {
       setSendingReply(false);
     }
@@ -315,7 +339,7 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
         {loading && !task ? (
           <div className="p-12 flex flex-col items-center justify-center gap-2 text-muted-foreground">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            <span className="text-xs">Завантаження звернення...</span>
+            <span className="text-xs">{dict.portal.loadingTicket}</span>
           </div>
         ) : task ? (
           <div className="flex-1 overflow-y-auto p-5 space-y-5">
@@ -414,14 +438,14 @@ export const ClientTicketDetailModal: React.FC<ClientTicketDetailModalProps> = (
         {/* Footer */}
         <div className="px-5 py-3 border-t border-border/80 flex items-center justify-between bg-card/60 backdrop-blur-md">
           <span className="text-[11px] text-muted-foreground">
-            Статус тікета оновлюється автоматично у режимі реального часу
+            {dict.portal.realtimeNotice}
           </span>
           <button
             type="button"
             onClick={onClose}
             className="px-4 py-1.5 rounded-xl text-xs font-medium bg-secondary hover:bg-secondary/80 text-foreground transition-colors cursor-pointer"
           >
-            Закрити
+            {dict.common.close}
           </button>
         </div>
       </div>

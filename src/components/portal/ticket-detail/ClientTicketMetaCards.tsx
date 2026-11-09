@@ -2,6 +2,7 @@
 
 import React from "react";
 import { User, Shield, AlertCircle, Clock } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface ClientTicketMetaCardsProps {
   creator?: { id: string; name: string; email: string; role?: string } | null;
@@ -18,25 +19,28 @@ export const ClientTicketMetaCards: React.FC<ClientTicketMetaCardsProps> = ({
   isAssigneeClient,
   isAssigneeMe,
 }) => {
+  const { dict, locale } = useI18n();
+  const isEn = locale === "en";
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
       {/* Creator Card */}
       <div className="p-3 rounded-xl bg-secondary/20 border border-border/60 flex items-center justify-between gap-2.5">
         <div className="flex items-center gap-2.5 truncate">
           <div className="w-8 h-8 rounded-full bg-secondary text-foreground flex items-center justify-center font-bold text-xs flex-shrink-0">
-            {creator ? creator.name.slice(0, 2).toUpperCase() : "К"}
+            {creator ? creator.name.slice(0, 2).toUpperCase() : "C"}
           </div>
           <div className="truncate">
             <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-              Автор звернення
+              {dict.portal.ticketAuthor}
             </div>
             <div className="font-semibold text-foreground truncate">
-              {isAuthor ? "Ви (Автор)" : creator ? creator.name : "Клієнт"}
+              {isAuthor ? (isEn ? "You (Author)" : "Ви (Автор)") : creator ? creator.name : dict.roles.client}
             </div>
           </div>
         </div>
         <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-secondary text-muted-foreground border border-border flex-shrink-0">
-          {isAuthor ? "Ваше" : "Організація"}
+          {isAuthor ? (isEn ? "Yours" : "Ваше") : (isEn ? "Organization" : "Організація")}
         </span>
       </div>
 
@@ -60,17 +64,21 @@ export const ClientTicketMetaCards: React.FC<ClientTicketMetaCardsProps> = ({
           </div>
           <div className="truncate">
             <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-              {isAssigneeClient ? "Очікує відповіді від" : "Відповідальний інженер"}
+              {isAssigneeClient
+                ? isEn ? "Awaiting reply from" : "Очікує відповіді від"
+                : isEn ? "Support Engineer" : "Відповідальний інженер"}
             </div>
             <div className="font-semibold text-foreground truncate">
               {assignee ? (
                 isAssigneeClient ? (
-                  isAssigneeMe ? "Ви (Клієнт)" : `${assignee.name} (Клієнт)`
+                  isAssigneeMe
+                    ? isEn ? "You (Client)" : "Ви (Клієнт)"
+                    : `${assignee.name} (${dict.roles.client})`
                 ) : (
                   assignee.name
                 )
               ) : (
-                "Очікує призначення інженера"
+                isEn ? "Awaiting engineer assignment" : "Очікує призначення інженера"
               )}
             </div>
           </div>
@@ -86,19 +94,19 @@ export const ClientTicketMetaCards: React.FC<ClientTicketMetaCardsProps> = ({
             {isAssigneeClient ? (
               <>
                 <AlertCircle className="w-3 h-3" />
-                <span>Клієнт</span>
+                <span>{dict.roles.client}</span>
               </>
             ) : (
               <>
                 <Shield className="w-3 h-3" />
-                <span>Інженер підтримки</span>
+                <span>{isEn ? "Support Engineer" : "Інженер підтримки"}</span>
               </>
             )}
           </span>
         ) : (
           <span className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-secondary text-muted-foreground border border-border flex items-center gap-1 flex-shrink-0">
             <Clock className="w-3 h-3" />
-            <span>В черзі</span>
+            <span>{isEn ? "In Queue" : "В черзі"}</span>
           </span>
         )}
       </div>

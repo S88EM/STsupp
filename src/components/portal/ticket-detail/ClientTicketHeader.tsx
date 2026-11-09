@@ -5,6 +5,8 @@ import { Copy, Check, Clock, X, Link2 } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
 import { renderPriorityBadge } from "../PortalTicketCard";
 import { getCanonicalTaskUrl } from "@/lib/taskUrl";
+import { useI18n } from "@/lib/i18n";
+import { getLocalizedStatusName } from "@/lib/constants/task";
 
 interface ClientTicketHeaderProps {
   code?: string;
@@ -21,6 +23,7 @@ export const ClientTicketHeader: React.FC<ClientTicketHeaderProps> = ({
   createdAt,
   onClose,
 }) => {
+  const { dict, locale } = useI18n();
   const [copiedLink, setCopiedLink] = useState(false);
 
   const handleCopyLink = () => {
@@ -39,7 +42,7 @@ export const ClientTicketHeader: React.FC<ClientTicketHeaderProps> = ({
           <button
             onClick={handleCopyLink}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-secondary/60 hover:bg-secondary border border-border text-xs font-mono font-bold text-primary transition-colors cursor-pointer group"
-            title="Скопіювати пряме посилання на звернення"
+            title={dict.portal.copyLinkTitle}
           >
             <Link2 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
             <span>{code}</span>
@@ -56,11 +59,11 @@ export const ClientTicketHeader: React.FC<ClientTicketHeaderProps> = ({
             className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold text-white shadow-xs"
             style={{ backgroundColor: column.color || "#3b82f6" }}
           >
-            {column.name}
+            {getLocalizedStatusName(column.name, dict, locale)}
           </span>
         )}
 
-        {priority && renderPriorityBadge(priority)}
+        {priority && renderPriorityBadge(priority, dict, locale)}
 
         {createdAt && (
           <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -81,7 +84,13 @@ export const ClientTicketHeader: React.FC<ClientTicketHeaderProps> = ({
       {copiedLink && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-3.5 py-2 rounded-xl bg-popover text-foreground shadow-2xl border border-border text-xs font-medium animate-in fade-in slide-in-from-bottom-2 duration-200">
           <Check className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Посилання на <strong>{code}</strong> скопійовано!</span>
+          <span>
+            {locale === "en" ? (
+              <>Link to <strong>{code}</strong> copied!</>
+            ) : (
+              <>Посилання на <strong>{code}</strong> скопійовано!</>
+            )}
+          </span>
         </div>
       )}
     </div>

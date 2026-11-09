@@ -72,7 +72,7 @@ export async function PUT(
     await prisma.$transaction(
       columns.map((c) =>
         prisma.column.update({
-          where: { id: c.id, projectId },
+          where: { id: c.id },
           data: { orderIndex: c.orderIndex },
         })
       )

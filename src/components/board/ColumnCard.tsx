@@ -45,7 +45,7 @@ export const ColumnCard: React.FC<ColumnCardProps> = React.memo(({
   };
 
   return (
-    <div className="w-80 flex-shrink-0 flex flex-col max-h-full bg-secondary/30 rounded-xl border border-border/60 p-2.5 backdrop-blur-sm">
+    <div className="w-80 flex-shrink-0 flex flex-col max-h-full bg-secondary/30 rounded-xl border border-border/60 p-2.5 shadow-sm">
       {/* Column Header */}
       <div className="flex items-center justify-between px-2 py-2 mb-1 group relative">
         <div className="flex items-center gap-2 flex-1 min-w-0">

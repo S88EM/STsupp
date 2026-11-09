@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad13" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="cardGrad13" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <filter id="shadow13" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="900" height="520" fill="url(#bgGrad13)"/>
+  <rect x="20" y="20" width="860" height="480" rx="14" fill="none" stroke="#334155" stroke-width="1.5"/>
+
+  <!-- Window Header -->
+  <path d="M 20 34 A 14 14 0 0 1 34 20 L 866 20 A 14 14 0 0 1 880 34 L 880 58 L 20 58 Z" fill="#1e293b"/>
+  <circle cx="45" cy="39" r="5" fill="#ef4444"/>
+  <circle cx="62" cy="39" r="5" fill="#f59e0b"/>
+  <circle cx="79" cy="39" r="5" fill="#10b981"/>
+  <text x="450" y="43" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" text-anchor="middle">STsup — Адміністрування: Налаштування інтеграцій Telegram Bot та SMTP Mail (/settings)</text>
+
+  <!-- SETTINGS SUBHEADER TABS -->
+  <g transform="translate(40, 70)">
+    <text x="0" y="20" fill="#f8fafc" font-family="sans-serif" font-size="15" font-weight="bold">Налаштування системи</text>
+    <rect x="220" y="2" width="140" height="28" rx="6" fill="#3b82f6" fill-opacity="0.2" stroke="#3b82f6" stroke-width="1.5"/>
+    <text x="290" y="21" fill="#38bdf8" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Інтеграції та сповіщення</text>
+
+    <rect x="375" y="2" width="130" height="28" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="440" y="21" fill="#94a3b8" font-family="sans-serif" font-size="11" font-weight="500" text-anchor="middle">Резервні копії</text>
+
+    <rect x="520" y="2" width="130" height="28" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="585" y="21" fill="#94a3b8" font-family="sans-serif" font-size="11" font-weight="500" text-anchor="middle">Користувачі та ролі</text>
+  </g>
+
+  <!-- LEFT PANE: TELEGRAM BOT INTEGRATION -->
+  <g transform="translate(40, 115)">
+    <rect width="395" height="365" rx="10" fill="url(#cardGrad13)" stroke="#334155" stroke-width="1.5" filter="url(#shadow13)"/>
+    <path d="M 0 10 A 10 10 0 0 1 10 0 L 385 0 A 10 10 0 0 1 395 10 L 395 38 L 0 38 Z" fill="#1e293b"/>
+    
+    <!-- Telegram Icon / Title -->
+    <circle cx="28" cy="19" r="10" fill="#0284c7"/>
+    <text x="28" y="23" fill="#fff" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">TG</text>
+    <text x="46" y="24" fill="#38bdf8" font-family="sans-serif" font-size="12" font-weight="bold">Інтеграція Telegram Bot</text>
+
+    <!-- Field: Bot Token -->
+    <text x="20" y="62" fill="#94a3b8" font-family="sans-serif" font-size="10.5" font-weight="600">Telegram Bot Token (з @BotFather):</text>
+    <rect x="20" y="70" width="355" height="30" rx="5" fill="#0f172a" stroke="#475569" stroke-width="1.2"/>
+    <text x="30" y="90" fill="#e2e8f0" font-family="monospace" font-size="11">7182940192:AAFe-8kLmP09xQz1...</text>
+
+    <!-- Field: Chat ID -->
+    <text x="20" y="122" fill="#94a3b8" font-family="sans-serif" font-size="10.5" font-weight="600">ID цільового чату / каналу інженерів:</text>
+    <rect x="20" y="130" width="355" height="30" rx="5" fill="#0f172a" stroke="#475569" stroke-width="1.2"/>
+    <text x="30" y="150" fill="#e2e8f0" font-family="monospace" font-size="11">-1002938471920</text>
+
+    <!-- Event Triggers Toggles -->
+    <text x="20" y="184" fill="#94a3b8" font-family="sans-serif" font-size="10.5" font-weight="600">Події для відправки повідомлень:</text>
+    
+    <!-- Checkbox 1 -->
+    <rect x="20" y="195" width="14" height="14" rx="3" fill="#2563eb" stroke="#3b82f6" stroke-width="1"/>
+    <text x="27" y="206" fill="#fff" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">✓</text>
+    <text x="42" y="206" fill="#f8fafc" font-family="sans-serif" font-size="10.5">Створення нового тікета / задачі</text>
+
+    <!-- Checkbox 2 -->
+    <rect x="20" y="220" width="14" height="14" rx="3" fill="#2563eb" stroke="#3b82f6" stroke-width="1"/>
+    <text x="27" y="231" fill="#fff" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">✓</text>
+    <text x="42" y="231" fill="#f8fafc" font-family="sans-serif" font-size="10.5">Зміна статусу або пріоритету</text>
+
+    <!-- Checkbox 3 -->
+    <rect x="20" y="245" width="14" height="14" rx="3" fill="#2563eb" stroke="#3b82f6" stroke-width="1"/>
+    <text x="27" y="256" fill="#fff" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">✓</text>
+    <text x="42" y="256" fill="#f8fafc" font-family="sans-serif" font-size="10.5">Передача «Повернути до клієнта / в підтримку»</text>
+
+    <!-- Checkbox 4 -->
+    <rect x="20" y="270" width="14" height="14" rx="3" fill="#2563eb" stroke="#3b82f6" stroke-width="1"/>
+    <text x="27" y="281" fill="#fff" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">✓</text>
+    <text x="42" y="281" fill="#f8fafc" font-family="sans-serif" font-size="10.5">Додавання публічного коментаря</text>
+
+    <!-- Test Telegram Button -->
+    <rect x="20" y="305" width="220" height="34" rx="6" fill="#0284c7" stroke="#38bdf8" stroke-width="1"/>
+    <text x="130" y="327" fill="#ffffff" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">🚀 Надіслати тест у Telegram</text>
+
+    <rect x="250" y="305" width="125" height="34" rx="6" fill="#10b981" fill-opacity="0.15" stroke="#10b981" stroke-width="1"/>
+    <text x="312" y="326" fill="#10b981" font-family="sans-serif" font-size="10.5" font-weight="bold" text-anchor="middle">✓ Бот онлайн</text>
+
+    <!-- Callout 1 -->
+    <circle cx="375" cy="55" r="11" fill="#ef4444"/>
+    <text x="375" y="59" fill="#fff" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">❶</text>
+  </g>
+
+  <!-- RIGHT PANE: SMTP MAIL INTEGRATION -->
+  <g transform="translate(465, 115)">
+    <rect width="395" height="365" rx="10" fill="url(#cardGrad13)" stroke="#334155" stroke-width="1.5" filter="url(#shadow13)"/>
+    <path d="M 0 10 A 10 10 0 0 1 10 0 L 385 0 A 10 10 0 0 1 395 10 L 395 38 L 0 38 Z" fill="#1e293b"/>
+    
+    <!-- Mail Icon / Title -->
+    <circle cx="28" cy="19" r="10" fill="#f59e0b"/>
+    <text x="28" y="23" fill="#fff" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">✉</text>
+    <text x="46" y="24" fill="#fbbf24" font-family="sans-serif" font-size="12" font-weight="bold">Налаштування пошти (SMTP)</text>
+
+    <!-- Host and Port -->
+    <text x="20" y="62" fill="#94a3b8" font-family="sans-serif" font-size="10.5" font-weight="600">SMTP Сервер (Host) та Порт:</text>
+    <rect x="20" y="70" width="260" height="30" rx="5" fill="#0f172a" stroke="#475569" stroke-width="1.2"/>
+    <text x="30" y="90" fill="#e2e8f0" font-family="monospace" font-size="11">smtp.mailgun.org</text>
+
+    <rect x="290" y="70" width="85" height="30" rx="5" fill="#0f172a" stroke="#475569" stroke-width="1.2"/>
+    <text x="315" y="90" fill="#e2e8f0" font-family="monospace" font-size="11">587</text>
+
+    <!-- Username -->
+    <text x="20" y="122" fill="#94a3b8" font-family="sans-serif" font-size="10.5" font-weight="600">Користувач SMTP:</text>
+    <rect x="20" y="130" width="355" height="30" rx="5" fill="#0f172a" stroke="#475569" stroke-width="1.2"/>
+    <text x="30" y="150" fill="#e2e8f0" font-family="monospace" font-size="11">postmaster@mg.stsup.local</text>
+
+    <!-- Sender Email -->
+    <text x="20" y="184" fill="#94a3b8" font-family="sans-serif" font-size="10.5" font-weight="600">Адреса відправника (From Email):</text>
+    <rect x="20" y="192" width="355" height="30" rx="5" fill="#0f172a" stroke="#475569" stroke-width="1.2"/>
+    <text x="30" y="212" fill="#e2e8f0" font-family="monospace" font-size="11">support@stsup.local</text>
+
+    <!-- SSL / TLS switch -->
+    <g transform="translate(20, 240)">
+      <rect width="36" height="20" rx="10" fill="#10b981"/>
+      <circle cx="26" cy="10" r="8" fill="#ffffff"/>
+      <text x="46" y="15" fill="#f8fafc" font-family="sans-serif" font-size="10.5">Використовувати TLS / STARTTLS шифрування</text>
+    </g>
+
+    <!-- Test Email Button -->
+    <rect x="20" y="305" width="220" height="34" rx="6" fill="#f59e0b" fill-opacity="0.2" stroke="#f59e0b" stroke-width="1.2"/>
+    <text x="130" y="327" fill="#fbbf24" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">✉ Надіслати тестовий email</text>
+
+    <!-- Callout 2 -->
+    <circle cx="375" cy="55" r="11" fill="#38bdf8"/>
+    <text x="375" y="59" fill="#fff" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">❷</text>
+  </g>
+</svg>

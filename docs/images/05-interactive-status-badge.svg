@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <filter id="shadow5" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <rect width="920" height="500" fill="url(#bgGrad5)"/>
+  <rect x="20" y="20" width="880" height="460" rx="16" fill="none" stroke="#334155" stroke-width="1.5"/>
+
+  <!-- Window Header -->
+  <path d="M 20 36 A 16 16 0 0 1 36 20 L 884 20 A 16 16 0 0 1 900 36 L 900 60 L 20 60 Z" fill="#1e293b"/>
+  <circle cx="45" cy="40" r="5" fill="#ef4444"/>
+  <circle cx="62" cy="40" r="5" fill="#f59e0b"/>
+  <circle cx="79" cy="40" r="5" fill="#10b981"/>
+  <text x="460" y="44" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="12" font-weight="600" text-anchor="middle">STsup — Інтерактивний вибір статусу в блоці «Деталі задачі» (Варіант 3)</text>
+
+  <!-- LEFT: Issue Details Card Mockup -->
+  <g transform="translate(50, 80)">
+    <rect width="400" height="380" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5" filter="url(#shadow5)"/>
+    
+    <text x="24" y="32" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="bold">ДЕТАЛІ ЗАДАЧІ</text>
+    <line x1="24" y1="44" x2="376" y2="44" stroke="#334155" stroke-width="1"/>
+
+    <!-- Field 1: Status -->
+    <text x="24" y="78" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="600">Статус:</text>
+    
+    <!-- Interactive Status Badge (Active: In Progress) -->
+    <rect x="140" y="58" width="160" height="34" rx="8" fill="#1d4ed8" fill-opacity="0.25" stroke="#3b82f6" stroke-width="1.5"/>
+    <circle cx="156" cy="75" r="4.5" fill="#38bdf8"/>
+    <text x="170" y="79" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="12" font-weight="bold">В РОБОТІ</text>
+    <polygon points="280,72 286,80 292,72" fill="#38bdf8"/>
+
+    <!-- Callout 1: Active Badge -->
+    <rect x="135" y="52" width="170" height="46" rx="10" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5 3"/>
+    <circle cx="315" cy="55" r="11" fill="#f43f5e"/>
+    <text x="315" y="59" fill="#ffffff" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle">1</text>
+
+    <!-- Field 2: Priority -->
+    <text x="24" y="130" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="600">Пріоритет:</text>
+    <rect x="140" y="112" width="160" height="30" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="155" y="132" fill="#f59e0b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11">▲ Високий</text>
+
+    <!-- Field 3: Assignee -->
+    <text x="24" y="180" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="600">Виконавець:</text>
+    <text x="140" y="180" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="bold">Ігор М. (Інженер)</text>
+
+    <!-- Field 4: Reporter -->
+    <text x="24" y="225" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="600">Автор:</text>
+    <text x="140" y="225" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11">client@keenetic.link</text>
+
+    <!-- Field 5: Resolution -->
+    <text x="24" y="270" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="600">Рішення:</text>
+    <text x="140" y="270" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-style="italic">Не вирішено</text>
+
+    <!-- Field 6: Created / Updated -->
+    <text x="24" y="315" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="600">Створено:</text>
+    <text x="140" y="315" fill="#94a3b8" font-family="monospace" font-size="10">09.11.2026, 09:14</text>
+
+    <text x="24" y="350" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="600">Оновлено:</text>
+    <text x="140" y="350" fill="#94a3b8" font-family="monospace" font-size="10">09.11.2026, 12:40</text>
+  </g>
+
+  <!-- RIGHT: Expanded Status Dropdown Palette & Semantic Rules -->
+  <g transform="translate(480, 80)">
+    <rect width="390" height="380" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1.5" filter="url(#shadow5)"/>
+    
+    <text x="24" y="32" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="13" font-weight="bold">Семантичні статуси та колірне кодування:</text>
+
+    <!-- 1. Backlog -->
+    <g transform="translate(24, 55)">
+      <rect width="342" height="52" rx="8" fill="#1e293b" stroke="#64748b" stroke-width="1.2"/>
+      <rect x="12" y="12" width="95" height="28" rx="6" fill="#64748b" fill-opacity="0.2" stroke="#64748b" stroke-width="1"/>
+      <circle cx="26" cy="26" r="4" fill="#94a3b8"/>
+      <text x="36" y="30" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="bold">БЕКЛОГ</text>
+      <text x="120" y="24" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="600">Черга очікування</text>
+      <text x="120" y="39" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="10">Задача створена, але ще не взята в роботу інженером.</text>
+    </g>
+
+    <!-- 2. In Progress (Active) -->
+    <g transform="translate(24, 118)">
+      <rect width="342" height="52" rx="8" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+      <rect x="12" y="12" width="95" height="28" rx="6" fill="#2563eb" fill-opacity="0.25" stroke="#3b82f6" stroke-width="1"/>
+      <circle cx="26" cy="26" r="4" fill="#38bdf8"/>
+      <text x="36" y="30" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="bold">В РОБОТІ</text>
+      <text x="120" y="24" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="bold">Активна розробка ✓</text>
+      <text x="120" y="39" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="10">Інженер виконує задачу, ведеться облік часу.</text>
+    </g>
+
+    <!-- 3. Testing -->
+    <g transform="translate(24, 181)">
+      <rect width="342" height="52" rx="8" fill="#1e293b" stroke="#eab308" stroke-width="1.2"/>
+      <rect x="12" y="12" width="105" height="28" rx="6" fill="#eab308" fill-opacity="0.2" stroke="#eab308" stroke-width="1"/>
+      <circle cx="26" cy="26" r="4" fill="#facc15"/>
+      <text x="36" y="30" fill="#facc15" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="bold">ТЕСТУВАННЯ</text>
+      <text x="130" y="24" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="600">Перевірка та QA</text>
+      <text x="130" y="39" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="10">Код завершено, триває верифікація або рев'ю.</text>
+    </g>
+
+    <!-- 4. Done / Closed -->
+    <g transform="translate(24, 244)">
+      <rect width="342" height="52" rx="8" fill="#1e293b" stroke="#22c55e" stroke-width="1.2"/>
+      <rect x="12" y="12" width="95" height="28" rx="6" fill="#22c55e" fill-opacity="0.2" stroke="#22c55e" stroke-width="1"/>
+      <circle cx="26" cy="26" r="4" fill="#4ade80"/>
+      <text x="36" y="30" fill="#4ade80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="bold">ГОТОВО</text>
+      <text x="120" y="24" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="600">Виконано та закрито</text>
+      <text x="120" y="39" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="10">Задачу повністю реалізовано або закрито автором.</text>
+    </g>
+
+    <!-- Callout 2 & 3 -->
+    <rect x="15" y="48" width="360" height="258" rx="10" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="5 3"/>
+    <circle cx="385" cy="55" r="11" fill="#38bdf8"/>
+    <text x="385" y="59" fill="#0f172a" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle">2</text>
+
+    <!-- Legend note -->
+    <rect x="20" y="318" width="350" height="48" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="32" y="337" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="10" font-weight="bold">⚡ Зручність варіанта 3:</text>
+    <text x="32" y="352" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="10">Зміна статусу відбувається в один клік без дублюючих кнопок у хедері.</text>
+  </g>
+</svg>

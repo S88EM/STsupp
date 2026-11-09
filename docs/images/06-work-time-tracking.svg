@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad6" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="barGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="80%" stop-color="#2563eb"/>
+      <stop offset="81%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+    <filter id="shadow6" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <rect width="920" height="500" fill="url(#bgGrad6)"/>
+  <rect x="20" y="20" width="880" height="460" rx="16" fill="none" stroke="#334155" stroke-width="1.5"/>
+
+  <!-- Window Header -->
+  <path d="M 20 36 A 16 16 0 0 1 36 20 L 884 20 A 16 16 0 0 1 900 36 L 900 60 L 20 60 Z" fill="#1e293b"/>
+  <circle cx="45" cy="40" r="5" fill="#ef4444"/>
+  <circle cx="62" cy="40" r="5" fill="#f59e0b"/>
+  <circle cx="79" cy="40" r="5" fill="#10b981"/>
+  <text x="460" y="44" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="12" font-weight="600" text-anchor="middle">STsup — Облік часу (Work Tracking) та динамічний розрахунок залишку</text>
+
+  <!-- MAIN TIME TRACKING CARD -->
+  <g transform="translate(50, 80)">
+    <rect width="450" height="380" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5" filter="url(#shadow6)"/>
+
+    <!-- Header -->
+    <text x="25" y="32" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="12" font-weight="bold">ОБЛІК ЧАСУ (TIME TRACKING)</text>
+    <line x1="25" y1="44" x2="425" y2="44" stroke="#334155" stroke-width="1"/>
+
+    <!-- Progress Bar Section -->
+    <text x="25" y="70" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="600">Прогрес виконання:</text>
+    <text x="360" y="70" fill="#f59e0b" font-family="monospace" font-size="12" font-weight="bold">125% (перевитрата)</text>
+
+    <!-- Progress Bar Background & Fill -->
+    <rect x="25" y="80" width="400" height="14" rx="7" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <!-- Filled Portion (100% normal + 25% overtime) -->
+    <rect x="25" y="80" width="400" height="14" rx="7" fill="url(#barGrad)"/>
+
+    <!-- Metrics Row Under Bar -->
+    <text x="25" y="112" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="bold">Витрачено: 5h</text>
+    <text x="340" y="112" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11">Залишок: <tspan fill="#ef4444" font-weight="bold">0h</tspan></text>
+
+    <!-- Callout 2: Progress Bar -->
+    <rect x="18" y="55" width="414" height="68" rx="8" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="5 3"/>
+    <circle cx="438" cy="60" r="11" fill="#38bdf8"/>
+    <text x="438" y="64" fill="#0f172a" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle">2</text>
+
+    <!-- Detailed Inputs Grid -->
+    <!-- 1. Original Estimate -->
+    <g transform="translate(25, 140)">
+      <rect width="190" height="68" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+      <text x="14" y="24" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="10" font-weight="600">ОЦІНКА (ESTIMATE)</text>
+      <rect x="14" y="32" width="162" height="28" rx="5" fill="#1e293b" stroke="#3b82f6" stroke-width="1.2"/>
+      <text x="24" y="51" fill="#f8fafc" font-family="monospace" font-size="13" font-weight="bold">4h</text>
+      <text x="135" y="50" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="10">✎ змінити</text>
+    </g>
+
+    <!-- 2. Time Spent -->
+    <g transform="translate(235, 140)">
+      <rect width="190" height="68" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+      <text x="14" y="24" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="10" font-weight="600">ВИТРАЧЕНИЙ ЧАС (SPENT)</text>
+      <rect x="14" y="32" width="162" height="28" rx="5" fill="#1e293b" stroke="#f59e0b" stroke-width="1.2"/>
+      <text x="24" y="51" fill="#f59e0b" font-family="monospace" font-size="13" font-weight="bold">5h</text>
+      <text x="135" y="50" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="10">+ додати</text>
+    </g>
+
+    <!-- Callout 1: Estimate Input -->
+    <rect x="20" y="135" width="200" height="78" rx="10" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5 3"/>
+    <circle cx="225" cy="140" r="11" fill="#f43f5e"/>
+    <text x="225" y="144" fill="#ffffff" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle">1</text>
+
+    <!-- Dynamic Total Row (The Magic Calculation) -->
+    <g transform="translate(25, 230)">
+      <rect width="400" height="75" rx="8" fill="#0f172a" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="16" y="25" fill="#f59e0b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="bold">⚠️ ДИНАМІЧНИЙ ПІДСУМОК (TOTAL TIME):</text>
+      
+      <text x="16" y="48" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="13">Загалом: <tspan font-family="monospace" font-weight="bold" fill="#f8fafc">5h</tspan></text>
+      <text x="16" y="65" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="10">(початково було 4h; автоматично скориговано на суму перевитрати)</text>
+
+      <!-- Badge Overspent -->
+      <rect x="280" y="32" width="105" height="26" rx="5" fill="#ef4444" fill-opacity="0.2" stroke="#ef4444" stroke-width="1"/>
+      <text x="332" y="49" fill="#f87171" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle">+1h перевитрата</text>
+    </g>
+
+    <!-- Callout 3: Dynamic Total -->
+    <rect x="20" y="225" width="410" height="85" rx="10" fill="none" stroke="#eab308" stroke-width="2" stroke-dasharray="5 3"/>
+    <circle cx="435" cy="230" r="11" fill="#eab308"/>
+    <text x="435" y="234" fill="#0f172a" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle">3</text>
+
+    <!-- Footer Note -->
+    <text x="25" y="340" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="10">• Story Points повністю приховано (використовується лише оцінка часу).</text>
+    <text x="25" y="358" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="10">• Для ролі CLIENT цей блок повністю приховано в порталі.</text>
+  </g>
+
+  <!-- RIGHT: Calculation Rules and Unit Reference -->
+  <g transform="translate(530, 80)">
+    <rect width="340" height="380" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1.5" filter="url(#shadow6)"/>
+
+    <text x="20" y="32" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="13" font-weight="bold">Правила розрахунку та одиниці часу:</text>
+
+    <!-- Units Table -->
+    <g transform="translate(20, 50)">
+      <rect width="300" height="135" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+      <text x="15" y="22" fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold">Одиниця</text>
+      <text x="100" y="22" fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold">Приклад</text>
+      <text x="200" y="22" fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold">Еквівалент</text>
+      <line x1="10" y1="30" x2="290" y2="30" stroke="#334155" stroke-width="1"/>
+
+      <text x="15" y="50" fill="#cbd5e1" font-family="monospace" font-size="11">m (хвилини)</text>
+      <text x="100" y="50" fill="#f8fafc" font-family="monospace" font-size="11">45m, 30m</text>
+      <text x="200" y="50" fill="#94a3b8" font-family="monospace" font-size="11">45 хвилин</text>
+
+      <text x="15" y="74" fill="#cbd5e1" font-family="monospace" font-size="11">h (години)</text>
+      <text x="100" y="74" fill="#f8fafc" font-family="monospace" font-size="11">4h, 2h 30m</text>
+      <text x="200" y="74" fill="#94a3b8" font-family="monospace" font-size="11">1h = 60 хв</text>
+
+      <text x="15" y="98" fill="#cbd5e1" font-family="monospace" font-size="11">d (робочі дні)</text>
+      <text x="100" y="98" fill="#f8fafc" font-family="monospace" font-size="11">1d, 2.5d</text>
+      <text x="200" y="98" fill="#94a3b8" font-family="monospace" font-size="11">1d = 8 годин</text>
+
+      <text x="15" y="122" fill="#cbd5e1" font-family="monospace" font-size="11">w (тижні)</text>
+      <text x="100" y="122" fill="#f8fafc" font-family="monospace" font-size="11">1w, 2w</text>
+      <text x="200" y="122" fill="#94a3b8" font-family="monospace" font-size="11">1w = 5d = 40h</text>
+    </g>
+
+    <!-- Formula breakdown -->
+    <g transform="translate(20, 205)">
+      <rect width="300" height="155" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+      <text x="15" y="24" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="11" font-weight="bold">Формули бізнес-логіки (timeEstimate.ts):</text>
+
+      <text x="15" y="50" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="10.5">1. <tspan fill="#38bdf8" font-weight="bold">Нормальний сценарій (Spent &lt;= Est):</tspan></text>
+      <text x="25" y="68" fill="#cbd5e1" font-family="monospace" font-size="10">Remaining = Estimate - Spent</text>
+      <text x="25" y="84" fill="#cbd5e1" font-family="monospace" font-size="10">Total = Estimate</text>
+
+      <text x="15" y="110" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="10.5">2. <tspan fill="#f59e0b" font-weight="bold">Сценарій перевитрати (Spent &gt; Est):</tspan></text>
+      <text x="25" y="128" fill="#cbd5e1" font-family="monospace" font-size="10">Remaining = 0h</text>
+      <text x="25" y="144" fill="#f59e0b" font-family="monospace" font-size="10">Total = Spent (динамічне збільшення)</text>
+    </g>
+  </g>
+</svg>

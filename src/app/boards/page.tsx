@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, Suspense } from "react";
-import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Navbar } from "@/components/layout/Navbar";
 import { TaskDetailModal } from "@/components/board/TaskDetailModal";
@@ -424,97 +423,88 @@ function GlobalBoardsPageContent() {
                                 index={index}
                                 isDragDisabled={!canChangeStatus}
                               >
-                                {(dragProvided, dragSnapshot) => {
-                                  const cardElement = (
+                                {(dragProvided, dragSnapshot) => (
+                                  <div
+                                    ref={dragProvided.innerRef}
+                                    {...dragProvided.draggableProps}
+                                    {...dragProvided.dragHandleProps}
+                                    onClick={() => handleOpenDetailTask(t)}
+                                    style={dragProvided.draggableProps.style}
+                                    className="select-none outline-none"
+                                  >
                                     <div
-                                      ref={dragProvided.innerRef}
-                                      {...dragProvided.draggableProps}
-                                      {...dragProvided.dragHandleProps}
-                                      onClick={() => handleOpenDetailTask(t)}
-                                      style={dragProvided.draggableProps.style}
-                                      className={`select-none ${
-                                        dragSnapshot.isDragging ? "!transition-none z-[9999]" : ""
+                                      className={`p-3.5 rounded-xl border bg-card cursor-pointer shadow-sm group ${
+                                        dragSnapshot.isDragging
+                                          ? "border-primary/50 shadow-2xl ring-2 ring-primary/40 bg-card/95"
+                                          : "border-border/80 hover:border-primary/50 hover:shadow-md transition-[border-color,background-color,box-shadow]"
                                       }`}
                                     >
-                                      <div
-                                        className={`p-3.5 rounded-xl border border-border/80 bg-card hover:border-primary/50 cursor-pointer shadow-sm group ${
-                                          dragSnapshot.isDragging
-                                            ? "rotate-1 shadow-2xl ring-2 ring-primary/40 bg-card/95 scale-[1.02]"
-                                            : "hover:shadow-md transition-[border-color,background-color,box-shadow]"
-                                        }`}
-                                      >
-                                        {/* Project Badge & Code */}
-                                        <div className="flex items-center justify-between text-xs mb-1.5">
-                                          <div className="flex items-center gap-1.5 min-w-0">
-                                            <span className="font-mono text-[10px] font-bold text-primary px-1.5 py-0.2 rounded bg-primary/10 border border-primary/20">
-                                              {t.project?.key}
-                                            </span>
-                                            <span className="font-mono text-muted-foreground font-semibold group-hover:text-primary transition-colors">
-                                              {t.code}
-                                            </span>
-                                          </div>
-
-                                          <div className="flex items-center gap-1.5">
-                                            {getPriorityIcon(t.priority)}
-                                          </div>
+                                      {/* Project Badge & Code */}
+                                      <div className="flex items-center justify-between text-xs mb-1.5">
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                          <span className="font-mono text-[10px] font-bold text-primary px-1.5 py-0.2 rounded bg-primary/10 border border-primary/20">
+                                            {t.project?.key}
+                                          </span>
+                                          <span className="font-mono text-muted-foreground font-semibold group-hover:text-primary transition-colors">
+                                            {t.code}
+                                          </span>
                                         </div>
 
-                                        {/* Task Title */}
-                                        <h4 className="text-xs font-medium text-foreground line-clamp-2 leading-snug mb-2.5">
-                                          {t.title}
-                                        </h4>
+                                        <div className="flex items-center gap-1.5">
+                                          {getPriorityIcon(t.priority)}
+                                        </div>
+                                      </div>
 
-                                        {/* Card Footer: Metadata badges */}
-                                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1.5 border-t border-border/40">
-                                          <div className="flex items-center gap-2.5 text-[11px]">
-                                            <div className="flex items-center gap-1" title={typeInfo.label}>
-                                              {typeInfo.icon}
-                                            </div>
+                                      {/* Task Title */}
+                                      <h4 className="text-xs font-medium text-foreground line-clamp-2 leading-snug mb-2.5">
+                                        {t.title}
+                                      </h4>
 
-                                            {totalSubtasks > 0 && (
-                                              <span
-                                                className={`flex items-center gap-1 font-mono text-[10px] ${
-                                                  completedSubtasks === totalSubtasks
-                                                    ? "text-emerald-500 font-semibold"
-                                                    : ""
-                                                }`}
-                                              >
-                                                <CheckSquare className="w-3 h-3" />
-                                                {completedSubtasks}/{totalSubtasks}
-                                              </span>
-                                            )}
-
-                                            {(t._count?.comments || 0) > 0 && (
-                                              <span className="flex items-center gap-1 text-[10px]">
-                                                <MessageSquare className="w-3 h-3" />
-                                                {t._count.comments}
-                                              </span>
-                                            )}
+                                      {/* Card Footer: Metadata badges */}
+                                      <div className="flex items-center justify-between text-xs text-muted-foreground pt-1.5 border-t border-border/40">
+                                        <div className="flex items-center gap-2.5 text-[11px]">
+                                          <div className="flex items-center gap-1" title={typeInfo.label}>
+                                            {typeInfo.icon}
                                           </div>
 
-                                          {/* Assignee */}
-                                          {t.assignee ? (
-                                            <div
-                                              className="w-5 h-5 rounded-full bg-primary/20 text-primary font-bold text-[9px] flex items-center justify-center border border-primary/30"
-                                              title={t.assignee.name}
+                                          {totalSubtasks > 0 && (
+                                            <span
+                                              className={`flex items-center gap-1 font-mono text-[10px] ${
+                                                completedSubtasks === totalSubtasks
+                                                  ? "text-emerald-500 font-semibold"
+                                                  : ""
+                                              }`}
                                             >
-                                              {t.assignee.name.substring(0, 2).toUpperCase()}
-                                            </div>
-                                          ) : (
-                                            <span className="text-[9px] text-muted-foreground/60 italic">
-                                              —
+                                              <CheckSquare className="w-3 h-3" />
+                                              {completedSubtasks}/{totalSubtasks}
+                                            </span>
+                                          )}
+
+                                          {(t._count?.comments || 0) > 0 && (
+                                            <span className="flex items-center gap-1 text-[10px]">
+                                              <MessageSquare className="w-3 h-3" />
+                                              {t._count.comments}
                                             </span>
                                           )}
                                         </div>
+
+                                        {/* Assignee */}
+                                        {t.assignee ? (
+                                          <div
+                                            className="w-5 h-5 rounded-full bg-primary/20 text-primary font-bold text-[9px] flex items-center justify-center border border-primary/30"
+                                            title={t.assignee.name}
+                                          >
+                                            {t.assignee.name.substring(0, 2).toUpperCase()}
+                                          </div>
+                                        ) : (
+                                          <span className="text-[9px] text-muted-foreground/60 italic">
+                                            —
+                                          </span>
+                                        )}
                                       </div>
                                     </div>
-                                  );
-
-                                  if (dragSnapshot.isDragging && typeof document !== "undefined") {
-                                    return createPortal(cardElement, document.body);
-                                  }
-                                  return cardElement;
-                                }}
+                                  </div>
+                                )}
                               </Draggable>
                             );
                           })

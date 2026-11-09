@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { createPortal } from "react-dom";
 import { Draggable } from "@hello-pangea/dnd";
 import { CheckSquare, MessageSquare, AlertCircle, ArrowUp, ArrowDown, Minus, Sparkles } from "lucide-react";
 
@@ -52,86 +51,79 @@ export const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, index, onCl
 
   return (
     <Draggable draggableId={task.id} index={index} isDragDisabled={isDragDisabled}>
-      {(provided, snapshot) => {
-        const cardElement = (
+      {(provided, snapshot) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+          onClick={() => onClick(task)}
+          style={provided.draggableProps.style}
+          className="select-none outline-none"
+        >
           <div
-            ref={provided.innerRef}
-            {...provided.draggableProps}
-            {...provided.dragHandleProps}
-            onClick={() => onClick(task)}
-            style={provided.draggableProps.style}
-            className={`select-none ${snapshot.isDragging ? "!transition-none z-[9999]" : ""}`}
+            className={`p-3.5 rounded-lg border bg-card cursor-pointer shadow-sm group ${
+              snapshot.isDragging
+                ? "border-primary/50 shadow-2xl ring-2 ring-primary/40 bg-card/95"
+                : "border-border/80 hover:border-primary/50 hover:shadow transition-[border-color,background-color,box-shadow]"
+            }`}
           >
-            <div
-              className={`p-3.5 rounded-lg border border-border/80 bg-card hover:border-primary/50 cursor-pointer shadow-sm group ${
-                snapshot.isDragging
-                  ? "rotate-1 shadow-2xl ring-2 ring-primary/40 bg-card/95 scale-[1.02]"
-                  : "hover:shadow transition-[border-color,background-color,box-shadow]"
-              }`}
-            >
-              {/* Card Header: Code & Priority */}
-              <div className="flex items-center justify-between text-xs mb-2">
-                <span className="font-mono text-muted-foreground font-semibold group-hover:text-primary transition-colors">
-                  {task.code}
-                </span>
-                <div className="flex items-center gap-1.5" title={`Пріоритет: ${task.priority}`}>
-                  {task.aiContext && (
-                    <span title="Є AI рекомендація з Confluence">
-                      <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-                    </span>
-                  )}
-                  {renderPriorityIcon()}
-                </div>
-              </div>
-
-              {/* Title */}
-              <h4 className="text-sm font-medium text-foreground line-clamp-2 leading-snug mb-3">
-                {task.title}
-              </h4>
-
-              {/* Card Footer: Metadata badges */}
-              <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/40">
-                <div className="flex items-center gap-3">
-                  {totalSubtasks > 0 && (
-                    <span
-                      className={`flex items-center gap-1 font-mono text-[11px] ${
-                        completedSubtasks === totalSubtasks ? "text-emerald-500" : ""
-                      }`}
-                    >
-                      <CheckSquare className="w-3.5 h-3.5" />
-                      {completedSubtasks}/{totalSubtasks}
-                    </span>
-                  )}
-
-                  {(task._count?.comments || 0) > 0 && (
-                    <span className="flex items-center gap-1 text-[11px]">
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      {task._count?.comments}
-                    </span>
-                  )}
-                </div>
-
-                {/* Assignee Avatar */}
-                {task.assignee ? (
-                  <div
-                    className="w-5 h-5 rounded-full bg-primary/20 text-primary font-bold text-[10px] flex items-center justify-center border border-primary/30"
-                    title={task.assignee.name}
-                  >
-                    {task.assignee.name.substring(0, 2).toUpperCase()}
-                  </div>
-                ) : (
-                  <span className="text-[10px] text-muted-foreground/60 italic">не призначено</span>
+            {/* Card Header: Code & Priority */}
+            <div className="flex items-center justify-between text-xs mb-2">
+              <span className="font-mono text-muted-foreground font-semibold group-hover:text-primary transition-colors">
+                {task.code}
+              </span>
+              <div className="flex items-center gap-1.5" title={`Пріоритет: ${task.priority}`}>
+                {task.aiContext && (
+                  <span title="Є AI рекомендація з Confluence">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+                  </span>
                 )}
+                {renderPriorityIcon()}
               </div>
             </div>
-          </div>
-        );
 
-        if (snapshot.isDragging && typeof document !== "undefined") {
-          return createPortal(cardElement, document.body);
-        }
-        return cardElement;
-      }}
+            {/* Title */}
+            <h4 className="text-sm font-medium text-foreground line-clamp-2 leading-snug mb-3">
+              {task.title}
+            </h4>
+
+            {/* Card Footer: Metadata badges */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/40">
+              <div className="flex items-center gap-3">
+                {totalSubtasks > 0 && (
+                  <span
+                    className={`flex items-center gap-1 font-mono text-[11px] ${
+                      completedSubtasks === totalSubtasks ? "text-emerald-500" : ""
+                    }`}
+                  >
+                    <CheckSquare className="w-3.5 h-3.5" />
+                    {completedSubtasks}/{totalSubtasks}
+                  </span>
+                )}
+
+                {(task._count?.comments || 0) > 0 && (
+                  <span className="flex items-center gap-1 text-[11px]">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    {task._count?.comments}
+                  </span>
+                )}
+              </div>
+
+              {/* Assignee Avatar */}
+              {task.assignee ? (
+                <div
+                  className="w-5 h-5 rounded-full bg-primary/20 text-primary font-bold text-[10px] flex items-center justify-center border border-primary/30"
+                  title={task.assignee.name}
+                >
+                  {task.assignee.name.substring(0, 2).toUpperCase()}
+                </div>
+              ) : (
+                <span className="text-[10px] text-muted-foreground/60 italic">не призначено</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </Draggable>
   );
 });

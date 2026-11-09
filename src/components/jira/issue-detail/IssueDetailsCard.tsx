@@ -14,8 +14,9 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { ColumnItem } from "@/components/board/ColumnCard";
-import { JIRA_TASK_TYPES, getPriorityIcon } from "../IssueListPane";
+import { JIRA_TASK_TYPES, getPriorityIcon, getLocalizedStatusName } from "../IssueListPane";
 import { DictionariesData, getStatusSemantic } from "./types";
+import { useI18n, interpolate } from "@/lib/i18n";
 
 interface IssueDetailsCardProps {
   task: any;
@@ -62,9 +63,18 @@ export function IssueDetailsCard({
   const [showLabelsMenu, setShowLabelsMenu] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
 
+  const { dict, locale } = useI18n();
   const componentsMenuRef = useRef<HTMLDivElement>(null);
   const labelsMenuRef = useRef<HTMLDivElement>(null);
   const statusMenuRef = useRef<HTMLDivElement>(null);
+
+  const typeKey = (typeInfo?.id || "").toLowerCase();
+  const localizedTypeLabel = dict.taskTypes?.[typeKey as keyof typeof dict.taskTypes] || typeInfo.label;
+
+  const prioKey = (task?.priority || "").toLowerCase();
+  const localizedPrioLabel = dict.priorities?.[prioKey as keyof typeof dict.priorities] || task?.priority;
+
+  const getLocalizedStatus = (name?: string, semanticKey?: string) => getLocalizedStatusName(name, dict, locale, semanticKey);
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -108,13 +118,13 @@ export function IssueDetailsCard({
     <div className="rounded-xl border border-border bg-card/60 p-4 space-y-3">
       <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
         <Layers className="w-3.5 h-3.5 text-primary" />
-        <span>Деталі задачі</span>
+        <span>{dict.issue.details}</span>
       </h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-xs">
         {/* Type */}
         <div className="flex items-center justify-between py-1 border-b border-border/50">
-          <span className="text-muted-foreground">Тип:</span>
+          <span className="text-muted-foreground">{dict.issue.type}:</span>
           <div className="relative">
             <button
               type="button"
@@ -122,26 +132,30 @@ export function IssueDetailsCard({
               className="flex items-center gap-1.5 font-semibold text-foreground hover:bg-secondary px-2 py-0.5 rounded transition-colors cursor-pointer"
             >
               {typeInfo.icon}
-              <span>{typeInfo.label}</span>
+              <span>{localizedTypeLabel}</span>
               <ChevronDown className="w-3 h-3 text-muted-foreground ml-0.5" />
             </button>
 
             {showTypeMenu && (
               <div className="absolute right-0 mt-1 w-36 rounded-lg bg-card border border-border shadow-xl py-1 z-30">
-                {Object.values(JIRA_TASK_TYPES).map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => {
-                      setShowTypeMenu(false);
-                      onChangeType(t.id);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-secondary cursor-pointer"
-                  >
-                    {t.icon}
-                    <span>{t.label}</span>
-                  </button>
-                ))}
+                {Object.values(JIRA_TASK_TYPES).map((t) => {
+                  const tKey = t.id.toLowerCase();
+                  const tLabel = dict.taskTypes?.[tKey as keyof typeof dict.taskTypes] || t.label;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        setShowTypeMenu(false);
+                        onChangeType(t.id);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-secondary cursor-pointer"
+                    >
+                      {t.icon}
+                      <span>{tLabel}</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -149,7 +163,7 @@ export function IssueDetailsCard({
 
         {/* Priority */}
         <div className="flex items-center justify-between py-1 border-b border-border/50">
-          <span className="text-muted-foreground">Приоритет:</span>
+          <span className="text-muted-foreground">{dict.issue.priority}:</span>
           <div className="relative">
             <button
               type="button"
@@ -157,7 +171,7 @@ export function IssueDetailsCard({
               className="flex items-center gap-1.5 font-semibold text-foreground hover:bg-secondary px-2 py-0.5 rounded transition-colors cursor-pointer"
             >
               {getPriorityIcon(task.priority)}
-              <span className="capitalize">{task.priority.toLowerCase()}</span>
+              <span>{localizedPrioLabel}</span>
               <ChevronDown className="w-3 h-3 text-muted-foreground ml-0.5" />
             </button>
 
@@ -172,7 +186,7 @@ export function IssueDetailsCard({
                   className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-secondary cursor-pointer"
                 >
                   <AlertCircle className="w-3.5 h-3.5 text-red-400" />
-                  <span>Терміновий ⚡</span>
+                  <span>{dict.priorities.urgent}</span>
                 </button>
                 <button
                   type="button"
@@ -183,7 +197,7 @@ export function IssueDetailsCard({
                   className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-amber-400 hover:bg-secondary cursor-pointer"
                 >
                   <ArrowUp className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Високий</span>
+                  <span>{dict.priorities.high}</span>
                 </button>
                 <button
                   type="button"
@@ -194,7 +208,7 @@ export function IssueDetailsCard({
                   className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-secondary cursor-pointer"
                 >
                   <Minus className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span>Середній</span>
+                  <span>{dict.priorities.medium}</span>
                 </button>
                 <button
                   type="button"
@@ -205,7 +219,7 @@ export function IssueDetailsCard({
                   className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-blue-400 hover:bg-secondary cursor-pointer"
                 >
                   <ArrowDown className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Низький</span>
+                  <span>{dict.priorities.low}</span>
                 </button>
               </div>
             )}
@@ -217,11 +231,11 @@ export function IssueDetailsCard({
           className="flex items-center justify-between py-1.5 border-b border-border/50 relative"
           ref={componentsMenuRef}
         >
-          <span className="text-muted-foreground">Компоненти:</span>
+          <span className="text-muted-foreground">{dict.issue.components}:</span>
           <div className="flex items-center gap-1.5">
             <div className="flex flex-wrap gap-1 max-w-[200px] justify-end">
               {componentsList.length === 0 ? (
-                <span className="text-[11px] text-muted-foreground/70 italic">Не обрано</span>
+                <span className="text-[11px] text-muted-foreground/70 italic">{dict.common.none}</span>
               ) : (
                 componentsList.map((comp: string, idx: number) => (
                   <span
@@ -238,7 +252,7 @@ export function IssueDetailsCard({
                 type="button"
                 onClick={() => setShowComponentsMenu(!showComponentsMenu)}
                 className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
-                title="Редагувати компоненти"
+                title={dict.issue.editComponents}
               >
                 <Pencil className="w-3 h-3" />
               </button>
@@ -248,7 +262,7 @@ export function IssueDetailsCard({
             {!isClosed && showComponentsMenu && (
               <div className="absolute right-0 top-full mt-1 w-60 rounded-xl bg-card border border-border shadow-2xl p-1 z-40 animate-in fade-in-50 zoom-in-95">
                 <div className="px-2.5 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/60 flex items-center justify-between">
-                  <span>Компоненти ({typeInfo.label})</span>
+                  <span>{interpolate(dict.issue.componentsType, { type: localizedTypeLabel })}</span>
                   {projectKey && (
                     <span className="font-mono text-primary text-[9px]">[{projectKey}]</span>
                   )}
@@ -302,11 +316,11 @@ export function IssueDetailsCard({
           className="flex items-center justify-between py-1.5 border-b border-border/50 relative"
           ref={labelsMenuRef}
         >
-          <span className="text-muted-foreground">Мітки:</span>
+          <span className="text-muted-foreground">{dict.issue.labels}:</span>
           <div className="flex items-center gap-1.5">
             <div className="flex flex-wrap gap-1 max-w-[200px] justify-end">
               {labelsList.length === 0 ? (
-                <span className="text-[11px] text-muted-foreground/70 italic">Не обрано</span>
+                <span className="text-[11px] text-muted-foreground/70 italic">{dict.common.none}</span>
               ) : (
                 labelsList.map((lbl: string, idx: number) => (
                   <span
@@ -323,7 +337,7 @@ export function IssueDetailsCard({
                 type="button"
                 onClick={() => setShowLabelsMenu(!showLabelsMenu)}
                 className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
-                title="Редагувати мітки"
+                title={dict.issue.editLabels}
               >
                 <Pencil className="w-3 h-3" />
               </button>
@@ -333,12 +347,12 @@ export function IssueDetailsCard({
             {!isClosed && showLabelsMenu && (
               <div className="absolute right-0 top-full mt-1 w-52 rounded-xl bg-card border border-border shadow-2xl p-1 z-40 animate-in fade-in-50 zoom-in-95">
                 <div className="px-2.5 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/60">
-                  Довідник міток
+                  {dict.issue.labelsDictionary}
                 </div>
                 <div className="max-h-48 overflow-y-auto py-1 space-y-0.5">
                   {dictionaries.labels.length === 0 ? (
                     <div className="p-2 text-center text-[11px] text-muted-foreground">
-                      Довідник міток порожній
+                      {dict.issue.emptyLabelsDictionary}
                     </div>
                   ) : (
                     dictionaries.labels.map((lbl) => {
@@ -370,18 +384,18 @@ export function IssueDetailsCard({
 
         {/* Status (Interactive Dropdown Badge) */}
         <div className="flex items-center justify-between py-1 border-b border-border/50">
-          <span className="text-muted-foreground font-medium">Статус:</span>
+          <span className="text-muted-foreground font-medium">{dict.issue.status}:</span>
           <div className="relative" ref={statusMenuRef}>
             {isClosed ? (
               <div
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border shadow-xs select-none opacity-90 ${statusConfig.badgeClass}`}
-                title="Ця задача повністю закрита. Повторне відкриття заблоковано."
+                title={dict.issue.statusClosedHint}
               >
                 <span className={`w-2 h-2 rounded-full ${statusConfig.dotClass}`} />
-                <span className="font-semibold">{currentColumn?.name || statusConfig.label}</span>
+                <span className="font-semibold">{getLocalizedStatus(currentColumn?.name || statusConfig.label, statusConfig.key)}</span>
                 <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-800 text-emerald-400 border border-slate-700 flex items-center gap-0.5 ml-1">
                   <Lock className="w-2.5 h-2.5" />
-                  <span>Закрита</span>
+                  <span>{dict.issue.closed}</span>
                 </span>
               </div>
             ) : canChangeStatus ? (
@@ -389,12 +403,12 @@ export function IssueDetailsCard({
                 type="button"
                 onClick={() => setShowStatusMenu(!showStatusMenu)}
                 className={`group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer shadow-xs hover:shadow hover:brightness-105 active:scale-95 ${statusConfig.badgeClass}`}
-                title="Натисніть, щоб змінити статус задачі"
+                title={dict.issue.statusChangeHint}
                 aria-haspopup="true"
                 aria-expanded={showStatusMenu}
               >
                 <span className={`w-2 h-2 rounded-full ${statusConfig.dotClass}`} />
-                <span className="font-bold tracking-tight">{currentColumn?.name || statusConfig.label}</span>
+                <span className="font-bold tracking-tight">{getLocalizedStatus(currentColumn?.name || statusConfig.label, statusConfig.key)}</span>
                 <ChevronDown
                   className={`w-3.5 h-3.5 transition-transform duration-200 ml-0.5 opacity-70 group-hover:opacity-100 ${
                     showStatusMenu ? "rotate-180" : ""
@@ -404,10 +418,10 @@ export function IssueDetailsCard({
             ) : (
               <div
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border shadow-xs select-none opacity-85 ${statusConfig.badgeClass}`}
-                title="Змінювати статус задачі можуть лише адміністратор та інженер"
+                title={dict.issue.statusStaffOnlyHint}
               >
                 <span className={`w-2 h-2 rounded-full ${statusConfig.dotClass}`} />
-                <span className="font-semibold">{currentColumn?.name || statusConfig.label}</span>
+                <span className="font-semibold">{getLocalizedStatus(currentColumn?.name || statusConfig.label, statusConfig.key)}</span>
               </div>
             )}
 
@@ -415,12 +429,12 @@ export function IssueDetailsCard({
             {!isClosed && canChangeStatus && showStatusMenu && (
               <div className="absolute right-0 top-full mt-1.5 w-48 rounded-xl bg-card border border-border shadow-2xl p-1 z-40 animate-in fade-in-50 zoom-in-95">
                 <div className="px-3 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/60">
-                  Змінити статус
+                  {dict.issue.changeStatus}
                 </div>
                 <div className="max-h-60 overflow-y-auto py-1 space-y-0.5">
                   {columnsList.length === 0 ? (
                     <div className="p-2 text-center text-[11px] text-muted-foreground">
-                      Немає доступних статусів
+                      {dict.issue.noStatuses}
                     </div>
                   ) : (
                     columnsList.map((c) => {
@@ -442,7 +456,7 @@ export function IssueDetailsCard({
                         >
                           <span className="flex items-center gap-2">
                             <span className={`w-2 h-2 rounded-full ${cSemantic.dotClass}`} />
-                            <span className={isSelected ? "font-bold" : "font-medium"}>{c.name}</span>
+                            <span className={isSelected ? "font-bold" : "font-medium"}>{getLocalizedStatus(c.name, cSemantic.key)}</span>
                           </span>
                           {isSelected && <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
                         </button>
@@ -457,28 +471,30 @@ export function IssueDetailsCard({
 
         {/* Resolution */}
         <div className="flex items-center justify-between py-1 border-b border-border/50">
-          <span className="text-muted-foreground">Рішення:</span>
+          <span className="text-muted-foreground">{dict.issue.resolution}:</span>
           <div className="flex items-center gap-2">
-            <span
-              className={`font-semibold text-xs flex items-center gap-1 ${
-                isClosed || resolution === "Вирішено"
-                  ? "text-emerald-400"
-                  : "text-foreground"
-              }`}
-            >
-              {(isClosed || resolution === "Вирішено") && (
-                <CheckCircle2 className="w-3.5 h-3.5" />
-              )}
-              <span>{resolution}</span>
-            </span>
+            {(() => {
+              const isResolved = isClosed || resolution === "Вирішено" || resolution === "Resolved";
+              const localizedResolution = isResolved ? dict.issue.resolved : dict.issue.unresolved;
+              return (
+                <span
+                  className={`font-semibold text-xs flex items-center gap-1 ${
+                    isResolved ? "text-emerald-400" : "text-foreground"
+                  }`}
+                >
+                  {isResolved && <CheckCircle2 className="w-3.5 h-3.5" />}
+                  <span>{localizedResolution}</span>
+                </span>
+              );
+            })()}
             {isDone && !isClosed && (
               <button
                 type="button"
                 onClick={onClosePermanently}
                 className="text-[10px] px-2 py-0.5 rounded bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 font-semibold transition-colors cursor-pointer"
-                title="Закрити задачу повністю"
+                title={dict.issue.closePermanentlyHint}
               >
-                Закрити повністю
+                {dict.issue.closePermanently}
               </button>
             )}
           </div>

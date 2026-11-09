@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Search } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import { PortalKpiMetrics, PortalStatusFilter } from "./types";
 
 interface PortalFiltersProps {
@@ -29,6 +30,7 @@ export const PortalFilters: React.FC<PortalFiltersProps> = ({
   metrics,
   totalFound,
 }) => {
+  const { dict } = useI18n();
   return (
     <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -37,7 +39,7 @@ export const PortalFilters: React.FC<PortalFiltersProps> = ({
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Пошук за назвою або номером звернення (наприклад, ST-101)..."
+            placeholder={dict.portal.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full text-xs pl-9 pr-3 py-2 rounded-xl bg-secondary/40 border border-border text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary font-medium"
@@ -54,7 +56,7 @@ export const PortalFilters: React.FC<PortalFiltersProps> = ({
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Всі ({metrics.total})
+            {dict.portal.filterAll} ({metrics.total})
           </button>
           <button
             onClick={() => onStatusFilterChange("in_progress")}
@@ -64,7 +66,7 @@ export const PortalFilters: React.FC<PortalFiltersProps> = ({
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            В роботі ({metrics.inProgress})
+            {dict.portal.filterInProgress} ({metrics.inProgress})
           </button>
           <button
             onClick={() => onStatusFilterChange("backlog")}
@@ -74,7 +76,7 @@ export const PortalFilters: React.FC<PortalFiltersProps> = ({
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            У черзі ({metrics.backlog})
+            {dict.statuses.backlog} ({metrics.backlog})
           </button>
           <button
             onClick={() => onStatusFilterChange("awaiting_response")}
@@ -84,7 +86,7 @@ export const PortalFilters: React.FC<PortalFiltersProps> = ({
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <span>Очікує відповіді ({metrics.awaitingResponse})</span>
+            <span>{dict.portal.filterAwaitingResponse} ({metrics.awaitingResponse})</span>
             {metrics.awaitingResponse > 0 && (
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
             )}
@@ -97,7 +99,7 @@ export const PortalFilters: React.FC<PortalFiltersProps> = ({
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Вирішені ({metrics.resolved})
+            {dict.portal.filterResolved} ({metrics.resolved})
           </button>
         </div>
       </div>
@@ -107,30 +109,30 @@ export const PortalFilters: React.FC<PortalFiltersProps> = ({
         <div className="flex flex-wrap items-center gap-2">
           {/* Priority Filter */}
           <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground">Пріоритет:</span>
+            <span className="text-muted-foreground">{dict.portal.priorityLabel}</span>
             <select
               value={priorityFilter}
               onChange={(e) => onPriorityFilterChange(e.target.value)}
               className="text-xs px-2.5 py-1 rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
             >
-              <option value="all">Всі пріоритети</option>
-              <option value="CRITICAL">🔴 Критична</option>
-              <option value="HIGH">🟠 Висока</option>
-              <option value="MEDIUM">🔵 Звичайна</option>
-              <option value="LOW">🟢 Низька</option>
+              <option value="all">{dict.portal.allPriorities}</option>
+              <option value="CRITICAL">{dict.portal.priorityCritical}</option>
+              <option value="HIGH">{dict.portal.priorityHigh}</option>
+              <option value="MEDIUM">{dict.portal.priorityMedium}</option>
+              <option value="LOW">{dict.portal.priorityLow}</option>
             </select>
           </div>
 
           {/* Scope Switcher: My vs All Organization/Project */}
           <div className="flex items-center gap-1.5 ml-2">
-            <span className="text-muted-foreground">Відображати:</span>
+            <span className="text-muted-foreground">{dict.portal.scopeLabel}</span>
             <select
               value={scopeFilter}
               onChange={(e) => onScopeFilterChange(e.target.value as "all" | "my")}
               className="text-xs px-2.5 py-1 rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium cursor-pointer"
             >
-              <option value="all">Всі звернення організації / проєкту</option>
-              <option value="my">Мої звернення</option>
+              <option value="all">{dict.portal.allTickets}</option>
+              <option value="my">{dict.portal.myTickets}</option>
             </select>
           </div>
         </div>

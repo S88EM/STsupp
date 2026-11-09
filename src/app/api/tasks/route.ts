@@ -128,8 +128,11 @@ export async function GET(req: Request) {
       });
     }
 
-    if (priority && ["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(priority)) {
-      taskWhere.priority = priority;
+    if (priority) {
+      const safePriority = priority === "CRITICAL" ? "URGENT" : priority;
+      if (["LOW", "MEDIUM", "HIGH", "URGENT"].includes(safePriority)) {
+        taskWhere.priority = safePriority;
+      }
     }
 
     if (search) {

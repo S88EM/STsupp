@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Paperclip, Film, FileText } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface AttachmentItem {
   id: string;
@@ -21,6 +22,7 @@ export function IssueAttachmentsCard({
   uploadingFile,
   onUploadFile,
 }: IssueAttachmentsCardProps) {
+  const { dict } = useI18n();
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDrop = (e: React.DragEvent) => {
@@ -36,7 +38,7 @@ export function IssueAttachmentsCard({
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
           <Paperclip className="w-3.5 h-3.5 text-primary" />
-          <span>Вкладені файли ({attachments?.length || 0})</span>
+          <span>{dict.issue.attachments} ({attachments?.length || 0})</span>
         </h3>
       </div>
 
@@ -70,10 +72,10 @@ export function IssueAttachmentsCard({
         >
           <Paperclip className="w-5 h-5 text-muted-foreground" />
           <span className="text-xs font-medium text-foreground">
-            {uploadingFile ? "Завантаження файлу..." : "Перетягніть файли сюди або натисніть для вибору"}
+            {uploadingFile ? dict.issue.uploadingFile : dict.issue.dropAttachments}
           </span>
           <span className="text-[10px] text-muted-foreground">
-            Підтримуються скріншоти, відео (mp4, webm), логи та документи
+            {dict.issue.attachmentsFormatHint}
           </span>
         </label>
       </div>

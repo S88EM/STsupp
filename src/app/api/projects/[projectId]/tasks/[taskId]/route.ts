@@ -307,7 +307,7 @@ export async function PATCH(
     }
 
     const updated = await prisma.task.update({
-      where: { id: taskId, projectId },
+      where: projectId === "all" ? { id: taskId } : ({ id: taskId, projectId } as any),
       data: {
         title: title !== undefined ? title.trim() : undefined,
         description: description !== undefined ? description : undefined,
@@ -380,30 +380,19 @@ export async function PATCH(
       };
     }
     if (columnId !== undefined && columnId !== existingTask.columnId) {
-      const targetCol = await prisma.column.findUnique({
-        where: { id: columnId },
-        select: { id: true, name: true },
-      });
       changes.status = {
         old: existingTask.column?.name || "Початковий",
-        new: targetCol?.name || "Новий",
+        new: updated.column?.name || "Новий",
         oldColumnId: existingTask.columnId,
         newColumnId: columnId,
       };
     }
     if (assigneeId !== undefined && (assigneeId || null) !== existingTask.assigneeId) {
-      let targetUser = null;
-      if (assigneeId) {
-        targetUser = await prisma.user.findUnique({
-          where: { id: assigneeId },
-          select: { id: true, name: true, role: true, email: true },
-        });
-      }
       changes.assignee = {
         old: existingTask.assignee?.name || "Не призначено",
-        new: targetUser?.name || "Не призначено",
+        new: updated.assignee?.name || "Не призначено",
         oldRole: existingTask.assignee?.role || null,
-        newRole: targetUser?.role || null,
+        newRole: updated.assignee?.role || null,
         oldAssigneeId: existingTask.assigneeId,
         newAssigneeId: assigneeId || null,
       };

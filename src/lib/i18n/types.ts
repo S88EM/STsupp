@@ -56,6 +56,14 @@ export interface TranslationDictionary {
     projectSettings: string;
     globalContext: string;
     softwareProject: string;
+    servicesSwitcher: string;
+    servicesTitle: string;
+    trackerSubtitle: string;
+    portalTitle: string;
+    portalSubtitle: string;
+    usersAndRoles: string;
+    usersSubtitle: string;
+    settingsSubtitle: string;
   };
   roles: {
     admin: string;
@@ -77,6 +85,13 @@ export interface TranslationDictionary {
     medium: string;
     high: string;
     urgent: string;
+  };
+  taskTypes: {
+    bug: string;
+    task: string;
+    story: string;
+    improvement: string;
+    support: string;
   };
   issue: {
     summary: string;
@@ -144,6 +159,36 @@ export interface TranslationDictionary {
     resetFiltersHint: string;
     noIssuesFound: string;
     noIssuesFoundHint: string;
+    details: string;
+    type: string;
+    resolution: string;
+    resolved: string;
+    unresolved: string;
+    closed: string;
+    changeStatus: string;
+    noStatuses: string;
+    editComponents: string;
+    componentsType: string;
+    noComponentsForType: string;
+    labelsDictionary: string;
+    emptyLabelsDictionary: string;
+    editLabels: string;
+    statusClosedHint: string;
+    statusChangeHint: string;
+    statusStaffOnlyHint: string;
+    saveDescription: string;
+    editDescription: string;
+    noDescriptionHint: string;
+    descriptionPlaceholder: string;
+    uploadingFile: string;
+    attachmentsFormatHint: string;
+    addSubtaskPlaceholder: string;
+    add: string;
+    deleteSubtask: string;
+    clickToEditTitle: string;
+    people: string;
+    clickToChange: string;
+    searchUser: string;
   };
   board: {
     title: string;
@@ -197,6 +242,25 @@ export interface TranslationDictionary {
     supportWaitingReplyDesc: string;
     returning: string;
     returnToSupportBtn: string;
+    searchPlaceholder: string;
+    filterAll: string;
+    filterInProgress: string;
+    filterAwaitingResponse: string;
+    filterResolved: string;
+    priorityLabel: string;
+    allPriorities: string;
+    scopeLabel: string;
+    myTickets: string;
+    allTickets: string;
+    priorityCritical: string;
+    priorityHigh: string;
+    priorityMedium: string;
+    priorityLow: string;
+    customerServiceCenter: string;
+    welcomeGreeting: string;
+    heroSubtitle: string;
+    createNewTicket: string;
+    refreshData: string;
   };
   settings: {
     title: string;

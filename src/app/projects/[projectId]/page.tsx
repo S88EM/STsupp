@@ -8,7 +8,7 @@ function ProjectPageWrapper() {
   const params = useParams();
   const projectId = params?.projectId as string;
 
-  return <ProjectWorkspace initialProjectId={projectId} />;
+  return <ProjectWorkspace key={projectId} initialProjectId={projectId} />;
 }
 
 export default function ProjectPage() {

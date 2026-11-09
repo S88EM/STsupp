@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Draggable } from "@hello-pangea/dnd";
-import { CheckSquare, MessageSquare, AlertCircle, ArrowUp, ArrowDown, Minus, Sparkles } from "lucide-react";
+import { CheckSquare, MessageSquare, AlertCircle, ArrowUp, ArrowDown, Minus } from "lucide-react";
 
 export interface TaskItem {
   id: string;
@@ -73,11 +73,6 @@ export const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, index, onCl
                 {task.code}
               </span>
               <div className="flex items-center gap-1.5" title={`Пріоритет: ${task.priority}`}>
-                {task.aiContext && (
-                  <span title="Є AI рекомендація з Confluence">
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-                  </span>
-                )}
                 {renderPriorityIcon()}
               </div>
             </div>

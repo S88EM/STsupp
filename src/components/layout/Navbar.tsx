@@ -149,8 +149,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             </Link>
           ) : (
             <Link
-              href={currentProject ? `/projects/${currentProject.id}` : "/"}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+              href="/projects/all"
+              onClick={() => {
+                try {
+                  sessionStorage.setItem("stsup_active_project_id", "all");
+                } catch (e) {}
+              }}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                currentProject?.id === "all"
+                  ? "bg-secondary text-foreground font-semibold"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+              }`}
             >
               <span>{dict.nav.allProjects}</span>
             </Link>

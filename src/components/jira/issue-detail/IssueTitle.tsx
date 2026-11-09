@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Check, X } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface IssueTitleProps {
   title: string;
@@ -18,6 +19,7 @@ export function IssueTitle({
   onCancelEdit,
   onSaveTitle,
 }: IssueTitleProps) {
+  const { dict } = useI18n();
   const [titleValue, setTitleValue] = useState(title);
 
   useEffect(() => {
@@ -68,7 +70,7 @@ export function IssueTitle({
     <h1
       onClick={onStartEdit}
       className="text-xl font-bold text-foreground tracking-tight hover:bg-secondary/40 px-2 py-1 -mx-2 rounded-lg cursor-pointer transition-colors"
-      title="Натисніть для редагування назви"
+      title={dict.issue.clickToEditTitle}
     >
       {title}
     </h1>

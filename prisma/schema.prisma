@@ -51,6 +51,10 @@ model User {
   projectMembers  ProjectMember[]
   ownedProjects   Project[]       @relation("ProjectOwner")
   watchedTasks    TaskWatcher[]
+
+  @@index([role])
+  @@index([resetToken])
+  @@index([verificationToken])
 }
 
 model Project {
@@ -67,6 +71,8 @@ model Project {
   columns     Column[]
   tasks       Task[]
   members     ProjectMember[]
+
+  @@index([ownerId])
 }
 
 model ProjectMember {

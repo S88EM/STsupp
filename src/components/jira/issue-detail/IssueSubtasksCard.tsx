@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { CheckCircle2, Trash2 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface SubtaskItem {
   id: string;
@@ -22,6 +23,7 @@ export function IssueSubtasksCard({
   onDeleteSubtask,
   onAddSubtask,
 }: IssueSubtasksCardProps) {
+  const { dict } = useI18n();
   const [newSubtask, setNewSubtask] = useState("");
 
   const completedSubtasks = subtasks.filter((s) => s.isCompleted).length;
@@ -39,7 +41,7 @@ export function IssueSubtasksCard({
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
           <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-          <span>Підзадачі ({completedSubtasks}/{subtasks.length})</span>
+          <span>{dict.issue.subtasks} ({completedSubtasks}/{subtasks.length})</span>
         </h3>
         {subtasks.length > 0 && (
           <span className="text-[11px] font-mono font-medium text-muted-foreground">
@@ -86,7 +88,7 @@ export function IssueSubtasksCard({
               type="button"
               onClick={() => onDeleteSubtask(s.id)}
               className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-destructive transition-opacity cursor-pointer"
-              title="Видалити підзадачу"
+              title={dict.issue.deleteSubtask}
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -98,7 +100,7 @@ export function IssueSubtasksCard({
       <form onSubmit={handleAdd} className="flex items-center gap-2 pt-1">
         <input
           type="text"
-          placeholder="+ Додати нову підзадачу..."
+          placeholder={dict.issue.addSubtaskPlaceholder}
           value={newSubtask}
           onChange={(e) => setNewSubtask(e.target.value)}
           className="flex-1 text-xs px-3 py-1.5 rounded-lg bg-secondary/30 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
@@ -108,7 +110,7 @@ export function IssueSubtasksCard({
           disabled={!newSubtask.trim()}
           className="px-3 py-1.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 text-xs font-medium disabled:opacity-40 transition-colors cursor-pointer"
         >
-          Додати
+          {dict.issue.add}
         </button>
       </form>
     </div>

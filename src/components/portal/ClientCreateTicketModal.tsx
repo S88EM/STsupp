@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { formatFileSize } from "@/lib/utils";
 import {
   X,
   Send,
@@ -121,11 +122,6 @@ export const ClientCreateTicketModal: React.FC<ClientCreateTicketModalProps> = (
     });
   };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

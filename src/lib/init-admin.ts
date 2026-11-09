@@ -47,21 +47,18 @@ export async function ensureDefaultAdmin(): Promise<void> {
       });
       console.log(`[STsup Auth] Initialized default admin: ${cfg.email}`);
     } else {
-      // If admin exists, verify if password configured in HA options was updated
+      // If admin exists, only update role and email verification if missing.
+      // NEVER overwrite the user's password unless explicitly requested via FORCE_ADMIN_PASSWORD_RESET=true.
+      const forceReset = process.env.FORCE_ADMIN_PASSWORD_RESET === "true";
       let newHash = adminUser.passwordHash;
-      let shouldUpdate = false;
+      let shouldUpdatePassword = false;
 
-      if (cfg.password) {
-        const matches = adminUser.passwordHash
-          ? await comparePassword(cfg.password, adminUser.passwordHash)
-          : false;
-        if (!matches) {
-          newHash = await hashPassword(cfg.password);
-          shouldUpdate = true;
-        }
+      if (!adminUser.passwordHash || forceReset) {
+        newHash = await hashPassword(cfg.password);
+        shouldUpdatePassword = true;
       }
 
-      if (!adminUser.isEmailVerified || adminUser.role !== "ADMIN" || shouldUpdate) {
+      if (!adminUser.isEmailVerified || adminUser.role !== "ADMIN" || shouldUpdatePassword) {
         adminUser = await prisma.user.update({
           where: { id: adminUser.id },
           data: {

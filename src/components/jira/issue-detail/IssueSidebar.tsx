@@ -43,7 +43,7 @@ export function IssueSidebar({
   onUpdateField,
   onReturnToClient,
 }: IssueSidebarProps) {
-  const { dict } = useI18n();
+  const { dict, locale } = useI18n();
   const [staffUsers, setStaffUsers] = useState<any[]>([]);
   const [clientUsers, setClientUsers] = useState<any[]>([]);
   const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
@@ -193,13 +193,13 @@ export function IssueSidebar({
       {/* People Section */}
       <div className="space-y-3">
         <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-          Люди
+          {dict.issue.people}
         </h4>
 
         {/* Assignee */}
         <div className="space-y-1 relative" ref={assigneeDropdownRef}>
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-muted-foreground block">Виконавець:</span>
+            <span className="text-[11px] text-muted-foreground block">{dict.issue.assignee}:</span>
             {canReturnToClient && onReturnToClient ? (
               <button
                 type="button"
@@ -208,11 +208,11 @@ export function IssueSidebar({
                 title={`Швидко перепризначити на автора (${task.creator?.name || "клієнта"})`}
               >
                 <CornerUpLeft className="w-3 h-3" />
-                <span>Повернути до клієнта</span>
+                <span>{dict.issue.returnToClient}</span>
               </button>
             ) : canChangeAssignee ? (
               <span className="text-[10px] text-primary/80 font-medium">
-                (Клікніть для зміни)
+                {dict.issue.clickToChange}
               </span>
             ) : null}
           </div>
@@ -262,7 +262,7 @@ export function IssueSidebar({
                     <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="Пошук користувача..."
+                      placeholder={dict.issue.searchUser}
                       value={assigneeSearch}
                       onChange={(e) => setAssigneeSearch(e.target.value)}
                       autoFocus
@@ -288,7 +288,7 @@ export function IssueSidebar({
                         <div className="w-5 h-5 rounded-full bg-secondary border border-border flex items-center justify-center text-[10px]">
                           ?
                         </div>
-                        <span>Не призначено</span>
+                        <span>{dict.common.notAssigned}</span>
                       </div>
                       {!task.assigneeId && <Check className="w-3.5 h-3.5 text-primary" />}
                     </button>
@@ -477,7 +477,7 @@ export function IssueSidebar({
             <span>{dict.issue.created}</span>
           </span>
           <span className="font-medium text-foreground">
-            {new Date(task.createdAt).toLocaleDateString("uk-UA")}
+            {new Date(task.createdAt).toLocaleDateString(locale === "en" ? "en-US" : "uk-UA")}
           </span>
         </div>
 
@@ -487,7 +487,7 @@ export function IssueSidebar({
             <span>{dict.issue.updated}</span>
           </span>
           <span className="font-medium text-foreground">
-            {formatTimeAgo(task.updatedAt)}
+            {formatTimeAgo(task.updatedAt, locale)}
           </span>
         </div>
 

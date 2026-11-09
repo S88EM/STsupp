@@ -59,6 +59,33 @@ export function getMailConfig(): MailConfig {
   return { host, port, secure, user, pass, from, appUrl };
 }
 
+
+let cachedTransporter: any = null;
+let lastTransporterConfigKey = "";
+
+export function getTransporter(cfg: MailConfig): any {
+  const configKey = `${cfg.host}:${cfg.port}:${cfg.secure}:${cfg.user}:${cfg.pass}`;
+  if (cachedTransporter && lastTransporterConfigKey === configKey) {
+    return cachedTransporter;
+  }
+  cachedTransporter = nodemailer.createTransport({
+    host: cfg.host,
+    port: cfg.port,
+    secure: cfg.secure,
+    auth: cfg.user ? { user: cfg.user, pass: cfg.pass } : undefined,
+    pool: true,
+    maxConnections: 3,
+    tls: {
+      rejectUnauthorized: false,
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+  });
+  lastTransporterConfigKey = configKey;
+  return cachedTransporter;
+}
+
 export function saveMailConfig(newCfg: Partial<MailConfig>): MailConfig {
   const current = getMailConfig();
   const updated: MailConfig = {
@@ -77,6 +104,8 @@ export function saveMailConfig(newCfg: Partial<MailConfig>): MailConfig {
     fs.mkdirSync(dir, { recursive: true });
   }
   fs.writeFileSync(configPath, JSON.stringify(updated, null, 2), "utf8");
+  cachedTransporter = null;
+  lastTransporterConfigKey = "";
   return updated;
 }
 
@@ -218,15 +247,7 @@ export async function sendMail({
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: cfg.host,
-      port: cfg.port,
-      secure: cfg.secure,
-      auth: cfg.user ? { user: cfg.user, pass: cfg.pass } : undefined,
-      tls: {
-        rejectUnauthorized: false, // Allows self-signed certificates in local networks / HA
-      },
-    });
+    const transporter = getTransporter(cfg);
 
     const info = await transporter.sendMail({
       from: cfg.from,

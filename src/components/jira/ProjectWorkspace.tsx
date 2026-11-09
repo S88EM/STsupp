@@ -125,8 +125,10 @@ export function ProjectWorkspace({
       ["issues", "board", "backlog", "releases", "reports", "components"].includes(urlSection)
     ) {
       setActiveSection(urlSection);
+    } else if (!urlSection) {
+      setActiveSection(initialSection || "issues");
     }
-  }, [urlSection]);
+  }, [urlSection, initialSection]);
 
   const fetchInitialData = async () => {
     try {
@@ -245,6 +247,8 @@ export function ProjectWorkspace({
           ["issues", "board", "backlog", "releases", "reports", "components"].includes(sec)
         ) {
           setActiveSection(sec);
+        } else if (!sec) {
+          setActiveSection("issues");
         }
       }
     };

@@ -321,7 +321,7 @@ export function ProjectSettingsModal({
 
             <div className="p-4 rounded-xl bg-destructive/5 border border-destructive/20 space-y-3">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Видалення проєкту призведе до **незворотного видалення** всіх пов'язаних задач, колонок дошки, коментарів, файлів та налаштувань команди.
+                Видалення проєкту призведе до **незворотного видалення** всіх пов&apos;язаних задач, колонок дошки, коментарів, файлів та налаштувань команди.
               </p>
 
               {!showDeleteConfirm ? (
@@ -340,7 +340,7 @@ export function ProjectSettingsModal({
                       Підтвердження незворотного видалення
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      Щоб підтвердити видалення проєкту <strong>"{currentSelectedProject.name}"</strong>, введіть його ключ{" "}
+                      Щоб підтвердити видалення проєкту <strong>&ldquo;{currentSelectedProject.name}&rdquo;</strong>, введіть його ключ{" "}
                       <strong className="text-foreground font-mono">[{currentSelectedProject.key}]</strong>:
                     </p>
                   </div>

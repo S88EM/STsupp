@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { LifeBuoy, Users, Settings } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface NavbarServicesMenuProps {
   isOpen: boolean;
@@ -19,13 +20,15 @@ export const NavbarServicesMenu: React.FC<NavbarServicesMenuProps> = ({
   currentProjectId,
   isAdmin,
 }) => {
+  const { dict } = useI18n();
+
   return (
     <div className="relative">
       {/* Service Switcher (9-dots Atlassian grid icon) */}
       <button
         onClick={onToggle}
         className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
-        title="Перемикач сервісів"
+        title={dict.nav.servicesSwitcher}
       >
         <div className="grid grid-cols-3 gap-0.5 w-4 h-4 p-0.5">
           {[...Array(9)].map((_, i) => (
@@ -37,7 +40,7 @@ export const NavbarServicesMenu: React.FC<NavbarServicesMenuProps> = ({
       {isOpen && (
         <div className="absolute left-0 top-12 w-64 rounded-xl bg-card border border-border shadow-2xl p-3 z-50 animate-in fade-in-50 zoom-in-95">
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">
-            Сервіси STsup
+            {dict.nav.servicesTitle}
           </span>
           <div className="space-y-1">
             <Link
@@ -50,7 +53,9 @@ export const NavbarServicesMenu: React.FC<NavbarServicesMenuProps> = ({
               </div>
               <div>
                 <div className="font-semibold">STsup Tracker</div>
-                <span className="text-[10px] text-muted-foreground">Трекер задач та проєктів</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {dict.nav.trackerSubtitle}
+                </span>
               </div>
             </Link>
 
@@ -63,8 +68,10 @@ export const NavbarServicesMenu: React.FC<NavbarServicesMenuProps> = ({
                 <LifeBuoy className="w-3.5 h-3.5" />
               </div>
               <div>
-                <div className="font-semibold">Портал підтримки</div>
-                <span className="text-[10px] text-muted-foreground">Клієнтський сервіс та тікети</span>
+                <div className="font-semibold">{dict.nav.portalTitle}</div>
+                <span className="text-[10px] text-muted-foreground">
+                  {dict.nav.portalSubtitle}
+                </span>
               </div>
             </Link>
 
@@ -79,8 +86,10 @@ export const NavbarServicesMenu: React.FC<NavbarServicesMenuProps> = ({
                     <Users className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <div className="font-semibold">Користувачі та права</div>
-                    <span className="text-[10px] text-muted-foreground">Матриця доступів</span>
+                    <div className="font-semibold">{dict.nav.usersAndRoles}</div>
+                    <span className="text-[10px] text-muted-foreground">
+                      {dict.nav.usersSubtitle}
+                    </span>
                   </div>
                 </Link>
 
@@ -93,7 +102,10 @@ export const NavbarServicesMenu: React.FC<NavbarServicesMenuProps> = ({
                     <Settings className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <div className="font-semibold">Налаштування</div>
+                    <div className="font-semibold">{dict.nav.settings}</div>
+                    <span className="text-[10px] text-muted-foreground">
+                      {dict.nav.settingsSubtitle}
+                    </span>
                   </div>
                 </Link>
               </>

@@ -22,6 +22,7 @@ import {
   JIRA_TASK_TYPES,
   getTaskTypeInfo,
   getPriorityIcon,
+  getLocalizedStatusName,
 } from "@/lib/constants/task";
 
 export {
@@ -29,6 +30,7 @@ export {
   JIRA_TASK_TYPES,
   getTaskTypeInfo,
   getPriorityIcon,
+  getLocalizedStatusName,
 };
 
 interface IssueListPaneProps {
@@ -52,11 +54,13 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
   onOpenCreateTask,
   currentUserId,
 }) => {
-  const { dict } = useI18n();
+  const { dict, locale } = useI18n();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMode, setFilterMode] = useState<"all" | "my" | "open">("all");
   const [selectedComponent, setSelectedComponent] = useState<string>("");
   const [selectedLabel, setSelectedLabel] = useState<string>("");
+
+  const getLocalizedStatus = (name?: string) => getLocalizedStatusName(name, dict, locale);
 
   const availableComponents = useMemo(() => {
     const set = new Set<string>();
@@ -251,6 +255,9 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
           filteredTasks.map((task) => {
             const isSelected = selectedTaskId === task.id;
             const typeInfo = getTaskTypeInfo(task.aiContext, task.title);
+            const typeKey = (typeInfo?.id || "").toLowerCase();
+            const localizedTypeLabel =
+              dict.taskTypes?.[typeKey as keyof typeof dict.taskTypes] || typeInfo.label;
 
             return (
               <div
@@ -265,7 +272,7 @@ export const IssueListPane: React.FC<IssueListPaneProps> = ({
                 {/* Top line: Type Icon + Key + Priority */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
-                    <span title={typeInfo.label} className="flex-shrink-0">
+                    <span title={localizedTypeLabel} className="flex-shrink-0">
                       {typeInfo.icon}
                     </span>
                     <span

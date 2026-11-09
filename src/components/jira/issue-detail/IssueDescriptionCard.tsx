@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { FileText } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface IssueDescriptionCardProps {
   description: string | null;
@@ -12,6 +13,7 @@ export function IssueDescriptionCard({
   description,
   onSaveDescription,
 }: IssueDescriptionCardProps) {
+  const { dict } = useI18n();
   const [isEditing, setIsEditing] = useState(false);
   const [descValue, setDescValue] = useState(description || "");
 
@@ -34,7 +36,7 @@ export function IssueDescriptionCard({
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
           <FileText className="w-3.5 h-3.5 text-primary" />
-          <span>Опис</span>
+          <span>{dict.issue.description}</span>
         </h3>
         {!isEditing && (
           <button
@@ -42,7 +44,7 @@ export function IssueDescriptionCard({
             onClick={() => setIsEditing(true)}
             className="text-xs text-primary hover:underline font-medium cursor-pointer"
           >
-            Редагувати
+            {dict.common.edit}
           </button>
         )}
       </div>
@@ -53,7 +55,7 @@ export function IssueDescriptionCard({
             rows={6}
             value={descValue}
             onChange={(e) => setDescValue(e.target.value)}
-            placeholder="Введіть детальний опис задачі..."
+            placeholder={dict.issue.descriptionPlaceholder}
             className="w-full text-xs p-3 rounded-lg bg-secondary/40 border border-border focus:outline-none focus:ring-1 focus:ring-primary text-foreground resize-y leading-relaxed font-sans"
           />
           <div className="flex items-center justify-end gap-2">
@@ -62,14 +64,14 @@ export function IssueDescriptionCard({
               onClick={handleCancel}
               className="px-3 py-1 rounded text-xs border border-border text-muted-foreground hover:bg-secondary cursor-pointer"
             >
-              Скасувати
+              {dict.common.cancel}
             </button>
             <button
               type="button"
               onClick={handleSave}
               className="px-3.5 py-1 rounded text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer"
             >
-              Зберегти опис
+              {dict.issue.saveDescription}
             </button>
           </div>
         </div>
@@ -77,13 +79,13 @@ export function IssueDescriptionCard({
         <div
           onClick={() => setIsEditing(true)}
           className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap p-2 -m-2 rounded-lg hover:bg-secondary/30 cursor-pointer min-h-[4rem]"
-          title="Натисніть для редагування опису"
+          title={dict.issue.editDescription}
         >
           {description ? (
             description
           ) : (
             <span className="italic text-muted-foreground/60">
-              Немає опису. Натисніть тут, щоб додати детальний опис...
+              {dict.issue.noDescriptionHint}
             </span>
           )}
         </div>

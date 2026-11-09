@@ -382,7 +382,7 @@ export function BackupSettingsTab() {
               <div>
                 <h3 className="text-sm font-bold text-foreground">Відновлення з резервної копії (Імпорт)</h3>
                 <p className="text-[11px] text-muted-foreground">
-                  Розгортання системи з файлу .stsup або .json із збереженням усіх реляційних зв'язків
+                  Розгортання системи з файлу .stsup або .json із збереженням усіх реляційних зв&apos;язків
                 </p>
               </div>
             </div>

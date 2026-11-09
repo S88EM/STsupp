@@ -44,7 +44,7 @@ export function IssueActivityTabs({
   onAddComment,
   onGetAiRecommendation,
 }: IssueActivityTabsProps) {
-  const { dict } = useI18n();
+  const { dict, locale } = useI18n();
   const [activeTab, setActiveTab] = useState<"comments" | "ai" | "history">("comments");
   const [newComment, setNewComment] = useState("");
   const [postingComment, setPostingComment] = useState(false);
@@ -152,7 +152,7 @@ export function IssueActivityTabs({
                       {comment.author?.name || comment.authorName || "Користувач"}
                     </span>
                     <span className="text-[10px] text-muted-foreground">
-                      {formatTimeAgo(comment.createdAt)}
+                      {formatTimeAgo(comment.createdAt, locale)}
                     </span>
                   </div>
                   <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap">

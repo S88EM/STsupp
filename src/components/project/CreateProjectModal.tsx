@@ -240,7 +240,7 @@ export function CreateProjectModal({
 
           <div>
             <label className="text-xs font-medium text-foreground block mb-1">
-              Опис проекту <span className="text-muted-foreground font-normal">(необов'язково)</span>
+              Опис проекту <span className="text-muted-foreground font-normal">(необов&apos;язково)</span>
             </label>
             <textarea
               rows={2}

@@ -1,4 +1,5 @@
 import React from "react";
+import type { TranslationDictionary } from "@/lib/i18n";
 import {
   Bug,
   CheckSquare,
@@ -117,4 +118,22 @@ export function getPriorityIcon(priority: string) {
         </span>
       );
   }
+}
+
+export function getLocalizedStatusName(
+  name?: string,
+  dict?: TranslationDictionary,
+  locale?: string,
+  semanticKey?: string
+): string {
+  if (!name) return "";
+  if (locale !== "en" || !dict) return name;
+  const lower = name.toLowerCase().trim();
+  if (lower === "беклог" || semanticKey === "backlog") return dict.statuses.backlog;
+  if (lower === "в роботі" || semanticKey === "inprogress") return dict.statuses.in_progress;
+  if (lower === "тестування" || semanticKey === "testing") return dict.statuses.testing;
+  if (lower === "готово" || lower === "вирішено" || semanticKey === "done") return dict.statuses.done;
+  if (lower === "очікує клієнта" || lower === "очікування клієнта") return dict.statuses.awaiting_client;
+  if (lower === "закрита" || lower === "закрито") return dict.issue.closed;
+  return name;
 }

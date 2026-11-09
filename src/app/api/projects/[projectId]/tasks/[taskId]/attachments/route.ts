@@ -57,6 +57,27 @@ export async function POST(
       return NextResponse.json({ error: "Файл не надано" }, { status: 400 });
     }
 
+    // 1. File size limit: 25 MB max to protect memory & storage
+    const MAX_FILE_SIZE = 25 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: "Розмір файлу перевищує допустимий ліміт 25 МБ" },
+        { status: 400 }
+      );
+    }
+
+    // 2. Security validation: block executable and script extensions
+    const ext = (path.extname(file.name) || "").toLowerCase();
+    const BLOCKED_EXTENSIONS = new Set([
+      ".exe", ".bat", ".cmd", ".sh", ".php", ".cgi", ".dll", ".com", ".vbs", ".ps1", ".msi"
+    ]);
+    if (BLOCKED_EXTENSIONS.has(ext)) {
+      return NextResponse.json(
+        { error: "Завантаження виконуваних файлів або скриптів заборонено з міркувань безпеки" },
+        { status: 400 }
+      );
+    }
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
@@ -66,7 +87,6 @@ export async function POST(
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    const ext = path.extname(file.name) || "";
     const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}${ext}`;
     const filePath = path.join(uploadDir, uniqueFileName);
 

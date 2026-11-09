@@ -256,3 +256,8 @@ CREATE INDEX IF NOT EXISTS "Task_creatorId_idx" ON "Task"("creatorId");
 CREATE INDEX IF NOT EXISTS "Task_updatedAt_idx" ON "Task"("updatedAt");
 CREATE INDEX IF NOT EXISTS "Task_priority_idx" ON "Task"("priority");
 CREATE INDEX IF NOT EXISTS "ProjectMember_userId_idx" ON "ProjectMember"("userId");
+
+CREATE INDEX IF NOT EXISTS "Project_ownerId_idx" ON "Project"("ownerId");
+CREATE INDEX IF NOT EXISTS "User_role_idx" ON "User"("role");
+CREATE INDEX IF NOT EXISTS "User_resetToken_idx" ON "User"("resetToken");
+CREATE INDEX IF NOT EXISTS "User_verificationToken_idx" ON "User"("verificationToken");

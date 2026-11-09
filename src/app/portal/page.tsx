@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ClientCreateTicketModal } from "@/components/portal/ClientCreateTicketModal";
 import { ClientTicketDetailModal } from "@/components/portal/ClientTicketDetailModal";
 import {
@@ -20,8 +20,11 @@ import { PortalKpiCards } from "@/components/portal/PortalKpiCards";
 import { PortalFilters } from "@/components/portal/PortalFilters";
 import { PortalTicketList } from "@/components/portal/PortalTicketList";
 
-export default function ClientPortalPage() {
+function ClientPortalContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlTicketId = searchParams?.get("ticketId");
+  const urlProjectId = searchParams?.get("projectId");
 
   const [currentUser, setCurrentUser] = useState<PortalCurrentUser | null>(null);
   const [projects, setProjects] = useState<ProjectItem[]>([]);
@@ -40,6 +43,16 @@ export default function ClientPortalPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [selectedTicketProjectId, setSelectedTicketProjectId] = useState<string>("");
+
+  // Sync from URL search params (e.g. from /browse/[code])
+  useEffect(() => {
+    if (urlTicketId) {
+      setSelectedTicketId(urlTicketId);
+      if (urlProjectId) {
+        setSelectedTicketProjectId(urlProjectId);
+      }
+    }
+  }, [urlTicketId, urlProjectId]);
 
   // Load user data
   useEffect(() => {
@@ -110,6 +123,16 @@ export default function ClientPortalPage() {
   useEffect(() => {
     loadTickets(true);
   }, [loadTickets]);
+
+  // If ticket opened from URL and projectId wasn't provided, find it in loaded tickets
+  useEffect(() => {
+    if (selectedTicketId && !selectedTicketProjectId && allTickets.length > 0) {
+      const matched = allTickets.find((t) => t.id === selectedTicketId);
+      if (matched?.projectId) {
+        setSelectedTicketProjectId(matched.projectId);
+      }
+    }
+  }, [selectedTicketId, selectedTicketProjectId, allTickets]);
 
   const handleLogout = async () => {
     try {
@@ -267,5 +290,17 @@ export default function ClientPortalPage() {
         currentUser={currentUser}
       />
     </div>
+  );
+}
+
+export default function ClientPortalPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center text-xs text-muted-foreground">
+        Завантаження порталу клієнта...
+      </div>
+    }>
+      <ClientPortalContent />
+    </Suspense>
   );
 }

@@ -129,6 +129,7 @@ model Task {
   aiRecommendations AiRecommendation[]
 
   @@unique([projectId, taskNumber])
+  @@index([code])
   @@index([columnId, orderIndex])
   @@index([projectId])
   @@index([assigneeId])
@@ -221,5 +222,6 @@ model AuditLog {
   @@index([createdAt])
   @@index([actorEmail])
   @@index([targetId])
+  @@index([targetType, targetId, createdAt])
 }
 
